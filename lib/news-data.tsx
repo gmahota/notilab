@@ -44,13 +44,13 @@ export async function getNewsById(id: string) {
       {
         id: "2",
         title: "Startups Portuguesas Preparam-se para Nova Era da IA",
-        imageUrl: "/tech-startup-office.png",
+        imageUrl: "https://rthfa4e7dp.ufs.sh/f/RNuPxz0WoMGfW5fuy64j1HOuVxih6IDJXG0UqcQTMweyCF52",
         category: "Tecnologia",
       },
       {
         id: "3",
         title: "Como a Lei de IA Afeta o Setor Bancário Português",
-        imageUrl: "/banking-ai-regulation.png",
+        imageUrl: "https://rthfa4e7dp.ufs.sh/f/RNuPxz0WoMGfW5fuy64j1HOuVxih6IDJXG0UqcQTMweyCF52",
         category: "Economia",
       },
     ],
