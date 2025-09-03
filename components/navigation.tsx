@@ -24,15 +24,8 @@ export function Navigation() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
-            <div className="relative">
-              <Zap className="h-8 w-8 text-primary" />
-              <div className="absolute inset-0 h-8 w-8 text-secondary animate-pulse opacity-50">
-                <Zap className="h-8 w-8" />
-              </div>
-            </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              NotiLab
-            </span>
+            
+            <img src="/logo.png" alt="NotiLab Logo" className="h-8 w-auto" />
           </Link>
 
           {/* Desktop Categories */}
