@@ -22,7 +22,7 @@ export async function getNewsById(id: string) {
     `,
     summary:
       "A nova Lei de IA da UE estabelece regras rigorosas para sistemas de inteligência artificial, impactando empresas portuguesas e criando um marco regulatório mundial.",
-    imageUrl: "/european-parliament-ai-law.png",
+    imageUrl: "https://rthfa4e7dp.ufs.sh/f/RNuPxz0WoMGfW5fuy64j1HOuVxih6IDJXG0UqcQTMweyCF52",
     sourceName: "TechNews Portugal",
     publishedAt: new Date("2024-01-15T10:30:00Z"),
     category: { name: "Leis", slug: "leis", color: "#8B5CF6" },
