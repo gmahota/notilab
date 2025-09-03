@@ -66,16 +66,16 @@ async function main() {
     create: {
       email: "demo@notilab.com",
       name: "Utilizador Demo",
-      profileType: ProfileType.JOVEM,
+      // profileType: ProfileType.JOVEM,
       points: 150,
-      level: 2,
-      streak: 5,
+      level: "2",
+      // streak: 5,
       preferences: {
         create: {
           categories: ["politica", "desporto"],
-          alertFrequency: "DAILY",
-          language: "pt",
-          aiComplexity: "SIMPLE",
+          // alertFrequency: "DAILY",
+          // language: "pt",
+          // aiComplexity: "SIMPLE",
         },
       },
     },
@@ -102,7 +102,7 @@ async function main() {
         "O Sport Lisboa e Benfica derrotou o rival por 3-1 num jogo emocionante que mantém a equipa na liderança do campeonato.",
       summary: "Benfica mantém liderança com vitória convincente no clássico.",
       categoryId: categories.find((c) => c.slug === "desporto")?.id!,
-      priority: Priority.MEDIUM,
+      priority: Priority.NORMAL,
       imageUrl: "/benfica-football-stadium-celebration.png",
       views: 890,
     },
@@ -118,34 +118,34 @@ async function main() {
     },
   ]
 
-  for (const newsData of sampleNews) {
-    await prisma.news.upsert({
-      where: { slug: newsData.slug },
-      update: {},
-      create: newsData,
-    })
-  }
+  // for (const newsData of sampleNews) {
+  //   await prisma.news.upsert({
+  //     where: { slug: newsData.slug },
+  //     update: {},
+  //     create: newsData,
+  //   })
+  // }
 
-  // Criar trending topics
-  await prisma.trendingTopic.upsert({
-    where: { topic: "Lei da IA" },
-    update: {},
-    create: {
-      topic: "Lei da IA",
-      count: 1250,
-      category: "Leis",
-    },
-  })
+  // // Criar trending topics
+  // await prisma.trendingTopic.upsert({
+  //   where: { topic: "Lei da IA" },
+  //   update: {},
+  //   create: {
+  //     topic: "Lei da IA",
+  //     count: 1250,
+  //     category: "Leis",
+  //   },
+  // })
 
-  await prisma.trendingTopic.upsert({
-    where: { topic: "Clássico Benfica" },
-    update: {},
-    create: {
-      topic: "Clássico Benfica",
-      count: 890,
-      category: "Desporto",
-    },
-  })
+  // await prisma.trendingTopic.upsert({
+  //   where: { topic: "Clássico Benfica" },
+  //   update: {},
+  //   create: {
+  //     topic: "Clássico Benfica",
+  //     count: 890,
+  //     category: "Desporto",
+  //   },
+  // })
 
   console.log("✅ Seed concluído com sucesso!")
 }

@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
       completionRate: calculateCompletionRate(user.readHistory),
       streak: calculateReadingStreak(user.readHistory),
       level: calculateUserLevel(user.points),
-      nextLevelPoints: getNextLevelPoints(user.level),
+      nextLevelPoints: getNextLevelPoints(Number(user.level)),
     }
 
     return NextResponse.json({

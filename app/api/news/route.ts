@@ -52,12 +52,12 @@ export async function GET(request: NextRequest) {
         reactions: {
           select: {
             type: true,
-            _count: true,
+            //_count: true,
           },
         },
         readHistory: {
           select: {
-            _count: true,
+            //_count: true,
           },
         },
       },
@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
         type: r.type,
         count: r._count || 0,
       })),
-      views: article.readHistory._count || 0,
+      //views: article.readHistory._count || 0,
       author: "NotiLab Team", // TODO: Add author relationship
     }))
 
