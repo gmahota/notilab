@@ -48,18 +48,19 @@ export async function GET(request: NextRequest) {
       take: limit,
       skip: offset,
       include: {
-        category: true,
+        category: {
+          select: {
+            name: true,
+            slug: true,
+            color: true,
+          },
+        },
         reactions: {
           select: {
             type: true,
-            //_count: true,
           },
         },
-        readHistory: {
-          select: {
-            //_count: true,
-          },
-        },
+        readHistory: true,
       },
     })
 
@@ -74,9 +75,9 @@ export async function GET(request: NextRequest) {
       sourceName: article.sourceName,
       publishedAt: article.publishedAt,
       category: {
-        name: article.category.name,
-        slug: article.category.slug,
-        color: article.category.color,
+        name: article.category?.name || "",
+        slug: article.category?.slug || "",
+        color: article.category?.color || "#007BFF",
       },
       tags: article.tags,
       trending: article.trending,
@@ -86,15 +87,12 @@ export async function GET(request: NextRequest) {
       readTime: article.readTime || 3,
       reactions: article.reactions.map((r: any) => ({
         type: r.type,
-        count: r._count || 0,
+        count: 1,
       })),
-      //views: article.readHistory._count || 0,
       author: "NotiLab Team", // TODO: Add author relationship
     }))
-
     return NextResponse.json(transformedNews)
   } catch (error) {
-    console.error("Error fetching news:", error)
     return NextResponse.json({ error: "Failed to fetch news" }, { status: 500 })
   }
 }

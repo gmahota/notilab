@@ -1,7 +1,4 @@
-"use client"
-
 import { notFound } from "next/navigation"
-import { useParams } from "next/navigation"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -19,22 +16,9 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { getNewsById } from "@/lib/news-data"
-import { useEffect, useState } from "react"
 
-export default function NewsDetailPage() {
-  const params = useParams();
-  const newsId = params.id as string;
-
-  const [news, setNews] = useState<any>(null);
-
-  useEffect(() => {
-    const fetchNews = async () => {
-      const newsData = await getNewsById(newsId);
-      setNews(newsData);
-    };
-
-    fetchNews();
-  }, [newsId]);
+export default async function NewsDetailPage({ params }: { params: { id: string } }) {
+  const news = await getNewsById(params.id)
 
   if (!news) {
     notFound()
@@ -118,7 +102,7 @@ export default function NewsDetailPage() {
                   <AvatarFallback>
                     {news.author
                       .split(" ")
-                      .map((n:any) => n[0])
+                      .map((n) => n[0])
                       .join("")}
                   </AvatarFallback>
                 </Avatar>
@@ -160,7 +144,7 @@ export default function NewsDetailPage() {
 
         {/* Tags */}
         <div className="flex flex-wrap gap-2 mt-8 pt-8 border-t border-border">
-          {news.tags.map((tag:any) => (
+          {news.tags.map((tag) => (
             <Badge key={tag} variant="outline">
               #{tag}
             </Badge>
@@ -173,7 +157,7 @@ export default function NewsDetailPage() {
             <div className="flex items-center space-x-2">
               <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-red-500">
                 <Heart className="h-5 w-5" />
-                <span className="ml-1">{news.reactions.find((r:any) => r.type === "LIKE")?.count}</span>
+                <span className="ml-1">{news.reactions.find((r) => r.type === "LIKE")?.count}</span>
               </Button>
             </div>
 
@@ -199,7 +183,7 @@ export default function NewsDetailPage() {
           <section className="mt-12 pt-8 border-t border-border">
             <h2 className="text-2xl font-bold mb-6">Notícias Relacionadas</h2>
             <div className="grid md:grid-cols-2 gap-6">
-              {news.relatedNews.map((related:any) => (
+              {news.relatedNews.map((related) => (
                 <Link key={related.id} href={`/news/${related.id}`}>
                   <div className="group cursor-pointer">
                     <div className="relative rounded-lg overflow-hidden mb-3">

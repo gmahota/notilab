@@ -22,7 +22,7 @@ export async function getNewsById(id: string) {
     `,
     summary:
       "A nova Lei de IA da UE estabelece regras rigorosas para sistemas de inteligência artificial, impactando empresas portuguesas e criando um marco regulatório mundial.",
-    imageUrl: "https://rthfa4e7dp.ufs.sh/f/RNuPxz0WoMGfW5fuy64j1HOuVxih6IDJXG0UqcQTMweyCF52",
+    imageUrl: "/european-parliament-ai-law.png",
     sourceName: "TechNews Portugal",
     publishedAt: new Date("2024-01-15T10:30:00Z"),
     category: { name: "Leis", slug: "leis", color: "#8B5CF6" },
@@ -44,13 +44,13 @@ export async function getNewsById(id: string) {
       {
         id: "2",
         title: "Startups Portuguesas Preparam-se para Nova Era da IA",
-        imageUrl: "https://rthfa4e7dp.ufs.sh/f/RNuPxz0WoMGfW5fuy64j1HOuVxih6IDJXG0UqcQTMweyCF52",
+        imageUrl: "/tech-startup-office.png",
         category: "Tecnologia",
       },
       {
         id: "3",
         title: "Como a Lei de IA Afeta o Setor Bancário Português",
-        imageUrl: "https://rthfa4e7dp.ufs.sh/f/RNuPxz0WoMGfW5fuy64j1HOuVxih6IDJXG0UqcQTMweyCF52",
+        imageUrl: "/banking-ai-regulation.png",
         category: "Economia",
       },
     ],

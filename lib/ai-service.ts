@@ -124,6 +124,105 @@ export class AIService {
       throw new Error("Failed to generate personalized summary")
     }
   }
+
+  async generateNews(params: {
+    topic: string
+    category: string
+    style: string
+    tone: string
+    length: string
+    targetAudience: string
+    includeAnalysis: boolean
+    includeSources: boolean
+  }): Promise<{
+    title: string
+    summary: string
+    content: string
+    aiAnalysis: any
+    suggestions: string[]
+  }> {
+    try {
+      const response = await fetch("/api/ai/generate-news", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(params),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to generate news")
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error("Error generating news:", error)
+      throw new Error("Failed to generate news")
+    }
+  }
+
+  async researchTopic(
+    topic: string,
+    sources?: string[],
+  ): Promise<{
+    results: Array<{
+      title: string
+      source: string
+      url: string
+      summary: string
+      relevance: number
+      publishedAt: string
+      category: string
+    }>
+    summary: string
+  }> {
+    try {
+      const response = await fetch("/api/ai/research", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ topic, sources }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to research topic")
+      }
+
+      return await response.json()
+    } catch (error) {
+      console.error("Error researching topic:", error)
+      throw new Error("Failed to research topic")
+    }
+  }
+
+  async getTrendingTopics(
+    region = "PT",
+    timeframe = "24h",
+  ): Promise<
+    Array<{
+      keyword: string
+      volume: number
+      growth: string
+      category: string
+      sentiment: string
+      related: string[]
+    }>
+  > {
+    try {
+      const response = await fetch(`/api/ai/trending?region=${region}&timeframe=${timeframe}`)
+
+      if (!response.ok) {
+        throw new Error("Failed to get trending topics")
+      }
+
+      const data = await response.json()
+      return data.topics
+    } catch (error) {
+      console.error("Error getting trending topics:", error)
+      throw new Error("Failed to get trending topics")
+    }
+  }
 }
 
 export const aiService = AIService.getInstance()

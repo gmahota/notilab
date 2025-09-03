@@ -13,6 +13,10 @@ model User {
   name      String?
   avatar    String?
   profile   UserProfile?
+  role      UserRole @default(USER)
+  isActive  Boolean  @default(true)
+  lastLogin DateTime?
+  password  String?  // For admin authentication
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
@@ -22,6 +26,8 @@ model User {
   reactions   NewsReaction[]
   points      Int @default(0)
   level       String @default("Iniciante")
+  createdNews News[] @relation("NewsAuthor")
+  reviewedNews News[] @relation("NewsReviewer")
   
   @@map("users")
 }
@@ -87,12 +93,18 @@ model News {
   
   // IA e Personalização
   aiSummary   String?
+  aiAnalysis  Json?    // AI analysis results
   sentiment   String?
   readTime    Int?     // em minutos
   
   // Relacionamentos
   reactions   NewsReaction[]
   readHistory ReadHistory[]
+  status      NewsStatus @default(DRAFT)
+  authorId    String?
+  reviewerId  String?
+  author      User? @relation("NewsAuthor", fields: [authorId], references: [id])
+  reviewer    User? @relation("NewsReviewer", fields: [reviewerId], references: [id])
   
   @@map("news")
 }
@@ -149,6 +161,30 @@ model ChatSession {
   @@map("chat_sessions")
 }
 
+model AdminAction {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String   // CREATE, UPDATE, DELETE, APPROVE, REJECT
+  resource  String   // NEWS, USER, CATEGORY
+  resourceId String
+  details   Json?
+  createdAt DateTime @default(now())
+  
+  @@map("admin_actions")
+}
+
+model ContentWorkflow {
+  id        String   @id @default(cuid())
+  newsId    String   @unique
+  stage     WorkflowStage @default(DRAFT)
+  assignedTo String?
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("content_workflow")
+}
+
 // Enums
 enum ProfileType {
   JOVEM
@@ -171,4 +207,33 @@ enum ReactionType {
   ANGRY
   SAD
   SHARE
+}
+
+enum UserRole {
+  USER
+  REDATOR
+  REVISOR
+  SUPERVISOR
+  MARKETING
+  CRIADOR_CONTEUDO
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum NewsStatus {
+  DRAFT
+  PENDING_REVIEW
+  APPROVED
+  PUBLISHED
+  REJECTED
+  ARCHIVED
+}
+
+enum WorkflowStage {
+  DRAFT
+  WRITING
+  REVIEW
+  APPROVAL
+  PUBLISHED
+  REJECTED
 }

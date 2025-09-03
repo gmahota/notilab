@@ -108,7 +108,7 @@ export function SocialIntegrations() {
   )
 
   const toggleIntegration = (platformId: string) => {
-    setIntegrations((prev:any) => ({
+    setIntegrations((prev) => ({
       ...prev,
       [platformId]: {
         ...prev[platformId],
@@ -118,7 +118,7 @@ export function SocialIntegrations() {
   }
 
   const updateFrequency = (platformId: string, frequency: string) => {
-    setIntegrations((prev:any) => ({
+    setIntegrations((prev) => ({
       ...prev,
       [platformId]: {
         ...prev[platformId],
@@ -127,21 +127,11 @@ export function SocialIntegrations() {
     }))
   }
 
-  const updateCategories = (platformId: string, categories: string[]) => {
-    setIntegrations((prev:any) => ({
-      ...prev,
-      [platformId]: {
-        ...prev[platformId],
-        categories,
-      },
-    }))
-  }
-
   return (
     <div className="space-y-6">
       {/* Platform Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {socialPlatforms.map((platform:any) => {
+        {socialPlatforms.map((platform) => {
           const Icon = platform.icon
           const isEnabled = integrations[platform.id]?.enabled
 
@@ -190,7 +180,7 @@ export function SocialIntegrations() {
                 <div className="space-y-2">
                   <Label className="text-xs font-medium">Funcionalidades:</Label>
                   <div className="flex flex-wrap gap-1">
-                    {platform.features.map((feature:any) => (
+                    {platform.features.map((feature) => (
                       <Badge key={feature} variant="secondary" className="text-xs">
                         {feature}
                       </Badge>

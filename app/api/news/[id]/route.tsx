@@ -1,8 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 
-export async function GET(request: NextRequest) {
-  const url = new URL(request.url);
-  const id = url.pathname.split("/").pop();
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+  const { id } = params
 
   // Mock data for individual news article
   const mockNews = {

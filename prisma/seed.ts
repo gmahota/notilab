@@ -1,4 +1,4 @@
-import { PrismaClient, ProfileType, Priority } from "@prisma/client"
+import { PrismaClient, Priority } from "@prisma/client"
 
 const prisma = new PrismaClient()
 
@@ -60,22 +60,17 @@ async function main() {
   ])
 
   // Criar usuário demo
-  const demoUser = await prisma.user.upsert({
+  await prisma.user.upsert({
     where: { email: "demo@notilab.com" },
     update: {},
     create: {
       email: "demo@notilab.com",
       name: "Utilizador Demo",
-      // profileType: ProfileType.JOVEM,
       points: 150,
       level: "2",
-      // streak: 5,
       preferences: {
         create: {
           categories: ["politica", "desporto"],
-          // alertFrequency: "DAILY",
-          // language: "pt",
-          // aiComplexity: "SIMPLE",
         },
       },
     },
@@ -94,6 +89,9 @@ async function main() {
       imageUrl: "/european-parliament-ai-law.png",
       views: 1250,
       isBreaking: true,
+      sourceUrl: "https://example.com/news1",
+      sourceName: "Notilab",
+      publishedAt: new Date(),
     },
     {
       title: "Benfica Vence Clássico por 3-1",
@@ -105,6 +103,9 @@ async function main() {
       priority: Priority.NORMAL,
       imageUrl: "/benfica-football-stadium-celebration.png",
       views: 890,
+      sourceUrl: "https://example.com/news2",
+      sourceName: "Notilab",
+      publishedAt: new Date(),
     },
     {
       title: "Mercados Sobem com Otimismo Económico",
@@ -113,30 +114,46 @@ async function main() {
         "As bolsas europeias registaram ganhos significativos hoje, impulsionadas por dados económicos positivos e expectativas de crescimento.",
       summary: "Bolsas europeias em alta com dados económicos positivos.",
       categoryId: categories.find((c) => c.slug === "economia")?.id!,
-      priority: Priority.LOW,
-      views: 456,
+      priority: Priority.NORMAL,
+      imageUrl: "/stock-market-optimism.png",
+      views: 650,
+      sourceUrl: "https://example.com/news3",
+      sourceName: "Notilab",
+      publishedAt: new Date(),
     },
-  ]
+  ];
 
-  // for (const newsData of sampleNews) {
-  //   await prisma.news.upsert({
-  //     where: { slug: newsData.slug },
-  //     update: {},
-  //     create: newsData,
-  //   })
-  // }
+  // Inserir notícias de exemplo
+  for (const newsData of sampleNews) {
+    await prisma.news.upsert({
+      where: { id: newsData.slug }, // Use the correct unique field, e.g., 'id'
+      update: {},
+      create: { ...newsData, id: newsData.slug }, // Ensure 'id' is set if needed
+    });
+  }
 
-  // // Criar trending topics
+  // Criar trending topics
   // await prisma.trendingTopic.upsert({
-  //   where: { topic: "Lei da IA" },
+  //   where: { id: "lei-da-ia" }, // Use the correct unique field, e.g., id or slug
   //   update: {},
   //   create: {
+  //     id: "lei-da-ia",
   //     topic: "Lei da IA",
   //     count: 1250,
   //     category: "Leis",
   //   },
   // })
 
+  // await prisma.trendingTopic.upsert({
+  //   where: { id: "classico-benfica" }, // Use the correct unique field, e.g., id or slug
+  //   update: {},
+  //   create: {
+  //     id: "classico-benfica",
+  //     name: "Clássico Benfica",
+  //     count: 890,
+  //     category: "Desporto",
+  //   },
+  // })
   // await prisma.trendingTopic.upsert({
   //   where: { topic: "Clássico Benfica" },
   //   update: {},
