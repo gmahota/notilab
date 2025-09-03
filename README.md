@@ -1,36 +1,147 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🚀 NotiLab - Assistente de Notícias com IA
 
-## Getting Started
+Uma plataforma moderna de notícias com inteligência artificial que oferece resumos personalizados, chat interativo e gamificação para uma experiência de consumo de notícias única.
 
-First, run the development server:
+## ✨ Funcionalidades
 
-```bash
+- 🤖 **Chat IA (NotiBot)** - Assistente inteligente para explicar notícias
+- 📰 **Feed Personalizado** - Notícias adaptadas ao seu perfil
+- 🎮 **Gamificação** - Sistema de pontos, níveis e conquistas
+- 📱 **Integrações Sociais** - WhatsApp, Telegram, Twitter
+- 🔍 **Busca Inteligente** - Encontre notícias por tema ou categoria
+- 📊 **Analytics** - Acompanhe seu consumo de notícias
+
+## 🛠️ Stack Tecnológica
+
+- **Frontend**: Next.js 15, React 19, TypeScript
+- **UI**: Tailwind CSS, Radix UI, Lucide Icons
+- **Backend**: Prisma ORM, PostgreSQL
+- **IA**: OpenAI/Groq (opcional)
+- **Deploy**: Vercel
+
+## 🚀 Início Rápido
+
+### Pré-requisitos
+
+- Node.js 18+
+- PostgreSQL
+- Git
+
+### Instalação
+
+1. **Clone o repositório**
+\`\`\`bash
+git clone <seu-repo>
+cd notilab
+\`\`\`
+
+2. **Execute o setup automático**
+\`\`\`bash
+npm run setup
+\`\`\`
+
+3. **Configure as variáveis de ambiente**
+\`\`\`bash
+cp .env.example .env
+# Edite o .env com suas configurações
+\`\`\`
+
+4. **Inicie o desenvolvimento**
+\`\`\`bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+\`\`\`
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Acesse [http://localhost:3000](http://localhost:3000) para ver a aplicação.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📋 Scripts Disponíveis
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+\`\`\`bash
+# Desenvolvimento
+npm run dev          # Iniciar servidor de desenvolvimento
+npm run build        # Build de produção
+npm run start        # Iniciar produção
 
-## Learn More
+# Banco de dados
+npm run db:push      # Sincronizar schema
+npm run db:studio    # Interface visual do Prisma
+npm run db:seed      # Popular com dados iniciais
+npm run db:reset     # Reset completo + seed
 
-To learn more about Next.js, take a look at the following resources:
+# Utilitários
+npm run setup        # Configuração inicial completa
+npm run check        # Verificar saúde do sistema
+npm run lint         # Verificar código
+\`\`\`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 🗄️ Estrutura do Banco
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **Users** - Perfis de utilizador com gamificação
+- **News** - Notícias com categorias e reações
+- **Categories** - Política, Desporto, Cultura, Economia, Leis
+- **ChatSessions** - Conversas com IA
+- **TrendingTopics** - Tópicos em alta
 
-## Deploy on Vercel
+## 🎯 Perfis de Utilizador
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **👶 Jovem** - Linguagem simples, conteúdo viral
+- **💼 Executivo** - Resumos rápidos, foco em economia
+- **🎓 Estudante** - Explicações detalhadas, contexto histórico
+- **👴 Senior** - Interface simplificada, notícias tradicionais
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🔧 Configuração Avançada
+
+### Variáveis de Ambiente
+
+\`\`\`env
+# Essenciais
+DATABASE_URL="postgresql://..."
+NEXTAUTH_SECRET="..."
+
+# IA (opcional)
+OPENAI_API_KEY="..."
+GROQ_API_KEY="..."
+
+# Sociais (opcional)
+WHATSAPP_TOKEN="..."
+TELEGRAM_BOT_TOKEN="..."
+\`\`\`
+
+### Integrações Sociais
+
+Configure bots do WhatsApp e Telegram para receber resumos automáticos das notícias mais importantes do dia.
+
+## 📱 Deploy
+
+### Vercel (Recomendado)
+
+1. Conecte seu repositório ao Vercel
+2. Configure as variáveis de ambiente
+3. Deploy automático a cada push
+
+### Docker
+
+\`\`\`bash
+# Em breve...
+\`\`\`
+
+## 🤝 Contribuição
+
+1. Fork o projeto
+2. Crie uma branch (`git checkout -b feature/nova-funcionalidade`)
+3. Commit suas mudanças (`git commit -m 'Adiciona nova funcionalidade'`)
+4. Push para a branch (`git push origin feature/nova-funcionalidade`)
+5. Abra um Pull Request
+
+## 📄 Licença
+
+Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para detalhes.
+
+## 🆘 Suporte
+
+- 📧 Email: suporte@notilab.com
+- 💬 Discord: [NotiLab Community](https://discord.gg/notilab)
+- 📖 Docs: [docs.notilab.com](https://docs.notilab.com)
+
+---
+
+Feito com ❤️ pela equipa NotiLab

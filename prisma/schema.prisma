@@ -1,0 +1,174 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  avatar    String?
+  profile   UserProfile?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relacionamentos
+  preferences UserPreferences?
+  readHistory ReadHistory[]
+  reactions   NewsReaction[]
+  points      Int @default(0)
+  level       String @default("Iniciante")
+  
+  @@map("users")
+}
+
+model UserProfile {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type        ProfileType @default(JOVEM)
+  interests   String[]    // Array de categorias de interesse
+  language    String      @default("pt")
+  timezone    String      @default("Europe/Lisbon")
+  
+  @@map("user_profiles")
+}
+
+model UserPreferences {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  dailyDigest     Boolean @default(true)
+  pushNotifications Boolean @default(true)
+  emailAlerts     Boolean @default(false)
+  categories      String[] // Categorias preferidas
+  
+  @@map("user_preferences")
+}
+
+model Category {
+  id          String @id @default(cuid())
+  name        String @unique
+  slug        String @unique
+  description String?
+  color       String @default("#007BFF")
+  icon        String?
+  
+  // Relacionamentos
+  news        News[]
+  
+  @@map("categories")
+}
+
+model News {
+  id          String   @id @default(cuid())
+  title       String
+  content     String
+  summary     String?
+  imageUrl    String?
+  sourceUrl   String
+  sourceName  String
+  publishedAt DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Classificação
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id])
+  tags        String[]
+  trending    Boolean  @default(false)
+  priority    Priority @default(NORMAL)
+  
+  // IA e Personalização
+  aiSummary   String?
+  sentiment   String?
+  readTime    Int?     // em minutos
+  
+  // Relacionamentos
+  reactions   NewsReaction[]
+  readHistory ReadHistory[]
+  
+  @@map("news")
+}
+
+model NewsReaction {
+  id     String      @id @default(cuid())
+  userId String
+  newsId String
+  type   ReactionType
+  
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  news   News @relation(fields: [newsId], references: [id], onDelete: Cascade)
+  
+  createdAt DateTime @default(now())
+  
+  @@unique([userId, newsId])
+  @@map("news_reactions")
+}
+
+model ReadHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  newsId    String
+  readAt    DateTime @default(now())
+  timeSpent Int?     // em segundos
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  news News @relation(fields: [newsId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, newsId])
+  @@map("read_history")
+}
+
+model TrendingTopic {
+  id          String   @id @default(cuid())
+  keyword     String   @unique
+  searchVolume Int
+  category    String?
+  region      String   @default("PT")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("trending_topics")
+}
+
+model ChatSession {
+  id        String   @id @default(cuid())
+  userId    String?
+  messages  Json[]   // Array de mensagens do chat
+  context   String?  // Contexto da conversa
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  @@map("chat_sessions")
+}
+
+// Enums
+enum ProfileType {
+  JOVEM
+  EXECUTIVO
+  ESTUDANTE
+  SENIOR
+}
+
+enum Priority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum ReactionType {
+  LIKE
+  LOVE
+  LAUGH
+  ANGRY
+  SAD
+  SHARE
+}
