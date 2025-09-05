@@ -12,7 +12,7 @@ export interface AdminUser {
 
 export async function checkAdminAuth(): Promise<AdminUser | null> {
   try {
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
     const token = cookieStore.get("admin-token")?.value
 
     if (!token) return null

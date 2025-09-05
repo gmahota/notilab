@@ -44,7 +44,7 @@ export async function getNewsById(id: string) {
       {
         id: "2",
         title: "Startups Portuguesas Preparam-se para Nova Era da IA",
-        imageUrl: "/tech-startup-office.png",
+        imageUrl: "/european-parliament-ai-law.png",
         category: "Tecnologia",
       },
       {
