@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       role: user.role,
     })
 
-    const cookieStore = cookies()
+    const cookieStore = await cookies()
     cookieStore.set("admin-token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",

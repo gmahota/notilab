@@ -409,7 +409,7 @@ A implementação nacional está prevista para 2025, com o apoio do Ministério 
                   <CardContent className="flex items-center justify-center h-64">
                     <div className="text-center">
                       <Brain className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-                      <p className="text-gray-400">Configure os parâmetros e clique em "Gerar Notícia"</p>
+                      <p className="text-gray-400">Configure os parâmetros e clique em &quot;Gerar Notícia&quot;</p>
                     </div>
                   </CardContent>
                 </Card>
