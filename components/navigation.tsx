@@ -63,6 +63,18 @@ export function Navigation() {
               </Button>
             </Link>
 
+            {/* Reddit News */}
+            <Link href="/reddit-news">
+              <Button
+                variant="outline"
+                size="sm"
+                className="hidden sm:flex bg-orange-500/10 border-orange-500/20 hover:bg-orange-500/20 text-orange-600 dark:text-orange-400"
+              >
+                <Globe className="h-4 w-4 mr-2" />
+                Reddit
+              </Button>
+            </Link>
+
             {/* Chat IA */}
             <Link href="/chat">
               <Button
