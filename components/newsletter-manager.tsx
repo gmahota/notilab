@@ -180,4 +180,112 @@ export function NewsletterManager({ user }: NewsletterManagerProps) {
                         Ver
                       </Button>
                       {newsletter.status === "DRAFT" && (
-                        \
+                        <Button variant="outline" size="sm" className="ml-2">
+                          <Send className="w-3 h-3 mr-1" />
+                          Enviar
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="subscribers" className="space-y-6">
+          {/* Subscriber Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Card className="bg-gray-900 border-gray-800">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-gray-400">Total Subscribers</CardTitle>
+                <Users className="w-4 h-4 text-blue-400" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-white">15,420</div>
+                <p className="text-xs text-green-400">+12.5% este mês</p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gray-900 border-gray-800">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-gray-400">Taxa de Crescimento</CardTitle>
+                <Calendar className="w-4 h-4 text-green-400" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-white">12.5%</div>
+                <p className="text-xs text-green-400">Mensal</p>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gray-900 border-gray-800">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium text-gray-400">Engagement Rate</CardTitle>
+                <MousePointer className="w-4 h-4 text-purple-400" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold text-white">24.8%</div>
+                <p className="text-xs text-green-400">Média</p>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Subscriber Segments */}
+          <Card className="bg-gray-900 border-gray-800">
+            <CardHeader>
+              <CardTitle className="text-white">Segmentos de Subscribers</CardTitle>
+              <CardDescription className="text-gray-400">Distribuição por categorias</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {subscribers.map((segment, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-gray-800 rounded-lg">
+                    <div>
+                      <h4 className="text-white font-medium">{segment.segment}</h4>
+                      <p className="text-sm text-gray-400">{segment.count.toLocaleString()} subscribers</p>
+                    </div>
+                    <Badge className="bg-green-600 text-white">{segment.growth}</Badge>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="templates" className="space-y-6">
+          <Card className="bg-gray-900 border-gray-800">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-white">Templates</CardTitle>
+                  <CardDescription className="text-gray-400">Modelos para newsletters</CardDescription>
+                </div>
+                <Button className="bg-blue-600 hover:bg-blue-700">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Novo Template
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {["weekly-digest", "breaking-news", "premium"].map((template) => (
+                  <Card key={template} className="bg-gray-800 border-gray-700 hover:bg-gray-750 cursor-pointer">
+                    <CardHeader>
+                      <CardTitle className="text-white text-sm capitalize">{template.replace("-", " ")}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="h-32 bg-gray-700 rounded-md mb-3"></div>
+                      <Button variant="outline" size="sm" className="w-full">
+                        Usar Template
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  )
+}
