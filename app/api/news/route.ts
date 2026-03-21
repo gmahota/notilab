@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
     })
 
     // Transform data for frontend
-    const transformedNews = news.map((article) => ({
+    const transformedNews = news.map((article: any) => ({
       id: article.id,
       title: article.title,
       summary: article.summary || "",

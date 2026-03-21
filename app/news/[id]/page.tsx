@@ -17,8 +17,9 @@ import {
 import Link from "next/link"
 import { getNewsById } from "@/lib/news-data"
 
-export default async function NewsDetailPage({ params }: { params: { id: string } }) {
-  const news = await getNewsById(params.id)
+export default async function NewsDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const news = await getNewsById(id)
 
   if (!news) {
     notFound()

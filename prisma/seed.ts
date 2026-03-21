@@ -1,4 +1,12 @@
-import { PrismaClient, Priority } from "@prisma/client"
+import { PrismaClient } from "@prisma/client"
+
+// Temporary enum definition until Prisma client is generated
+enum Priority {
+  LOW = "LOW",
+  NORMAL = "NORMAL", 
+  HIGH = "HIGH",
+  URGENT = "URGENT"
+}
 
 const prisma = new PrismaClient()
 
