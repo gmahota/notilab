@@ -10,8 +10,8 @@ export async function GET(request: NextRequest) {
     const limit = Number.parseInt(searchParams.get("limit") || "10")
     const offset = Number.parseInt(searchParams.get("offset") || "0")
 
-    // Build where clause
-    const where: any = {}
+  // Build where clause
+  const where: Record<string, unknown> = {}
 
     if (category && category !== "all") {
       where.category = {
@@ -27,8 +27,8 @@ export async function GET(request: NextRequest) {
       ]
     }
 
-    // Build orderBy clause
-    let orderBy: any = { publishedAt: "desc" }
+  // Build orderBy clause
+  let orderBy: Record<string, unknown> | Array<Record<string, unknown>> = { publishedAt: "desc" }
 
     switch (sortBy) {
       case "popular":
@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
       aiSummary: article.aiSummary || "",
       sentiment: article.sentiment || "neutral",
       readTime: article.readTime || 3,
-      reactions: article.reactions.map((r: any) => ({
+      reactions: article.reactions.map((r: { type: string }) => ({
         type: r.type,
         count: 1,
       })),

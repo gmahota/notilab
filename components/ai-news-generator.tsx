@@ -162,7 +162,7 @@ A implementação nacional está prevista para 2025, com o apoio do Ministério 
                       </Label>
                       <Select
                         value={formData.category}
-                        onValueChange={(value) => setFormData({ ...formData, category: value })}
+                        onValueChange={(value: string) => setFormData({ ...formData, category: value })}
                       >
                         <SelectTrigger className="bg-gray-800 border-gray-700 text-white mt-1">
                           <SelectValue placeholder="Selecionar" />
@@ -183,7 +183,7 @@ A implementação nacional está prevista para 2025, com o apoio do Ministério 
                       </Label>
                       <Select
                         value={formData.style}
-                        onValueChange={(value) => setFormData({ ...formData, style: value })}
+                        onValueChange={(value: string) => setFormData({ ...formData, style: value })}
                       >
                         <SelectTrigger className="bg-gray-800 border-gray-700 text-white mt-1">
                           <SelectValue />
@@ -205,7 +205,7 @@ A implementação nacional está prevista para 2025, com o apoio do Ministério 
                       </Label>
                       <Select
                         value={formData.tone}
-                        onValueChange={(value) => setFormData({ ...formData, tone: value })}
+                        onValueChange={(value: string) => setFormData({ ...formData, tone: value })}
                       >
                         <SelectTrigger className="bg-gray-800 border-gray-700 text-white mt-1">
                           <SelectValue />
@@ -225,7 +225,7 @@ A implementação nacional está prevista para 2025, com o apoio do Ministério 
                       </Label>
                       <Select
                         value={formData.length}
-                        onValueChange={(value) => setFormData({ ...formData, length: value })}
+                        onValueChange={(value: string) => setFormData({ ...formData, length: value })}
                       >
                         <SelectTrigger className="bg-gray-800 border-gray-700 text-white mt-1">
                           <SelectValue />
@@ -245,7 +245,7 @@ A implementação nacional está prevista para 2025, com o apoio do Ministério 
                     </Label>
                     <Select
                       value={formData.targetAudience}
-                      onValueChange={(value) => setFormData({ ...formData, targetAudience: value })}
+                      onValueChange={(value:string) => setFormData({ ...formData, targetAudience: value })}
                     >
                       <SelectTrigger className="bg-gray-800 border-gray-700 text-white mt-1">
                         <SelectValue />
@@ -268,7 +268,7 @@ A implementação nacional está prevista para 2025, com o apoio do Ministério 
                       <Switch
                         id="includeAnalysis"
                         checked={formData.includeAnalysis}
-                        onCheckedChange={(checked) => setFormData({ ...formData, includeAnalysis: checked })}
+                        onCheckedChange={(checked: boolean) => setFormData({ ...formData, includeAnalysis: checked })}
                       />
                     </div>
 
@@ -279,7 +279,7 @@ A implementação nacional está prevista para 2025, com o apoio do Ministério 
                       <Switch
                         id="includeSources"
                         checked={formData.includeSources}
-                        onCheckedChange={(checked) => setFormData({ ...formData, includeSources: checked })}
+                        onCheckedChange={(checked: boolean) => setFormData({ ...formData, includeSources: checked })}
                       />
                     </div>
                   </div>
@@ -409,7 +409,7 @@ A implementação nacional está prevista para 2025, com o apoio do Ministério 
                   <CardContent className="flex items-center justify-center h-64">
                     <div className="text-center">
                       <Brain className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-                      <p className="text-gray-400">Configure os parâmetros e clique em &quot;Gerar Notícia&quot;</p>
+                      <p className="text-gray-400">Configure os parâmetros e clique em {"\"Gerar Notícia\""}</p>
                     </div>
                   </CardContent>
                 </Card>
