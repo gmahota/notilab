@@ -40,6 +40,13 @@ export async function getNewsById(id: string) {
     ],
     views: 15420,
     author: "Ana Silva",
+    // ArticleAI fields (PRD)
+    articleAI: {
+      tldr: "The EU just created the world's first comprehensive rulebook for AI. If you build or use AI, this affects you.",
+      whyItMatters: "This sets the global standard for AI regulation. Every tech company operating in Europe must comply, and other countries are likely to follow suit. It's the 'GDPR moment' for artificial intelligence.",
+      explainLikeIm10: "Imagine robots that are super smart and can do lots of things. Some grown-ups worried that these robots might not always be nice or fair. So the big group of countries in Europe made rules — like playground rules but for robots! Now robots have to be honest, fair, and not sneaky. If a company breaks the rules, they get a HUGE time-out (and pay lots of money). 🤖📏",
+      importanceScore: 92,
+    },
     relatedNews: [
       {
         id: "2",

@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -75,10 +76,13 @@ export function NewsCard({ news, priority = "normal" }: NewsCardProps) {
         <div className={`grid ${isFeatured ? "lg:grid-cols-2" : "grid-cols-1"} gap-0`}>
           {/* Image Section */}
           <div className="relative">
-            <img
+            <Image
               src={news.imageUrl || "/placeholder.svg"}
               alt={news.title}
+              width={800}
+              height={400}
               className={`w-full object-cover ${isFeatured ? "h-64 lg:h-full" : "h-48 sm:h-56"}`}
+              unoptimized
             />
 
             {/* Overlays */}

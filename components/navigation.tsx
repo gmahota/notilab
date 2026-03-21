@@ -4,139 +4,97 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { Search, Bell, MessageCircle, Menu, Zap, TrendingUp, Globe, Gamepad2, Briefcase, Scale } from "lucide-react"
+import { Menu, Zap, X } from "lucide-react"
 import Link from "next/link"
 
-const categories = [
-  { name: "Política", icon: Scale, slug: "politica" },
-  { name: "Desporto", icon: Gamepad2, slug: "desporto" },
-  { name: "Cultura", icon: Globe, slug: "cultura" },
-  { name: "Economia", icon: Briefcase, slug: "economia" },
-  { name: "Tendências", icon: TrendingUp, slug: "tendencias" },
+const navLinks = [
+  { name: "Feed", href: "/feed" },
+  { name: "Chat", href: "/chat" },
+  { name: "Trending", href: "/trending" },
+  { name: "Digest", href: "/digest" },
 ]
 
 export function Navigation() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   return (
-    <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
+    <nav className="sticky top-0 z-50 glass border-b border-border/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
             <div className="relative">
-              <Zap className="h-8 w-8 text-primary" />
-              <div className="absolute inset-0 h-8 w-8 text-secondary animate-pulse opacity-50">
-                <Zap className="h-8 w-8" />
+              <Zap className="h-7 w-7 text-primary" />
+              <div className="absolute inset-0 h-7 w-7 text-secondary animate-pulse opacity-40">
+                <Zap className="h-7 w-7" />
               </div>
             </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+            <span className="text-xl font-bold text-gradient">
               NotiLab
             </span>
           </Link>
 
-          {/* Desktop Categories */}
-          <div className="hidden md:flex items-center space-x-1">
-            {categories.map((category) => {
-              const Icon = category.icon
-              return (
-                <Link key={category.slug} href={`/feed?category=${category.slug}`}>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-all duration-200"
-                  >
-                    <Icon className="h-4 w-4 mr-2" />
-                    {category.name}
-                  </Button>
-                </Link>
-              )
-            })}
+          {/* Desktop Links */}
+          <div className="hidden md:flex items-center gap-1">
+            {navLinks.map((link) => (
+              <Link key={link.href} href={link.href}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {link.name}
+                </Button>
+              </Link>
+            ))}
           </div>
 
-          {/* Actions */}
-          <div className="flex items-center space-x-3">
-            {/* Search */}
-            <Link href="/feed">
-              <Button variant="ghost" size="sm" className="hidden sm:flex">
-                <Search className="h-4 w-4" />
-              </Button>
-            </Link>
-
-            {/* Reddit News */}
-            <Link href="/reddit-news">
-              <Button
-                variant="outline"
-                size="sm"
-                className="hidden sm:flex bg-orange-500/10 border-orange-500/20 hover:bg-orange-500/20 text-orange-600 dark:text-orange-400"
-              >
-                <Globe className="h-4 w-4 mr-2" />
-                Reddit
-              </Button>
-            </Link>
-
-            {/* Chat IA */}
-            <Link href="/chat">
-              <Button
-                variant="outline"
-                size="sm"
-                className="hidden sm:flex bg-primary/10 border-primary/20 hover:bg-primary/20 text-primary"
-              >
-                <MessageCircle className="h-4 w-4 mr-2" />
-                NotiBot
-              </Button>
-            </Link>
-
-            {/* Notifications */}
-            <Button variant="ghost" size="sm" className="relative">
-              <Bell className="h-4 w-4" />
-              <span className="absolute -top-1 -right-1 h-3 w-3 bg-secondary rounded-full animate-pulse" />
-            </Button>
-
+          {/* Right side */}
+          <div className="flex items-center gap-2">
             {/* User Menu */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                   <Avatar className="h-8 w-8">
                     <AvatarImage src="/diverse-user-avatars.png" />
-                    <AvatarFallback className="bg-primary text-primary-foreground">U</AvatarFallback>
+                    <AvatarFallback className="bg-primary/20 text-primary text-sm">U</AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem>Perfil</DropdownMenuItem>
-                <DropdownMenuItem>Preferências</DropdownMenuItem>
-                <DropdownMenuItem>Histórico</DropdownMenuItem>
-                <DropdownMenuItem>Sair</DropdownMenuItem>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem asChild><Link href="/profile">Profile</Link></DropdownMenuItem>
+                <DropdownMenuItem asChild><Link href="/feed">My Feed</Link></DropdownMenuItem>
+                <DropdownMenuItem>Sign Out</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Mobile Menu */}
-            <Button variant="ghost" size="sm" className="md:hidden" onClick={() => setIsMenuOpen(!isMenuOpen)}>
-              <Menu className="h-4 w-4" />
+            {/* Mobile Menu Toggle */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+            >
+              {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </Button>
           </div>
         </div>
 
-        {/* Mobile Categories */}
+        {/* Mobile Menu */}
         {isMenuOpen && (
-          <div className="md:hidden py-4 border-t border-border">
-            <div className="grid grid-cols-2 gap-2">
-              {categories.map((category) => {
-                const Icon = category.icon
-                return (
-                  <Link key={category.slug} href={`/feed?category=${category.slug}`}>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="justify-start text-muted-foreground hover:text-foreground"
-                    >
-                      <Icon className="h-4 w-4 mr-2" />
-                      {category.name}
-                    </Button>
-                  </Link>
-                )
-              })}
+          <div className="md:hidden py-4 border-t border-border/30">
+            <div className="flex flex-col gap-1">
+              {navLinks.map((link) => (
+                <Link key={link.href} href={link.href} onClick={() => setIsMenuOpen(false)}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full justify-start text-muted-foreground hover:text-foreground"
+                  >
+                    {link.name}
+                  </Button>
+                </Link>
+              ))}
             </div>
           </div>
         )}

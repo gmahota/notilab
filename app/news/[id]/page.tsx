@@ -13,12 +13,18 @@ import {
   Sparkles,
   TrendingUp,
   ExternalLink,
+  Brain,
+  Baby,
+  Lightbulb,
+  Zap,
 } from "lucide-react"
 import Link from "next/link"
+import Image from "next/image"
 import { getNewsById } from "@/lib/news-data"
 
-export default async function NewsDetailPage({ params }: { params: { id: string } }) {
-  const news = await getNewsById(params.id)
+export default async function NewsDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params
+  const news = await getNewsById(id)
 
   if (!news) {
     notFound()
@@ -129,12 +135,63 @@ export default async function NewsDetailPage({ params }: { params: { id: string 
 
         {/* Featured Image */}
         <div className="relative mb-8 rounded-lg overflow-hidden">
-          <img
+          <Image
             src={news.imageUrl || "/placeholder.svg"}
             alt={news.title}
+            width={800}
+            height={400}
             className="w-full h-64 lg:h-96 object-cover"
+            unoptimized
           />
         </div>
+
+        {/* AI Explain Section */}
+        {news.articleAI && (
+          <div className="mb-8 space-y-4">
+            {/* TL;DR */}
+            {news.articleAI.tldr && (
+              <div className="p-4 rounded-xl bg-primary/5 border border-primary/10">
+                <div className="flex items-center gap-2 mb-2">
+                  <Zap className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-semibold text-primary">TL;DR</span>
+                </div>
+                <p className="text-foreground/90 leading-relaxed">{news.articleAI.tldr}</p>
+              </div>
+            )}
+
+            {/* Why It Matters */}
+            {news.articleAI.whyItMatters && (
+              <div className="p-4 rounded-xl bg-secondary/5 border border-secondary/10">
+                <div className="flex items-center gap-2 mb-2">
+                  <Lightbulb className="h-4 w-4 text-secondary" />
+                  <span className="text-sm font-semibold text-secondary">Why It Matters</span>
+                </div>
+                <p className="text-foreground/90 leading-relaxed">{news.articleAI.whyItMatters}</p>
+              </div>
+            )}
+
+            {/* Explain Like I'm 10 */}
+            {news.articleAI.explainLikeIm10 && (
+              <div className="p-4 rounded-xl bg-amber-500/5 border border-amber-500/10">
+                <div className="flex items-center gap-2 mb-2">
+                  <Baby className="h-4 w-4 text-amber-400" />
+                  <span className="text-sm font-semibold text-amber-400">Explain Like I&apos;m 10</span>
+                </div>
+                <p className="text-foreground/90 leading-relaxed">{news.articleAI.explainLikeIm10}</p>
+              </div>
+            )}
+
+            {/* AI Importance Badge */}
+            {news.articleAI.importanceScore > 0 && (
+              <div className="flex items-center gap-2">
+                <Brain className="h-4 w-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">
+                  AI Importance Score: <span className="font-bold text-foreground">{news.articleAI.importanceScore}/100</span>
+                </span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Article Body */}
         <div
@@ -187,10 +244,13 @@ export default async function NewsDetailPage({ params }: { params: { id: string 
                 <Link key={related.id} href={`/news/${related.id}`}>
                   <div className="group cursor-pointer">
                     <div className="relative rounded-lg overflow-hidden mb-3">
-                      <img
+                      <Image
                         src={related.imageUrl || "/placeholder.svg"}
                         alt={related.title}
+                        width={400}
+                        height={200}
                         className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-300"
+                        unoptimized
                       />
                     </div>
                     <Badge variant="outline" className="mb-2">

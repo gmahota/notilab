@@ -2,6 +2,7 @@
 
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Clock, Eye, Heart, Share, MessageCircle, Sparkles, ArrowRight } from "lucide-react"
@@ -76,10 +77,13 @@ export function NewsPreview() {
             >
               {/* Image */}
               <div className="relative">
-                <img
+                <Image
                   src={news.image || "/placeholder.svg"}
                   alt={news.title}
+                  width={800}
+                  height={400}
                   className={`w-full object-cover ${index === 0 ? "h-64 lg:h-80" : "h-48"}`}
+                  unoptimized
                 />
 
                 {/* Breaking Badge */}

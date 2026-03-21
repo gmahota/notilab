@@ -3,6 +3,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import Image from "next/image"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Clock, Eye, Heart, Share, Sparkles, TrendingUp, RefreshCw, Settings } from "lucide-react"
 
@@ -95,10 +96,13 @@ export function PersonalizedFeed() {
               <div className="grid md:grid-cols-3 gap-0">
                 {/* Image */}
                 <div className="relative">
-                  <img
+                  <Image
                     src={article.image || "/placeholder.svg"}
                     alt={article.title}
+                    width={400}
+                    height={300}
                     className="w-full h-48 md:h-full object-cover"
+                    unoptimized
                   />
                   <div className="absolute top-3 left-3">
                     <Badge className="bg-primary/90 text-primary-foreground">

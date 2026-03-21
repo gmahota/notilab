@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import Image from "next/image"
 import { ExternalLink, MessageCircle, ThumbsUp, RefreshCw, Loader2, Globe } from "lucide-react"
 
 interface RedditNewsItem {
@@ -142,12 +143,15 @@ export function RedditNewsFeed() {
           >
             {/* Image */}
             <div className="relative overflow-hidden">
-              <img
+              <Image
                 src={article.imageUrl}
                 alt={article.title}
+                width={800}
+                height={400}
                 className={`w-full object-cover transition-transform duration-300 group-hover:scale-105 ${
                   index === 0 ? "h-48 md:h-56" : "h-40"
                 }`}
+                unoptimized
                 onError={(e) => {
                   const target = e.target as HTMLImageElement
                   target.src = "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iODAwIiBoZWlnaHQ9IjYwMCIgdmlld0JveD0iMCAwIDgwMCA2MDAiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI4MDAiIGhlaWdodD0iNjAwIiBmaWxsPSIjMWExYTFhIi8+CjxyZWN0IHg9IjM1MCIgeT0iMjUwIiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgcng9IjEwIiBmaWxsPSIjNzEzZjEyIi8+CjxjaXJjbGUgY3g9IjM4MCIgY3k9IjI3MCIgcj0iOCIgZmlsbD0iI2ZmNjUwMCIvPgo8cGF0aCBkPSJNMzcwIDMwMGgyMHYxMGgtMjB6IiBmaWxsPSIjZmY2NTAwIi8+CjxwYXRoIGQ9Ik0zODAgMzIwaDIwdjEwaDIwdi0xMGgxMHYzMGgtNjB2LTMweiIgZmlsbD0iI2ZmNjUwMCIvPgo8cGF0aCBkPSJNMzUwIDM2MGgxMDB2MjBIMzUweiIgZmlsbD0iIzQ0NDA0NCIvPgo8dGV4dCB4PSI0MDAiIHk9IjQwMCIgZmlsbD0iIzg4ODg4OCIgZm9udC1mYW1pbHk9IkFyaWFsLCBzYW5zLXNlcmlmIiBmb250LXNpemU9IjE0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5Ob3TDrWNpYSBSZWRkaXQ8L3RleHQ+Cjwvc3ZnPgo="

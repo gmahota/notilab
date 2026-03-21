@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import Image from "next/image"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -230,10 +231,13 @@ export function NewsEditor({ news, user, onClose, onSave }: NewsEditorProps) {
 
               {formData.imageUrl && (
                 <div className="mt-4">
-                  <img
+                  <Image
                     src={formData.imageUrl || "/placeholder.svg"}
                     alt="Preview"
+                    width={800}
+                    height={300}
                     className="w-full h-48 object-cover rounded-lg"
+                    unoptimized
                   />
                 </div>
               )}

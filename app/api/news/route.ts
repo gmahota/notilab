@@ -64,31 +64,58 @@ export async function GET(request: NextRequest) {
       },
     })
 
+    // Define the type for news items
+    type NewsItem = {
+      id: string
+      title: string
+      summary?: string
+      content: string
+      imageUrl?: string
+      sourceUrl: string
+      sourceName: string
+      publishedAt: Date
+      category?: {
+        name?: string
+        slug?: string
+        color?: string
+      }
+      tags?: string[]
+      trending?: boolean
+      priority?: number
+      aiSummary?: string
+      sentiment?: string
+      readTime?: number
+      reactions: Array<{ type: string }>
+      readHistory?: unknown
+    }
+
     // Transform data for frontend
     const transformedNews = news.map((article) => ({
       id: article.id,
       title: article.title,
-      summary: article.summary || "",
+      summary: article.summary ?? "",
       content: article.content,
-      imageUrl: article.imageUrl || "/placeholder.svg",
+      imageUrl: article.imageUrl ?? "/placeholder.svg",
       sourceUrl: article.sourceUrl,
       sourceName: article.sourceName,
       publishedAt: article.publishedAt,
       category: {
-        name: article.category?.name || "",
-        slug: article.category?.slug || "",
-        color: article.category?.color || "#007BFF",
+        name: article.category?.name ?? "",
+        slug: article.category?.slug ?? "",
+        color: article.category?.color ?? "#007BFF",
       },
-      tags: article.tags,
-      trending: article.trending,
-      priority: article.priority,
-      aiSummary: article.aiSummary || "",
-      sentiment: article.sentiment || "neutral",
-      readTime: article.readTime || 3,
-      reactions: article.reactions.map((r: { type: string }) => ({
-        type: r.type,
-        count: 1,
-      })),
+      tags: article.tags ?? [],
+      trending: article.trending ?? false,
+      priority: article.priority ?? 0,
+      aiSummary: article.aiSummary ?? "",
+      sentiment: article.sentiment ?? "neutral",
+      readTime: article.readTime ?? 3,
+      reactions: Array.isArray(article.reactions)
+        ? article.reactions.map((r) => ({
+            type: r.type,
+            count: 1,
+          }))
+        : [],
       author: "NotiLab Team", // TODO: Add author relationship
     }))
     return NextResponse.json(transformedNews)

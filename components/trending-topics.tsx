@@ -1,177 +1,147 @@
 "use client"
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { TrendingUp, Search, Globe, Clock, Zap, RefreshCw } from "lucide-react"
+import { Flame, Sparkles, ChevronLeft, ChevronRight, TrendingUp } from "lucide-react"
+import { motion } from "framer-motion"
+
+const trendingTopics = [
+  {
+    keyword: "AI Regulation EU",
+    description: "European Parliament votes on landmark AI safety framework",
+    volume: "2.1M",
+    category: "Tech",
+  },
+  {
+    keyword: "Climate Summit 2026",
+    description: "World leaders gather for emergency climate action talks",
+    volume: "1.8M",
+    category: "World",
+  },
+  {
+    keyword: "Quantum Computing",
+    description: "Google achieves new quantum supremacy milestone",
+    volume: "1.2M",
+    category: "Science",
+  },
+  {
+    keyword: "Champions League",
+    description: "Semi-final draw shakes European football landscape",
+    volume: "980K",
+    category: "Sports",
+  },
+  {
+    keyword: "Digital Euro",
+    description: "ECB announces pilot launch date for digital currency",
+    volume: "870K",
+    category: "Economy",
+  },
+  {
+    keyword: "Space Tourism",
+    description: "First civilian orbital hotel opens reservations",
+    volume: "750K",
+    category: "Science",
+  },
+  {
+    keyword: "Cybersecurity Alert",
+    description: "Major vulnerability discovered in global infrastructure",
+    volume: "1.5M",
+    category: "Tech",
+  },
+  {
+    keyword: "Electric Vehicles",
+    description: "New battery tech promises 1000km range in compact cars",
+    volume: "920K",
+    category: "Tech",
+  },
+]
 
 export function TrendingTopics() {
-  const [region, setRegion] = useState("PT")
-  const [timeframe, setTimeframe] = useState("24h")
-  const [loading, setLoading] = useState(false)
+  const scrollRef = useRef<HTMLDivElement>(null)
 
-  const trendingTopics = [
-    {
-      keyword: "Inteligência Artificial",
-      volume: 15420,
-      growth: "+45%",
-      category: "Tecnologia",
-      sentiment: "Positivo",
-      related: ["Machine Learning", "ChatGPT", "Automação"],
-    },
-    {
-      keyword: "Eleições 2024",
-      volume: 12890,
-      growth: "+32%",
-      category: "Política",
-      sentiment: "Neutro",
-      related: ["Candidatos", "Sondagens", "Debates"],
-    },
-    {
-      keyword: "Benfica Champions",
-      volume: 9876,
-      growth: "+78%",
-      category: "Desporto",
-      sentiment: "Positivo",
-      related: ["Liga dos Campeões", "Futebol", "Vitória"],
-    },
-    {
-      keyword: "Inflação Portugal",
-      volume: 8543,
-      growth: "+12%",
-      category: "Economia",
-      sentiment: "Negativo",
-      related: ["Preços", "Banco Central", "Consumo"],
-    },
-  ]
-
-  const handleRefresh = async () => {
-    setLoading(true)
-    // Simular refresh
-    setTimeout(() => setLoading(false), 2000)
+  const scroll = (direction: "left" | "right") => {
+    if (scrollRef.current) {
+      const scrollAmount = 320
+      scrollRef.current.scrollBy({
+        left: direction === "left" ? -scrollAmount : scrollAmount,
+        behavior: "smooth",
+      })
+    }
   }
 
   return (
-    <div className="space-y-6">
-      {/* Controls */}
-      <Card className="bg-gray-900 border-gray-800">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center">
-            <TrendingUp className="w-5 h-5 mr-2 text-green-400" />
-            Análise de Tendências
-          </CardTitle>
-          <CardDescription className="text-gray-400">
-            Monitore tópicos em alta e identifique oportunidades de conteúdo
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center space-x-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input placeholder="Pesquisar tópicos..." className="pl-10 bg-gray-800 border-gray-700 text-white" />
-              </div>
-            </div>
-            <Select value={region} onValueChange={setRegion}>
-              <SelectTrigger className="w-32 bg-gray-800 border-gray-700 text-white">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-gray-800 border-gray-700">
-                <SelectItem value="PT">Portugal</SelectItem>
-                <SelectItem value="BR">Brasil</SelectItem>
-                <SelectItem value="ES">Espanha</SelectItem>
-                <SelectItem value="GLOBAL">Global</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={timeframe} onValueChange={setTimeframe}>
-              <SelectTrigger className="w-32 bg-gray-800 border-gray-700 text-white">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="bg-gray-800 border-gray-700">
-                <SelectItem value="1h">1 hora</SelectItem>
-                <SelectItem value="24h">24 horas</SelectItem>
-                <SelectItem value="7d">7 dias</SelectItem>
-                <SelectItem value="30d">30 dias</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button onClick={handleRefresh} disabled={loading} variant="outline">
-              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+    <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        className="flex items-center justify-between mb-8"
+      >
+        <div className="flex items-center gap-3">
+          <Flame className="h-6 w-6 text-orange-500" />
+          <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Trending Now</h2>
+        </div>
+        <div className="hidden sm:flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => scroll("left")}
+            className="rounded-full glass hover:bg-white/10"
+          >
+            <ChevronLeft className="h-5 w-5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => scroll("right")}
+            className="rounded-full glass hover:bg-white/10"
+          >
+            <ChevronRight className="h-5 w-5" />
+          </Button>
+        </div>
+      </motion.div>
 
-      {/* Trending Topics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Horizontal scroll */}
+      <div ref={scrollRef} className="scroll-horizontal flex gap-4 pb-4">
         {trendingTopics.map((topic, index) => (
-          <Card key={index} className="bg-gray-900 border-gray-800 hover:border-gray-700 transition-colors">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-white text-lg">{topic.keyword}</CardTitle>
-                <Badge className="bg-green-600 text-white">{topic.growth}</Badge>
-              </div>
-              <div className="flex items-center space-x-4 text-sm text-gray-400">
-                <div className="flex items-center">
-                  <Globe className="w-4 h-4 mr-1" />
-                  {topic.volume.toLocaleString()} pesquisas
+          <motion.div
+            key={topic.keyword}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: index * 0.05 }}
+            className="min-w-[280px] max-w-[280px] shrink-0 group"
+          >
+            <div className="h-full glass rounded-2xl p-5 border border-border/50 hover:border-primary/40 transition-all duration-300 hover:glow-blue cursor-pointer flex flex-col justify-between gap-4">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Badge variant="outline" className="text-xs text-muted-foreground border-border/60">
+                    {topic.category}
+                  </Badge>
+                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                    <TrendingUp className="h-3 w-3 text-secondary" />
+                    {topic.volume}
+                  </div>
                 </div>
-                <div className="flex items-center">
-                  <Clock className="w-4 h-4 mr-1" />
-                  Últimas {timeframe}
-                </div>
+                <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors text-base">
+                  {topic.keyword}
+                </h3>
+                <p className="text-sm text-muted-foreground line-clamp-2">{topic.description}</p>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Badge style={{ backgroundColor: getCategoryColor(topic.category) }} className="text-white">
-                  {topic.category}
-                </Badge>
-                <Badge
-                  className={`${
-                    topic.sentiment === "Positivo"
-                      ? "bg-green-600"
-                      : topic.sentiment === "Negativo"
-                        ? "bg-red-600"
-                        : "bg-gray-600"
-                  } text-white`}
-                >
-                  {topic.sentiment}
-                </Badge>
-              </div>
-
-              <div>
-                <p className="text-gray-300 text-sm mb-2">Tópicos Relacionados:</p>
-                <div className="flex flex-wrap gap-1">
-                  {topic.related.map((related) => (
-                    <Badge key={related} variant="outline" className="text-blue-400 border-blue-400 text-xs">
-                      {related}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              <Button className="w-full bg-blue-600 hover:bg-blue-700">
-                <Zap className="w-4 h-4 mr-2" />
-                Gerar Notícia
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-center text-primary hover:bg-primary/10 hover:text-primary"
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                Explain
               </Button>
-            </CardContent>
-          </Card>
+            </div>
+          </motion.div>
         ))}
       </div>
-    </div>
+    </section>
   )
-}
-
-function getCategoryColor(category: string) {
-  const colors = {
-    Tecnologia: "#3B82F6",
-    Política: "#EF4444",
-    Desporto: "#10B981",
-    Economia: "#F59E0B",
-    Cultura: "#8B5CF6",
-  }
-  return colors[category as keyof typeof colors] || "#6B7280"
 }
