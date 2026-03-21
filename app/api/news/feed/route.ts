@@ -52,16 +52,13 @@ export async function GET(request: NextRequest) {
     }
 
     // Apply ranking
-    const articlesForRanking = articles.map((a) => ({
+    const articlesForRanking = articles.map((a: typeof articles[number]) => ({
       ...a,
-      publishedAt: a.publishedAt,
-      trending: a.trending,
       importanceScore: a.articleAI?.importanceScore || a.importanceScore || 50,
-      sourceName: a.sourceName,
       categorySlug: a.category?.slug || "",
     }))
 
-    const ranked = rankArticles(articlesForRanking, userCategories)
+    const ranked = (rankArticles(articlesForRanking, userCategories) as (typeof articles[number] & { rankScore: number; categorySlug: string })[])
       .slice(0, limit)
 
     // Transform for frontend

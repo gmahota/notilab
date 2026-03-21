@@ -3,10 +3,10 @@ import { prisma } from "@/lib/prisma"
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    const { slug } = params
+    const { slug } = await params
     const { searchParams } = new URL(request.url)
     const limit = Math.min(30, Number.parseInt(searchParams.get("limit") || "10"))
     const offset = Number.parseInt(searchParams.get("offset") || "0")
@@ -27,7 +27,7 @@ export async function GET(
     })
 
     return NextResponse.json({
-      articles: articles.map((a) => ({
+      articles: articles.map((a: typeof articles[number]) => ({
         id: a.id,
         title: a.title,
         slug: a.slug,

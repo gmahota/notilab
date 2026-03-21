@@ -54,7 +54,7 @@ export async function GET(request: Request) {
     })
 
     return NextResponse.json({
-      articles: saved.map((s) => ({
+      articles: saved.map((s: typeof saved[number]) => ({
         id: s.news.id,
         title: s.news.title,
         summary: s.news.summary,

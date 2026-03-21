@@ -17,7 +17,7 @@ export async function GET(request: Request) {
 
     if (dbTrends.length >= 5) {
       return NextResponse.json({
-        topics: dbTrends.map((t) => ({
+        topics: dbTrends.map((t: typeof dbTrends[number]) => ({
           keyword: t.keyword,
           volume: t.searchVolume,
           category: t.category || "trending",

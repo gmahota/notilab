@@ -5,6 +5,7 @@ import { ChatWidget } from "@/components/chat-widget"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Sparkles, Bookmark, Share2, Loader2, ArrowLeft } from "lucide-react"
+import Image from "next/image"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
@@ -107,7 +108,7 @@ export default function CategoryPage() {
                 <div className="flex flex-col sm:flex-row">
                   {article.imageUrl && article.imageUrl !== "/placeholder.svg" && (
                     <div className="relative sm:w-48 h-48 sm:h-auto shrink-0">
-                      <img src={article.imageUrl} alt={article.title} className="w-full h-full object-cover" />
+                      <Image src={article.imageUrl} alt={article.title} fill className="object-cover" unoptimized />
                     </div>
                   )}
                   <div className="p-5 flex-1 space-y-3">

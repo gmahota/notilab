@@ -111,7 +111,7 @@ export async function GET(request: NextRequest) {
       sentiment: article.sentiment ?? "neutral",
       readTime: article.readTime ?? 3,
       reactions: Array.isArray(article.reactions)
-        ? article.reactions.map((r) => ({
+        ? article.reactions.map((r: typeof article.reactions[number]) => ({
             type: r.type,
             count: 1,
           }))
