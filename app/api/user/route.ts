@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     // Calculate user stats
     const stats = {
       totalArticlesRead: user.readHistory.length,
-      totalTimeSpent: user.readHistory.reduce((acc, history) => acc + (history.timeSpent || 0), 0),
+      totalTimeSpent: user.readHistory.reduce((acc: number, history: any) => acc + (history.timeSpent || 0), 0),
       favoriteCategory: getMostReadCategory(user.readHistory),
       completionRate: calculateCompletionRate(user.readHistory),
       streak: calculateReadingStreak(user.readHistory),

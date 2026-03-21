@@ -1,4 +1,4 @@
-import { PrismaClient, Priority, NewsStatus } from "@prisma/client"
+import { PrismaClient, Priority } from "@prisma/client"
 
 const prisma = new PrismaClient()
 
