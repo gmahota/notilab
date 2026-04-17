@@ -40,6 +40,10 @@ export async function GET(request: NextRequest) {
       case "trending":
         orderBy = [{ trending: "desc" }, { publishedAt: "desc" }]
         break
+      case "ranked":
+        // Use the pre-computed composite ranking score (updated every 15 min by cron)
+        orderBy = [{ rankingScore: "desc" }, { publishedAt: "desc" }]
+        break
     }
 
     const news = await prisma.news.findMany({

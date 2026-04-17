@@ -1,0 +1,21 @@
+# ZAP rules configuration for NotiLab
+# Format: rule_id  IGNORE|WARN|FAIL  description
+
+# Ignore rules not applicable to Next.js/Vercel deployments
+10015  IGNORE  Incomplete or No Cache-control and Pragma HTTP Header Set
+10027  IGNORE  Information Disclosure - Suspicious Comments
+10096  IGNORE  Timestamp Disclosure
+
+# Warn on informational findings
+10035  WARN    Strict-Transport-Security Header
+10038  WARN    Content Security Policy (CSP) Header
+10055  WARN    CSP
+
+# Fail on critical issues
+40012  FAIL    Cross Site Scripting (Reflected)
+40014  FAIL    Cross Site Scripting (Persistent)
+40018  FAIL    SQL Injection
+40019  FAIL    SQL Injection - MySQL
+40020  FAIL    SQL Injection - Hypersonic SQL
+40021  FAIL    SQL Injection - Oracle
+40022  FAIL    SQL Injection - SQLite

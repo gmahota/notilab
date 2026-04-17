@@ -28,7 +28,7 @@ export interface NewsArticle {
 
 export interface NewsFilters {
   category?: string
-  sortBy?: "recent" | "popular" | "views" | "trending"
+  sortBy?: "recent" | "popular" | "views" | "trending" | "ranked"
   search?: string
   limit?: number
   offset?: number

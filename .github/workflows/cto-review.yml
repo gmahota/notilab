@@ -1,0 +1,293 @@
+name: CTO Review Agent
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  # ─── PR SIZE CHECK ───────────────────────────────────────────────────────────
+  pr-size-check:
+    name: PR Size & Scope Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Analyze PR scope
+        id: pr-size
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: files } = await github.rest.pulls.listFiles({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              per_page: 100
+            });
+            
+            const added   = files.reduce((s, f) => s + f.additions, 0);
+            const removed = files.reduce((s, f) => s + f.deletions, 0);
+            const total   = files.length;
+            
+            let sizeLabel = 'XS';
+            if (total > 50 || added + removed > 1000) sizeLabel = 'XL';
+            else if (total > 20 || added + removed > 500) sizeLabel = 'L';
+            else if (total > 10 || added + removed > 200) sizeLabel = 'M';
+            else if (total > 5  || added + removed > 50)  sizeLabel = 'S';
+            
+            core.setOutput('size', sizeLabel);
+            core.setOutput('files', total);
+            core.setOutput('lines', added + removed);
+            
+            if (sizeLabel === 'XL') {
+              core.warning(`Large PR detected: ${total} files, ${added + removed} lines changed. Consider splitting into smaller PRs.`);
+            }
+
+      - name: Comment PR size
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const size = '${{ steps.pr-size.outputs.size }}';
+            const files = '${{ steps.pr-size.outputs.files }}';
+            const lines = '${{ steps.pr-size.outputs.lines }}';
+            
+            const emoji = { XS: '🟢', S: '🟢', M: '🟡', L: '🟠', XL: '🔴' }[size] || '⚪';
+            const advice = size === 'XL'
+              ? '\n\n> ⚠️ **CTO Note:** This PR is very large. Please consider breaking it into smaller, focused PRs for easier review.'
+              : '';
+            
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `## ${emoji} PR Size: **${size}**\n\n| Metric | Value |\n|--------|-------|\n| Files changed | ${files} |\n| Lines changed | ${lines} |${advice}`
+            });
+
+  # ─── ARCHITECTURE COMPLIANCE ─────────────────────────────────────────────────
+  architecture-review:
+    name: Architecture Compliance
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check layering — no direct Prisma access outside lib/
+        run: |
+          echo "=== Checking architectural boundaries ==="
+          VIOLATIONS=$(grep -rn "PrismaClient\|new PrismaClient\|from '@prisma/client'" \
+            --include="*.ts" --include="*.tsx" \
+            app/ components/ 2>/dev/null | grep -v "lib/prisma" || true)
+          
+          if [ -n "$VIOLATIONS" ]; then
+            echo "::error::Direct Prisma access outside lib/ detected:"
+            echo "$VIOLATIONS"
+            exit 1
+          fi
+          echo "✅ No Prisma boundary violations"
+
+      - name: Check API routes have no business logic inline
+        run: |
+          echo "=== Checking API routes size ==="
+          find app/api -name "route.ts" | while read f; do
+            LINES=$(wc -l < "$f")
+            if [ "$LINES" -gt 120 ]; then
+              echo "::warning file=$f::Route file is $LINES lines. Consider extracting logic to lib/"
+            fi
+          done
+          echo "✅ API route check complete"
+
+      - name: Validate environment variables usage
+        run: |
+          echo "=== Checking env var access pattern ==="
+          # Client components should not access server env vars directly
+          SERVER_VARS="DATABASE_URL|NEXTAUTH_SECRET|OPENAI_API_KEY|GROQ_API_KEY"
+          if grep -rn "process\.env\.($SERVER_VARS)" --include="*.tsx" components/ 2>/dev/null; then
+            echo "::warning::Server-side env vars accessed in components/. Use NEXT_PUBLIC_ prefix or server actions."
+          fi
+          echo "✅ Env var pattern check complete"
+
+  # ─── CODE QUALITY METRICS ───────────────────────────────────────────────────
+  code-quality:
+    name: Code Quality Metrics
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check console.log in production code
+        id: console-check
+        run: |
+          COUNT=$(grep -rn "console\.log" --include="*.ts" --include="*.tsx" \
+            app/ lib/ components/ 2>/dev/null | grep -v "//.*console" | wc -l || echo 0)
+          echo "console_count=$COUNT" >> $GITHUB_OUTPUT
+          if [ "$COUNT" -gt 0 ]; then
+            echo "::warning::Found $COUNT console.log statement(s). Remove before merging to main."
+            grep -rn "console\.log" --include="*.ts" --include="*.tsx" app/ lib/ components/ | grep -v "//.*console" || true
+          fi
+
+      - name: Count technical debt markers
+        id: tech-debt
+        run: |
+          COUNT=$(grep -rn "TODO\|FIXME\|HACK\|XXX\|@deprecated" \
+            --include="*.ts" --include="*.tsx" \
+            app/ lib/ components/ 2>/dev/null | wc -l || echo 0)
+          echo "debt_count=$COUNT" >> $GITHUB_OUTPUT
+          echo "Technical debt items: $COUNT"
+
+      - name: Check for any type usage
+        id: any-check
+        run: |
+          COUNT=$(grep -rn ": any\b\|as any\b" --include="*.ts" --include="*.tsx" \
+            app/ lib/ components/ 2>/dev/null | wc -l || echo 0)
+          echo "any_count=$COUNT" >> $GITHUB_OUTPUT
+          if [ "$COUNT" -gt 10 ]; then
+            echo "::warning::Found $COUNT 'any' type usages. Prefer explicit types."
+          fi
+
+      - name: Post quality report as PR comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const consoleLogs = parseInt('${{ steps.console-check.outputs.console_count }}') || 0;
+            const techDebt    = parseInt('${{ steps.tech-debt.outputs.debt_count }}') || 0;
+            const anyTypes    = parseInt('${{ steps.any-check.outputs.any_count }}') || 0;
+            
+            const status = (n, warn, err) =>
+              n >= err ? `🔴 ${n}` : n >= warn ? `🟡 ${n}` : `🟢 ${n}`;
+            
+            const body = `## 📊 CTO Code Quality Report
+            
+            | Metric | Count | Status |
+            |--------|-------|--------|
+            | \`console.log\` statements | ${consoleLogs} | ${status(consoleLogs, 1, 5)} |
+            | Technical debt (TODO/FIXME) | ${techDebt} | ${status(techDebt, 5, 20)} |
+            | \`any\` type usages | ${anyTypes} | ${status(anyTypes, 5, 20)} |
+            
+            > Automated review by the **CTO Agent** — ensure these are addressed before merging.`;
+            
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body
+            });
+
+  # ─── BUNDLE SIZE ANALYSIS ────────────────────────────────────────────────────
+  bundle-analysis:
+    name: Bundle Size Analysis
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build and report bundle size
+        run: pnpm build
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://placeholder:placeholder@localhost:5432/notilab' }}
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET || 'placeholder-secret-for-build' }}
+          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL || 'http://localhost:3000' }}
+
+      - name: Report .next build sizes
+        run: |
+          echo "=== Next.js Build Output Sizes ==="
+          du -sh .next/static/chunks/*.js 2>/dev/null | sort -rh | head -20 || true
+          echo ""
+          echo "=== Total .next size ==="
+          du -sh .next/
+
+  # ─── DEPENDENCY FRESHNESS ────────────────────────────────────────────────────
+  dependency-freshness:
+    name: Dependency Freshness Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check for outdated packages
+        run: |
+          echo "=== Outdated packages ==="
+          pnpm outdated || true
+
+  # ─── CTO SUMMARY ─────────────────────────────────────────────────────────────
+  cto-summary:
+    name: CTO Final Review
+    runs-on: ubuntu-latest
+    needs: [pr-size-check, architecture-review, code-quality, bundle-analysis]
+    if: always()
+    steps:
+      - name: Post CTO summary comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const jobs = {
+              'PR Size Check':         '${{ needs.pr-size-check.result }}',
+              'Architecture Review':   '${{ needs.architecture-review.result }}',
+              'Code Quality':          '${{ needs.code-quality.result }}',
+              'Bundle Analysis':       '${{ needs.bundle-analysis.result }}',
+            };
+            
+            const icon = (r) => r === 'success' ? '✅' : r === 'skipped' ? '⏭️' : '❌';
+            const rows = Object.entries(jobs)
+              .map(([name, result]) => `| ${name} | ${icon(result)} ${result} |`)
+              .join('\n');
+            
+            const allPassed = Object.values(jobs).every(r => r === 'success' || r === 'skipped');
+            
+            const body = `## 🏛️ CTO Agent — Review Complete
+            
+            | Check | Result |
+            |-------|--------|
+            ${rows}
+            
+            ${allPassed
+              ? '> ✅ All CTO checks passed. This PR meets architectural and quality standards.'
+              : '> ❌ One or more CTO checks failed. Please address the issues above before merging.'}`;
+            
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body
+            });

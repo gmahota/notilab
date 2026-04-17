@@ -2,7 +2,9 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import Image from "next/image"
+import { SocialShare } from "@/components/social-share"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -11,7 +13,6 @@ import {
   Clock,
   Eye,
   Heart,
-  Share,
   MessageCircle,
   Bookmark,
   Sparkles,
@@ -19,6 +20,7 @@ import {
   ExternalLink,
   Volume2,
   VolumeX,
+  Timer,
 } from "lucide-react"
 
 interface NewsCardProps {
@@ -48,6 +50,17 @@ export function NewsCard({ news, priority = "normal" }: NewsCardProps) {
   const [isBookmarked, setIsBookmarked] = useState(false)
   const [showAISummary, setShowAISummary] = useState(false)
   const [audioEnabled, setAudioEnabled] = useState(false)
+  const router = useRouter()
+
+  const handleExplain = (e: React.MouseEvent) => {
+    e.preventDefault()
+    router.push(`/explain/${news.id}`)
+  }
+
+  const handleSummary = (e: React.MouseEvent) => {
+    e.preventDefault()
+    setShowAISummary((prev) => !prev)
+  }
 
   const formatTimeAgo = (date: Date) => {
     const now = new Date()
@@ -153,19 +166,42 @@ export function NewsCard({ news, priority = "normal" }: NewsCardProps) {
             {/* Summary */}
             <p className="text-muted-foreground leading-relaxed">{showAISummary ? news.aiSummary : news.summary}</p>
 
-            {/* AI Summary Toggle */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={(e) => {
-                e.preventDefault()
-                setShowAISummary(!showAISummary)
-              }}
-              className="text-primary hover:text-primary/80 p-0 h-auto font-normal"
-            >
-              <Sparkles className="h-4 w-4 mr-1" />
-              {showAISummary ? "Ver resumo completo" : "Resumo IA"}
-            </Button>
+            {/* AI Actions Strip */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={handleExplain}
+                className="
+                  inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold
+                  bg-blue-500/10 border border-blue-500/25 text-blue-400
+                  hover:bg-blue-500/20 hover:border-blue-500/50
+                  transition-all duration-200
+                  hover:[box-shadow:0_0_14px_rgba(0,123,255,0.35)]
+                  cursor-pointer
+                "
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                Explain
+              </button>
+
+              <button
+                onClick={handleSummary}
+                className={`
+                  inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold
+                  border transition-all duration-200 cursor-pointer
+                  hover:[box-shadow:0_0_14px_rgba(57,255,20,0.25)]
+                  ${
+                    showAISummary
+                      ? "bg-[#39FF14]/15 border-[#39FF14]/40 text-[#39FF14]"
+                      : "bg-white/5 border-white/15 text-white/60 hover:bg-[#39FF14]/10 hover:border-[#39FF14]/30 hover:text-[#39FF14]"
+                  }
+                `}
+              >
+                <Timer className="h-3.5 w-3.5" />
+                {showAISummary ? "Hide" : "30s Summary"}
+              </button>
+
+              <SocialShare title={news.title} url={`/news/${news.id}`} />
+            </div>
 
             {/* Tags */}
             <div className="flex flex-wrap gap-2">
@@ -222,9 +258,9 @@ export function NewsCard({ news, priority = "normal" }: NewsCardProps) {
                   <MessageCircle className="h-4 w-4" />
                 </Button>
 
-                <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={(e) => e.preventDefault()}>
-                  <Share className="h-4 w-4" />
-                </Button>
+                <span onClick={(e) => e.preventDefault()}>
+                  <SocialShare title={news.title} url={`/news/${news.id}`} />
+                </span>
 
                 <Button
                   variant="ghost"

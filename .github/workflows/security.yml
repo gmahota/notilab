@@ -1,0 +1,183 @@
+name: Security Agent
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 8 * * 1'   # Every Monday 08:00 UTC
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+  security-events: write
+  pull-requests: write
+
+jobs:
+  # ─── CODEQL SAST ────────────────────────────────────────────────────────────
+  codeql:
+    name: CodeQL Static Analysis
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [javascript-typescript]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: security-extended,security-and-quality
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: '/language:${{ matrix.language }}'
+
+  # ─── DEPENDENCY VULNERABILITY AUDIT ─────────────────────────────────────────
+  dependency-audit:
+    name: Dependency Vulnerability Audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run pnpm audit (high severity)
+        run: pnpm audit --audit-level=high
+        continue-on-error: false
+
+      - name: Run pnpm audit (full report)
+        run: pnpm audit --json > audit-report.json || true
+
+      - name: Upload audit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-audit-report-${{ github.sha }}
+          path: audit-report.json
+          retention-days: 30
+
+  # ─── SECRET SCANNING ────────────────────────────────────────────────────────
+  secret-scanning:
+    name: Secret Scanning (Gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Gitleaks Scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ─── DEPENDENCY REVIEW (PR only) ────────────────────────────────────────────
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+          deny-licenses: GPL-2.0, GPL-3.0, AGPL-3.0, LGPL-2.1
+          comment-summary-in-pr: always
+
+  # ─── SECURITY HEADERS CHECK ─────────────────────────────────────────────────
+  security-headers:
+    name: Security Headers Check
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check Next.js security headers config
+        run: |
+          echo "=== Checking next.config.ts for security headers ==="
+          if grep -q "Content-Security-Policy\|X-Frame-Options\|X-Content-Type-Options" next.config.ts; then
+            echo "✅ Security headers found in next.config.ts"
+          else
+            echo "::warning::Security headers not configured in next.config.ts. Consider adding CSP, X-Frame-Options, etc."
+          fi
+
+      - name: Check for hardcoded secrets in source
+        run: |
+          echo "=== Scanning for potential secrets ==="
+          PATTERNS="password\s*=\s*['\"][^'\"]{8,}|api_key\s*=\s*['\"][^'\"]{10,}|secret\s*=\s*['\"][^'\"]{8,}"
+          if grep -rEi "$PATTERNS" --include="*.ts" --include="*.tsx" --include="*.js" app/ lib/ components/ 2>/dev/null | grep -v ".env" | grep -v "placeholder"; then
+            echo "::error::Potential hardcoded secrets detected!"
+            exit 1
+          fi
+          echo "✅ No hardcoded secrets detected"
+
+  # ─── OWASP ZAP BASELINE (scheduled only) ────────────────────────────────────
+  owasp-zap:
+    name: OWASP ZAP Baseline Scan
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.12.0
+        with:
+          target: ${{ secrets.NEXT_PUBLIC_APP_URL }}
+          rules_file_name: '.zap/rules.tsv'
+          cmd_options: '-a -j'
+          issue_title: 'OWASP ZAP Baseline Scan Report'
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fail_action: false
+
+  # ─── SECURITY SUMMARY REPORT ────────────────────────────────────────────────
+  security-report:
+    name: Security Summary
+    runs-on: ubuntu-latest
+    needs: [dependency-audit, secret-scanning]
+    if: always()
+    steps:
+      - name: Security scan summary
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const auditStatus = '${{ needs.dependency-audit.result }}';
+            const secretStatus = '${{ needs.secret-scanning.result }}';
+            
+            const body = `## 🔒 Security Scan Summary
+            
+            | Check | Status |
+            |-------|--------|
+            | Dependency Audit | ${auditStatus === 'success' ? '✅ Passed' : '❌ Failed'} |
+            | Secret Scanning  | ${secretStatus === 'success' ? '✅ Passed' : '❌ Failed'} |
+            
+            *Run triggered by: ${{ github.actor }} on ${{ github.ref_name }}*`;
+            
+            if (context.eventName === 'pull_request') {
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body
+              });
+            } else {
+              core.info(body);
+            }

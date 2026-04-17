@@ -62,7 +62,7 @@ export function DigestSubscription() {
           </div>
           <h3 className="text-2xl font-bold text-foreground">You&apos;re in! 🎉</h3>
           <p className="text-muted-foreground">
-            Your {frequency} AI digest will arrive at <span className="text-foreground font-medium">{email}</span>
+            Your {frequency} digest lands at <span className="text-foreground font-medium">{email}</span>.
           </p>
         </motion.div>
       </section>
@@ -84,7 +84,7 @@ export function DigestSubscription() {
             <h2 className="text-2xl sm:text-3xl font-bold text-foreground">AI Digest</h2>
           </div>
           <p className="text-muted-foreground">
-            Get the most important news explained by AI — delivered to your inbox.
+            Top stories. AI-explained. In your inbox.
           </p>
         </div>
 
@@ -118,7 +118,7 @@ export function DigestSubscription() {
 
           {/* Categories */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground">Categories (optional)</label>
+            <label className="text-sm font-medium text-foreground">Topics (optional)</label>
             <div className="flex flex-wrap gap-2">
               {CATEGORIES.map((cat) => (
                 <Badge
@@ -156,7 +156,7 @@ export function DigestSubscription() {
           </div>
 
           <p className="text-xs text-muted-foreground/60">
-            No spam. Unsubscribe anytime. Powered by NotiLab AI.
+            No spam. Unsubscribe anytime.
           </p>
         </form>
       </motion.div>

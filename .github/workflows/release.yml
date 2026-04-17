@@ -1,0 +1,178 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. v1.2.3)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  # ─── VALIDATE TAG ────────────────────────────────────────────────────────────
+  validate:
+    name: Validate Release
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${{ github.ref_name }}"
+          fi
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Releasing version: $VERSION"
+
+      - name: Validate version format
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          if ! echo "$VERSION" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$'; then
+            echo "::error::Invalid version format: $VERSION. Expected: vMAJOR.MINOR.PATCH"
+            exit 1
+          fi
+
+  # ─── BUILD RELEASE ───────────────────────────────────────────────────────────
+  build:
+    name: Build Release Artifact
+    runs-on: ubuntu-latest
+    needs: [validate]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build application
+        run: pnpm build
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
+          NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL }}
+          NEXT_PUBLIC_APP_NAME: 'NotiLab'
+
+  # ─── GENERATE CHANGELOG ──────────────────────────────────────────────────────
+  changelog:
+    name: Generate Changelog
+    runs-on: ubuntu-latest
+    needs: [validate]
+    outputs:
+      changelog: ${{ steps.changelog.outputs.changelog }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate changelog from commits
+        id: changelog
+        run: |
+          VERSION="${{ needs.validate.outputs.version }}"
+          PREV_TAG=$(git tag --sort=-version:refname | grep -v "$VERSION" | head -1 || echo "")
+          
+          if [ -z "$PREV_TAG" ]; then
+            COMMITS=$(git log --pretty=format:"- %s (%h)" --no-merges | head -50)
+          else
+            COMMITS=$(git log "$PREV_TAG..HEAD" --pretty=format:"- %s (%h)" --no-merges)
+          fi
+          
+          # Categorize commits
+          FEATURES=$(echo "$COMMITS" | grep -i "^- feat" || true)
+          FIXES=$(echo "$COMMITS" | grep -i "^- fix" || true)
+          CHORES=$(echo "$COMMITS" | grep -i "^- chore\|^- deps\|^- ci" || true)
+          OTHER=$(echo "$COMMITS" | grep -iv "^- feat\|^- fix\|^- chore\|^- deps\|^- ci" || true)
+          
+          CHANGELOG="## What's Changed in $VERSION"$'\n'
+          [ -n "$FEATURES" ] && CHANGELOG+=$'\n'"### ✨ New Features"$'\n'"$FEATURES"$'\n'
+          [ -n "$FIXES" ]    && CHANGELOG+=$'\n'"### 🐛 Bug Fixes"$'\n'"$FIXES"$'\n'
+          [ -n "$OTHER" ]    && CHANGELOG+=$'\n'"### 🔨 Other Changes"$'\n'"$OTHER"$'\n'
+          [ -n "$CHORES" ]   && CHANGELOG+=$'\n'"### 🔧 Maintenance"$'\n'"$CHORES"$'\n'
+          
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+  # ─── GITHUB RELEASE ──────────────────────────────────────────────────────────
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: [validate, build, changelog]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create GitHub Release
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const version = '${{ needs.validate.outputs.version }}';
+            const isPreRelease = version.includes('-');
+            
+            await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              tag_name: version,
+              name: `NotiLab ${version}`,
+              body: `${{ needs.changelog.outputs.changelog }}`,
+              draft: false,
+              prerelease: isPreRelease
+            });
+
+  # ─── DEPLOY TO PRODUCTION ────────────────────────────────────────────────────
+  deploy:
+    name: Deploy Release to Production
+    runs-on: ubuntu-latest
+    needs: [release]
+    environment:
+      name: production
+      url: https://notilab.vercel.app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Vercel CLI
+        run: pnpm add -g vercel@latest
+
+      - name: Deploy to production
+        run: vercel deploy --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Run DB migrations
+        run: pnpm exec prisma migrate deploy
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}

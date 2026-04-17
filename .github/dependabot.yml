@@ -1,0 +1,72 @@
+version: 2
+
+updates:
+  # ─── NPM / PNPM packages ───────────────────────────────────────────────────
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '08:00'
+      timezone: 'UTC'
+    open-pull-requests-limit: 15
+    assignees:
+      - 'gmahota'
+    labels:
+      - 'dependencies'
+      - 'automated'
+    commit-message:
+      prefix: 'chore(deps)'
+      include: 'scope'
+    # Group related packages together
+    groups:
+      radix-ui:
+        patterns:
+          - '@radix-ui/*'
+      react-ecosystem:
+        patterns:
+          - 'react'
+          - 'react-dom'
+          - '@types/react*'
+      prisma:
+        patterns:
+          - 'prisma'
+          - '@prisma/*'
+      tailwind:
+        patterns:
+          - 'tailwindcss*'
+          - '@tailwindcss/*'
+          - 'autoprefixer'
+          - 'tailwind-merge'
+          - 'tailwindcss-animate'
+          - 'tw-animate-css'
+      typescript-types:
+        patterns:
+          - '@types/*'
+    # Never auto-update major versions of critical packages
+    ignore:
+      - dependency-name: 'next'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'react'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'react-dom'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'prisma'
+        update-types: ['version-update:semver-major']
+
+  # ─── GitHub Actions ────────────────────────────────────────────────────────
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+      day: 'monday'
+      time: '08:00'
+      timezone: 'UTC'
+    open-pull-requests-limit: 5
+    assignees:
+      - 'gmahota'
+    labels:
+      - 'github-actions'
+      - 'automated'
+    commit-message:
+      prefix: 'chore(ci)'

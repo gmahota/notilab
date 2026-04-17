@@ -1,0 +1,27 @@
+# NotiLab Code Owners
+# Each line is a file pattern followed by one or more owners.
+# Order matters — the last matching pattern takes precedence.
+
+# ─── Global default ─────────────────────────────────────────────────────────
+*                   @gmahota
+
+# ─── Core infrastructure (CTO approval required) ────────────────────────────
+next.config.ts      @gmahota
+tsconfig.json       @gmahota
+prisma/schema.prisma @gmahota
+prisma/migrations/  @gmahota
+
+# ─── Auth & Security (Security review required) ──────────────────────────────
+lib/admin-auth.ts   @gmahota
+app/api/admin/      @gmahota
+
+# ─── AI integrations ─────────────────────────────────────────────────────────
+lib/ai-service.ts   @gmahota
+app/api/ai/         @gmahota
+
+# ─── Database layer ──────────────────────────────────────────────────────────
+lib/prisma.ts       @gmahota
+lib/*-service.ts    @gmahota
+
+# ─── CI/CD & GitHub config ───────────────────────────────────────────────────
+.github/            @gmahota

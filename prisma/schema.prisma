@@ -26,10 +26,12 @@ model User {
   reactions   NewsReaction[]
   savedArticles SavedArticle[]
   digestSubscriptions DigestSubscription[]
+  messagingSubscriptions MessagingSubscription[]
   points      Int @default(0)
   level       String @default("Iniciante")
   createdNews News[] @relation("NewsAuthor")
   reviewedNews News[] @relation("NewsReviewer")
+  streak       UserStreak?
   
   @@map("users")
 }
@@ -81,7 +83,7 @@ model News {
   content     String
   summary     String?
   imageUrl    String?
-  sourceUrl   String
+  sourceUrl   String   @unique
   sourceName  String
   publishedAt DateTime
   createdAt   DateTime @default(now())
@@ -109,7 +111,8 @@ model News {
   
   // Ranking
   importanceScore Float @default(0)
-  
+  rankingScore    Float @default(0) // composite ranking score (0-100), recalculated by cron
+
   // Relacionamentos
   reactions   NewsReaction[]
   readHistory ReadHistory[]
@@ -133,8 +136,14 @@ model ArticleAI {
   tldr             String?  // One-line TL;DR
   whyItMatters     String?  // Why this story matters
   explainLikeIm10  String?  // Kid-friendly explanation
+  shareText        String?  // Cached AI-generated punchy share copy
   importanceScore  Float    @default(0) // 0-100 AI importance score
-  
+
+  // Processing state
+  attempts         Int      @default(0)  // retry counter
+  lastError        String?  // last failure reason
+  processedAt      DateTime? // set on successful AI enrichment
+
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   
@@ -186,6 +195,75 @@ model DigestSubscription {
   
   @@unique([email])
   @@map("digest_subscriptions")
+}
+
+// A single generated digest issue (one per frequency per run)
+model DigestIssue {
+  id           String   @id @default(cuid())
+  frequency    String   // "daily" | "weekly"
+  periodStart  DateTime // content window start
+  periodEnd    DateTime // content window end (= generatedAt)
+  subject      String
+  htmlContent  String   // rendered HTML snapshot
+  articleIds   String[] // article IDs included in this issue
+  generatedAt  DateTime @default(now())
+
+  deliveries   DigestDelivery[]
+
+  @@map("digest_issues")
+}
+
+// Per-subscriber delivery record — tracks status for retries and logs
+model DigestDelivery {
+  id        String   @id @default(cuid())
+  issueId   String
+  issue     DigestIssue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  email     String
+  status    String   @default("pending") // "pending" | "sent" | "failed"
+  sentAt    DateTime?
+  error     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([issueId, email])
+  @@map("digest_deliveries")
+}
+
+// Messaging channel subscriptions (Telegram, WhatsApp)
+model MessagingSubscription {
+  id           String   @id @default(cuid())
+  channel      String   // "telegram" | "whatsapp"
+  channelId    String   // Telegram chat_id or WhatsApp phone (E.164)
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  isActive     Boolean  @default(true)
+  categories   String[] // preferred category slugs; empty = all
+  frequency    String   @default("daily") // "realtime" | "daily" | "weekly"
+  language     String   @default("en")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  deliveries   MessagingDelivery[]
+
+  @@unique([channel, channelId])
+  @@map("messaging_subscriptions")
+}
+
+// Log of every message sent through a messaging channel
+model MessagingDelivery {
+  id             String   @id @default(cuid())
+  subscriptionId String
+  subscription   MessagingSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+  channel        String   // "telegram" | "whatsapp"
+  messageType    String   // "daily_digest" | "trending_alert" | "command_response"
+  status         String   @default("pending") // "pending" | "sent" | "failed"
+  articleIds     String[] // articles included in this message
+  sentAt         DateTime?
+  error          String?
+  telegramMsgId  Int?     // Telegram message_id (for future edits/replies)
+  createdAt      DateTime @default(now())
+
+  @@map("messaging_deliveries")
 }
 
 model NewsReaction {
@@ -262,6 +340,140 @@ model ContentWorkflow {
   updatedAt DateTime @updatedAt
   
   @@map("content_workflow")
+}
+
+// ============================================================
+// Growth Engine Models
+// ============================================================
+
+// Tracks daily reading streak per user
+model UserStreak {
+  id               String    @id @default(cuid())
+  userId           String    @unique
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentStreak    Int       @default(0)
+  longestStreak    Int       @default(0)
+  lastActiveDate   DateTime? // date-only (stored as midnight UTC)
+  streakFrozenUntil DateTime? // grace period to avoid breaking streak
+  totalDaysActive  Int       @default(0)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@map("user_streaks")
+}
+
+// Append-only event log — the analytics backbone
+// userId is optional to support anonymous events
+model UserEvent {
+  id        String   @id @default(cuid())
+  userId    String?  // null = anonymous
+  sessionId String?  // browser session ID
+  event     String   // article_viewed | article_shared | article_saved | streak_completed | etc.
+  articleId String?  // optional article context
+  meta      Json?    // additional context: channel, source, experiment variant, etc.
+  createdAt DateTime @default(now())
+
+  @@index([userId, event])
+  @@index([event, createdAt])
+  @@map("user_events")
+}
+
+// Records every share action for virality analytics
+model ShareHistory {
+  id        String   @id @default(cuid())
+  userId    String?  // null = anonymous
+  articleId String
+  channel   String   // whatsapp | telegram | twitter | copy
+  snippet   String?  // the text that was shared (for A/B analysis)
+  createdAt DateTime @default(now())
+
+  @@index([articleId])
+  @@index([userId])
+  @@map("share_history")
+}
+
+// One row per share action — carries a unique referral code for attribution
+model ArticleShare {
+  id             String   @id @default(cuid())
+  code           String   @unique  // 8-char nanoid used in /s/[code] URL
+  articleId      String
+  sharedByUserId String?  // null = anonymous
+  channel        String   // whatsapp | telegram | twitter | copy
+  snippet        String?  // the text included in the share message
+  visitCount     Int      @default(0)
+  newUserCount   Int      @default(0)
+  createdAt      DateTime @default(now())
+
+  visits         ShareVisit[]
+
+  @@index([articleId])
+  @@index([sharedByUserId])
+  @@map("article_shares")
+}
+
+// One row per landing page visit from a share link (/s/[code])
+model ShareVisit {
+  id            String   @id @default(cuid())
+  shareId       String
+  share         ArticleShare @relation(fields: [shareId], references: [id], onDelete: Cascade)
+  visitorUserId String?  // populated if visitor is a logged-in user
+  isNewUser     Boolean  @default(false) // true = first visit ever to platform
+  converted     Boolean  @default(false) // true = liked / saved / opened chat
+  ipHash        String?  // SHA-256 of IP for dedup only — never stored raw
+  createdAt     DateTime @default(now())
+
+  @@index([shareId])
+  @@index([visitorUserId])
+  @@map("share_visits")
+}
+
+// Tracks every outbound notification for open/click analytics
+model NotificationLog {
+  id         String    @id @default(cuid())
+  userId     String?   // null = anonymous email subscriber
+  email      String?   // for email channel
+  channelId  String?   // for Telegram/WhatsApp
+  type       String    // digest | trending_alert | reactivation | streak_reminder
+  channel    String    // email | telegram | whatsapp
+  status     String    @default("sent") // sent | failed | opened | clicked
+  articleIds String[]  // articles included
+  sentAt     DateTime  @default(now())
+  openedAt   DateTime?
+  clickedAt  DateTime?
+
+  @@index([userId, type])
+  @@index([sentAt])
+  @@map("notification_logs")
+}
+
+// A/B experiment definitions
+model GrowthExperiment {
+  id          String    @id @default(cuid())
+  name        String    @unique  // e.g. "share_snippet_v2"
+  description String?
+  variants    Json      // { "control": {}, "treatment": { "snippetStyle": "punchy" } }
+  isActive    Boolean   @default(true)
+  startedAt   DateTime  @default(now())
+  endedAt     DateTime?
+  createdAt   DateTime  @default(now())
+
+  assignments ExperimentAssignment[]
+
+  @@map("growth_experiments")
+}
+
+// Maps a user to an experiment variant (sticky assignment)
+model ExperimentAssignment {
+  id           String   @id @default(cuid())
+  userId       String
+  experimentId String
+  experiment   GrowthExperiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  variant      String   // "control" | "treatment"
+  assignedAt   DateTime @default(now())
+
+  @@unique([userId, experimentId])
+  @@index([userId])
+  @@map("experiment_assignments")
 }
 
 // Enums

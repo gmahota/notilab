@@ -36,7 +36,7 @@ export default function HomePage() {
             <Link href="/chat" className="hover:text-foreground transition-colors">Chat</Link>
             <Link href="/profile" className="hover:text-foreground transition-colors">Profile</Link>
           </div>
-          <p className="text-xs text-muted-foreground/60">&copy; 2026 NotiLab. AI-powered news intelligence.</p>
+          <p className="text-xs text-muted-foreground/60">&copy; 2026 NotiLab. News, decoded.</p>
         </div>
       </footer>
 
