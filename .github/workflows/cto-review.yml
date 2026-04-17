@@ -23,7 +23,7 @@ jobs:
 
       - name: Analyze PR scope
         id: pr-size
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const { data: files } = await github.rest.pulls.listFiles({
@@ -52,7 +52,7 @@ jobs:
             }
 
       - name: Comment PR size
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const size = '${{ steps.pr-size.outputs.size }}';
@@ -165,7 +165,7 @@ jobs:
           fi
 
       - name: Post quality report as PR comment
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const consoleLogs = parseInt('${{ steps.console-check.outputs.console_count }}') || 0;
@@ -258,7 +258,7 @@ jobs:
     if: always()
     steps:
       - name: Post CTO summary comment
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const jobs = {
