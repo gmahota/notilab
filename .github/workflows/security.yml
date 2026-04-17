@@ -68,7 +68,7 @@ jobs:
         run: pnpm audit --json > audit-report.json || true
 
       - name: Upload audit report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: dependency-audit-report-${{ github.sha }}
           path: audit-report.json
