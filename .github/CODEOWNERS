@@ -25,3 +25,9 @@ lib/*-service.ts    @gmahota
 
 # ─── CI/CD & GitHub config ───────────────────────────────────────────────────
 .github/            @gmahota
+
+# ─── AI governance (Claude / Codex / Copilot) ────────────────────────────────
+AGENTS.md                              @gmahota
+CLAUDE.md                              @gmahota
+.claude/                               @gmahota
+docs/manager/qualidade/QUALITY_GATE.md @gmahota

@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm lint)",
+      "Bash(pnpm exec tsc --noEmit)",
+      "Bash(pnpm typecheck)",
+      "Bash(pnpm build)",
+      "Bash(pnpm db:generate)",
+      "Bash(pnpm db:studio)",
+      "Bash(pnpm agents:sync)"
+    ]
+  }
+}

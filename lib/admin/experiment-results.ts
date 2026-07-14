@@ -90,7 +90,7 @@ async function countExposures(
     select: { userId: true, meta: true, createdAt: true },
   })
   // Filter in JS — Prisma JSON path filtering varies by provider
-  return rows.filter((r) => (r.meta as Record<string, unknown>)?.variant === variant).length
+  return rows.filter((r: UserEventRow) => (r.meta as Record<string, unknown>)?.variant === variant).length
 }
 
 async function countConversions(
@@ -105,7 +105,7 @@ async function countConversions(
     },
     select: { userId: true, meta: true, createdAt: true },
   })
-  return rows.filter((r) => (r.meta as Record<string, unknown>)?.variant === variant).length
+  return rows.filter((r: UserEventRow) => (r.meta as Record<string, unknown>)?.variant === variant).length
 }
 
 // ---------------------------------------------------------------------------
@@ -119,13 +119,7 @@ export async function getExperimentResults(experimentId: string): Promise<Experi
   const db = prisma as unknown as PrismaExt
 
   const experiments = await listExperiments()
-  const exp = experiments.find((e) => e.id === experimentId) as (ExperimentConfig & {
-    id: string
-    description?: string | null
-    isActive: boolean
-    startedAt: Date
-    endedAt?: Date | null
-  }) | undefined
+  const exp = experiments.find((e) => e.id === experimentId)
 
   if (!exp) return null
 
@@ -186,8 +180,8 @@ export async function getExperimentResults(experimentId: string): Promise<Experi
     name: exp.name,
     description: exp.description ?? null,
     isActive: exp.isActive,
-    startedAt: (exp as { startedAt: Date }).startedAt,
-    endedAt: (exp as { endedAt?: Date | null }).endedAt ?? null,
+    startedAt: exp.startedAt,
+    endedAt: exp.endedAt ?? null,
     totalAssignments,
     variants: variantResults,
     winner,
@@ -209,10 +203,10 @@ export async function listExperimentSummaries(): Promise<ExperimentSummary[]> {
       return {
         id: exp.id,
         name: exp.name,
-        description: (exp as { description?: string | null }).description ?? null,
+        description: exp.description ?? null,
         isActive: exp.isActive,
-        startedAt: (exp as { startedAt: Date }).startedAt,
-        endedAt: (exp as { endedAt?: Date | null }).endedAt ?? null,
+        startedAt: exp.startedAt,
+        endedAt: exp.endedAt ?? null,
         totalAssignments,
         variantCount: Object.keys(exp.variants as Record<string, unknown>).length,
         winner: null,

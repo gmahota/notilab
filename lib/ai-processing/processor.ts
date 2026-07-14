@@ -1,4 +1,4 @@
-import prisma from "../prisma"
+import { prisma } from "../prisma"
 import { ArticleAIStub, ProcessorResult } from "./types"
 import { buildEnrichmentPrompt } from "./prompt"
 import { callAI } from "./call-ai"

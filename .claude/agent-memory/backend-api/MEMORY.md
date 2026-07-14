@@ -1,0 +1,1 @@
+- [Lint tooling broken repo-wide](lint_tooling_broken.md) — `pnpm lint` fails on ESLint v10 vs `.eslintrc.json` regardless of changes; verify via git stash before blaming your diff.

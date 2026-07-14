@@ -54,26 +54,35 @@ function extractTags(title: string, categorySlug: string): string[] {
 
 // ─── Category detection ───────────────────────────────────────────────────────
 
-/** Maps keyword patterns to category slugs (matches Prisma seed data). */
+/**
+ * Maps keyword patterns to category slugs (matches Prisma seed data).
+ * Scope per docs/editor/content-focus.md: world football, Real Madrid, PT/EN/ES
+ * top-team backstage, Mozambique politics, South Africa xenophobia. Order matters
+ * (first match wins) and keywords are deliberately multiword — bare single words
+ * like "goal", "porto", or "south africa" previously caused unrelated content to
+ * be silently mislabeled via the "general" fallback.
+ */
 const CATEGORY_RULES: [string, string[]][] = [
-  ["desporto",   ["football", "soccer", "futebol", "champions league", "benfica",
-                  "sporting", "porto", "nba", "tennis", "athlete", "goal", "rugby"]],
-  ["politica",   ["president", "parliament", "government", "minister", "election",
-                  "senate", "congress", "partido", "governo", "parlamento",
-                  "presidente", "ministro", "eleição", "policy", "diplomacy"]],
-  ["leis",       ["law", "court", "judge", "verdict", "lawsuit", "regulation",
-                  "crime", "tribunal", "lei", "juiz", "legal", "justice",
-                  "legislation", "constitution"]],
-  ["economia",   ["economy", "inflation", "market", "stock", "gdp", "finance",
-                  "bank", "recession", "trade", "mercado", "bolsa", "inflação",
-                  "banco", "crypto", "bitcoin", "interest rate", "earnings"]],
-  ["tecnologia", ["artificial intelligence", " ai ", "tech", "software", "startup",
-                  "cyber", "robot", "quantum", "digital", "data", "cloud",
-                  "openai", "google", "apple", "microsoft", "chip"]],
-  ["ciencia",    ["science", "research", "study", "nasa", "space", "climate",
-                  "health", "medicine", "vaccine", "biology", "physics", "energy"]],
-  ["cultura",    ["cinema", "music", "art", "festival", "movie", "film",
-                  "cultura", "arte", "música", "theatre", "award", "oscar"]],
+  ["desporto",      ["real madrid", "barcelona", "atletico madrid", "atlético madrid",
+                      "benfica", "fc porto", "sporting cp", "sporting clube",
+                      "manchester city", "manchester united", "liverpool fc",
+                      "chelsea fc", "arsenal fc", "tottenham",
+                      "premier league", "la liga", "laliga", "liga portugal",
+                      "champions league", "world cup", "copa do mundo", "fifa", "uefa",
+                      "football", "futebol", "soccer", "transfer window", "bastidores"]],
+  ["mocambique",    ["moçambique", "mocambique", "mozambique", "maputo",
+                      "frelimo", "renamo", "daniel chapo", "nyusi"]],
+  ["africa-do-sul", ["xenophobia", "xenofobia", "afrophobia", "operation dudula",
+                      "south africa migrant", "south africa migrants", "south africa immigrant",
+                      "south africa foreigners", "áfrica do sul imigrantes", "áfrica do sul xenofobia"]],
+  ["filmes",        ["netflix", "prime video", "amazon prime video",
+                      "marvel studios", "marvel cinematic", "mcu",
+                      "movie review", "film review", "series review",
+                      "crítica de cinema", "crítica do filme", "crítica de série", "crítica da série",
+                      "box office", "streaming series", "estreia netflix", "nova série",
+                      "dorama", "doramas", "k-drama", "korean drama",
+                      "action movie", "action film", "filme de ação",
+                      "comedy movie", "comedy series", "filme de comédia", "série de comédia"]],
 ]
 
 export function detectCategorySlug(title: string, content: string): string {

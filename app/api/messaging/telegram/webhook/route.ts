@@ -69,7 +69,18 @@ async function getArticlesForCategory(categorySlug?: string): Promise<MessageArt
     },
   })
 
-  return rows.map((r) => ({
+  return rows.map((r: {
+    id: string
+    title: string
+    slug: string | null
+    aiSummary: string | null
+    summary: string | null
+    sourceUrl: string
+    rankingScore: number
+    sentiment: string | null
+    readTime: number | null
+    category: { name: string; slug: string } | null
+  }) => ({
     id: r.id, title: r.title, slug: r.slug, aiSummary: r.aiSummary,
     summary: r.summary, categoryName: r.category?.name ?? "General",
     categorySlug: r.category?.slug ?? "general", sourceUrl: r.sourceUrl,

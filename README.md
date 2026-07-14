@@ -37,7 +37,7 @@ cd notilab
 
 2. **Execute o setup automático**
 \`\`\`bash
-npm run setup
+pnpm setup
 \`\`\`
 
 3. **Configure as variáveis de ambiente**
@@ -48,7 +48,7 @@ cp .env.example .env
 
 4. **Inicie o desenvolvimento**
 \`\`\`bash
-npm run dev
+pnpm dev
 \`\`\`
 
 Acesse [http://localhost:3000](http://localhost:3000) para ver a aplicação.
@@ -57,21 +57,35 @@ Acesse [http://localhost:3000](http://localhost:3000) para ver a aplicação.
 
 \`\`\`bash
 # Desenvolvimento
-npm run dev          # Iniciar servidor de desenvolvimento
-npm run build        # Build de produção
-npm run start        # Iniciar produção
+pnpm dev             # Iniciar servidor de desenvolvimento
+pnpm build           # Build de produção
+pnpm start           # Iniciar produção
 
 # Banco de dados
-npm run db:push      # Sincronizar schema
-npm run db:studio    # Interface visual do Prisma
-npm run db:seed      # Popular com dados iniciais
-npm run db:reset     # Reset completo + seed
+pnpm db:push         # Sincronizar schema
+pnpm db:studio       # Interface visual do Prisma
+pnpm db:seed         # Popular com dados iniciais
+pnpm db:reset        # Reset completo + seed
 
 # Utilitários
-npm run setup        # Configuração inicial completa
-npm run check        # Verificar saúde do sistema
-npm run lint         # Verificar código
+pnpm setup           # Configuração inicial completa
+pnpm check           # Verificar saúde do sistema
+pnpm lint            # Verificar código
+pnpm typecheck       # Verificar tipos TypeScript
+pnpm agents:sync     # Sincronizar agentes Claude Code
 \`\`\`
+
+## 🤖 Governança de IA (Claude, Copilot, Codex)
+
+Este projeto segue um sistema de governança "AI-first" para assistentes de código:
+
+- [`AGENTS.md`](AGENTS.md) — regras do repositório, válidas para qualquer assistente (Claude, Copilot, Codex, Cursor).
+- [`CLAUDE.md`](CLAUDE.md) — manual de operação específico do Claude Code, incluindo os 11 subagentes em `.claude/agents/`.
+- [`.github/copilot-instructions.md`](.github/copilot-instructions.md) — instruções específicas do GitHub Copilot.
+- [`docs/memory/`](docs/memory/) — conhecimento duradouro do projeto (arquitetura, regras de negócio, decisões).
+- [`docs/manager/qualidade/QUALITY_GATE.md`](docs/manager/qualidade/QUALITY_GATE.md) — o que precisa passar antes de um merge.
+- [`docs/manager/roadmap/ROADMAP.md`](docs/manager/roadmap/ROADMAP.md) — roadmap mantido manualmente.
+- [`docs/manager/daily-reports/`](docs/manager/daily-reports/) — registo diário de trabalho.
 
 ## 🗄️ Estrutura do Banco
 

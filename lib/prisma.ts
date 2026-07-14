@@ -1,29 +1,15 @@
-// Temporary mock implementation for Prisma client until it can be properly generated
-// This allows the build to succeed in environments with network restrictions
+import { PrismaClient } from "@prisma/client"
 
-const mockPrisma = {
-  news: {
-    findMany: async () => [],
-    findUnique: async () => null,
-    create: async () => null,
-    update: async () => null,
-    delete: async () => null,
-  },
-  user: {
-    findMany: async () => [],
-    findUnique: async () => null,
-    create: async () => null,
-    update: async () => null,
-    delete: async () => null,
-  },
-  category: {
-    findMany: async () => [],
-    findUnique: async () => null,
-    create: async () => null,
-    update: async () => null,
-    delete: async () => null,
-    upsert: async () => null,
-  },
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient | undefined
 }
 
-export const prisma = mockPrisma as any
+export const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
+  })
+
+if (process.env.NODE_ENV !== "production") {
+  globalForPrisma.prisma = prisma
+}

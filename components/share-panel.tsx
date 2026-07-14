@@ -20,7 +20,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { MessageCircle, Send, Twitter, Link2, Check, Share2, Loader2 } from "lucide-react"
+import { MessageCircle, Send, X, Link2, Check, Share2, Loader2 } from "lucide-react"
 
 interface SharePanelProps {
   articleId: string
@@ -117,7 +117,7 @@ const PLATFORMS = [
   {
     id: "twitter" as const,
     label: "X",
-    Icon: Twitter,
+    Icon: X,
     color: "#ffffff",
     hoverClass: "hover:text-white hover:bg-white/10 hover:border-white/25",
   },

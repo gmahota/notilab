@@ -1,4 +1,4 @@
-import prisma from "../prisma"
+import { prisma } from "../prisma"
 import { AIEnrichmentResult } from "./types"
 
 // The real Prisma client exposes models not present in the mock.

@@ -120,7 +120,18 @@ async function selectArticles(
     },
   })
 
-  return rows.map((r) => ({
+  return rows.map((r: {
+    id: string
+    title: string
+    slug: string | null
+    summary: string | null
+    aiSummary: string | null
+    sourceUrl: string
+    rankingScore: number
+    sentiment: string | null
+    readTime: number | null
+    category: { name: string; slug: string } | null
+  }) => ({
     id: r.id,
     title: r.title,
     slug: r.slug,
@@ -342,7 +353,7 @@ export async function generateDigestIssue(
   // Create pending delivery rows
   if (subscribers.length > 0) {
     await db.digestDelivery.createMany({
-      data: subscribers.map((s) => ({
+      data: subscribers.map((s: { email: string; categories: string[] }) => ({
         issueId: issue.id,
         email: s.email,
         status: "pending",

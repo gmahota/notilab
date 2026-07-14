@@ -61,7 +61,7 @@ export async function recalculateAllRankings(): Promise<RecalculateResult> {
     orderBy: { searchVolume: "desc" },
     take: 50,
   })
-  const trendingKeywords = trendRows.map((t) => t.keyword)
+  const trendingKeywords = trendRows.map((t: { keyword: string }) => t.keyword)
 
   // 2. Load all articles with the fields needed for scoring
   const articles = await db.news.findMany({
@@ -77,7 +77,7 @@ export async function recalculateAllRankings(): Promise<RecalculateResult> {
   })
 
   // 3. Score every article
-  const scored = articles.map((article) => {
+  const scored = articles.map((article: ArticleRow) => {
     const { finalScore } = scoreArticle(
       {
         publishedAt: article.publishedAt,
@@ -102,7 +102,7 @@ export async function recalculateAllRankings(): Promise<RecalculateResult> {
 
     try {
       await db.$transaction(
-        batch.map(({ id, rankingScore }) =>
+        batch.map(({ id, rankingScore }: { id: string; rankingScore: number }) =>
           db.news.update({ where: { id }, data: { rankingScore } }),
         ),
       )

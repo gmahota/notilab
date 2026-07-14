@@ -11,9 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   MessageCircle,
   Send,
-  Twitter,
-  Facebook,
-  Linkedin,
+  X,
+  Globe,
+  Briefcase,
   Share2,
   Settings,
   CheckCircle,
@@ -45,7 +45,7 @@ const socialPlatforms = [
   {
     id: "twitter",
     name: "X (Twitter)",
-    icon: Twitter,
+    icon: X,
     description: "Threads automáticas de notícias resumidas",
     connected: false,
     subscribers: 0,
@@ -55,7 +55,7 @@ const socialPlatforms = [
   {
     id: "facebook",
     name: "Facebook",
-    icon: Facebook,
+    icon: Globe,
     description: "Posts automáticos na sua página",
     connected: false,
     subscribers: 0,
@@ -65,7 +65,7 @@ const socialPlatforms = [
   {
     id: "linkedin",
     name: "LinkedIn",
-    icon: Linkedin,
+    icon: Briefcase,
     description: "Conteúdo profissional e análises de mercado",
     connected: false,
     subscribers: 0,

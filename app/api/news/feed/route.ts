@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
       categorySlug: a.category?.slug || "",
     }))
 
-    const ranked = (rankArticles(articlesForRanking, userCategories) as (typeof articles[number] & { rankScore: number; categorySlug: string })[])
+    const ranked = (rankArticles(articlesForRanking, { userCategoryIds: userCategories }) as (typeof articles[number] & { rankScore: number; categorySlug: string })[])
       .slice(0, limit)
 
     // Transform for frontend

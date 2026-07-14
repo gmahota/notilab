@@ -1,7 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
-import { MessageCircle, Mail, Bot, Twitter } from "lucide-react"
+import { MessageCircle, Mail, Bot, X } from "lucide-react"
 import { motion } from "framer-motion"
 
 const actions = [
@@ -28,7 +28,7 @@ const actions = [
   },
   {
     label: "Share on X",
-    icon: Twitter,
+    icon: X,
     color: "text-foreground",
     hoverGlow: "hover:shadow-[0_0_25px_rgba(255,255,255,0.1)]",
     href: "https://twitter.com/intent/tweet?text=Check%20out%20NotiLab%20-%20AI-powered%20news%20intelligence",

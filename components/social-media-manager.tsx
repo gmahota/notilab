@@ -10,10 +10,10 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Calendar } from "@/components/ui/calendar"
 import {
-  Facebook,
-  Twitter,
-  Instagram,
-  Linkedin,
+  Globe,
+  X,
+  Camera,
+  Briefcase,
   CalendarIcon,
   Clock,
   Users,
@@ -44,10 +44,10 @@ export function SocialMediaManager() {
   ])
 
   const platforms = [
-    { name: "Facebook", icon: Facebook, color: "#1877F2", followers: "12.5K" },
-    { name: "Twitter", icon: Twitter, color: "#1DA1F2", followers: "8.2K" },
-    { name: "Instagram", icon: Instagram, color: "#E4405F", followers: "15.1K" },
-    { name: "LinkedIn", icon: Linkedin, color: "#0A66C2", followers: "5.8K" },
+    { name: "Facebook", icon: Globe, color: "#1877F2", followers: "12.5K" },
+    { name: "Twitter", icon: X, color: "#1DA1F2", followers: "8.2K" },
+    { name: "Instagram", icon: Camera, color: "#E4405F", followers: "15.1K" },
+    { name: "LinkedIn", icon: Briefcase, color: "#0A66C2", followers: "5.8K" },
   ]
 
   return (

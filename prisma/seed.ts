@@ -6,7 +6,10 @@ async function main() {
   console.log("🌱 Starting NotiLab seed (100+ articles, trends, AI data)...")
 
   // ========================
-  // 1. CATEGORIES (5 + 1 tech)
+  // 1. CATEGORIES
+  // Active per docs/editor/content-focus.md (+ Addendum v1.1): desporto, mocambique,
+  // africa-do-sul, filmes, general. The rest are retired (kept for existing News rows'
+  // referential integrity, not routed to).
   // ========================
   const categories = await Promise.all([
     prisma.category.upsert({
@@ -17,7 +20,22 @@ async function main() {
     prisma.category.upsert({
       where: { slug: "desporto" },
       update: {},
-      create: { name: "Desporto", slug: "desporto", description: "Notícias desportivas e resultados", color: "#39FF14", icon: "trophy" },
+      create: { name: "Desporto", slug: "desporto", description: "Futebol mundial, Real Madrid e bastidores das equipas top de Portugal, Inglaterra e Espanha", color: "#39FF14", icon: "trophy" },
+    }),
+    prisma.category.upsert({
+      where: { slug: "mocambique" },
+      update: {},
+      create: { name: "Moçambique", slug: "mocambique", description: "Política de Moçambique", color: "#E60000", icon: "landmark" },
+    }),
+    prisma.category.upsert({
+      where: { slug: "africa-do-sul" },
+      update: {},
+      create: { name: "África do Sul", slug: "africa-do-sul", description: "Xenofobia e questões sociais na África do Sul", color: "#FFB612", icon: "alert-triangle" },
+    }),
+    prisma.category.upsert({
+      where: { slug: "filmes" },
+      update: {},
+      create: { name: "Cinema & Séries", slug: "filmes", description: "Crítica e notícias de cinema e séries — Netflix, Prime Video, Marvel; ação, comédia e doramas", color: "#7c3aed", icon: "clapperboard" },
     }),
     prisma.category.upsert({
       where: { slug: "cultura" },
@@ -38,6 +56,16 @@ async function main() {
       where: { slug: "tecnologia" },
       update: {},
       create: { name: "Tecnologia", slug: "tecnologia", description: "Tech, IA, inovação e startups", color: "#00D4FF", icon: "cpu" },
+    }),
+    prisma.category.upsert({
+      where: { slug: "ciencia" },
+      update: {},
+      create: { name: "Ciência", slug: "ciencia", description: "Ciência, saúde e investigação", color: "#2ECC71", icon: "flask-conical" },
+    }),
+    prisma.category.upsert({
+      where: { slug: "general" },
+      update: {},
+      create: { name: "Geral", slug: "general", description: "Notícias sem categoria específica identificada", color: "#8899A6", icon: "newspaper" },
     }),
   ])
 

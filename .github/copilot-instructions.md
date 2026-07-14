@@ -2,6 +2,10 @@
 
 You are assisting with **NotiLab**, a Next.js 15 news aggregation and notification platform.
 
+## Authority Order
+
+`AGENTS.md` (repo root) is the top-level, tool-agnostic charter — if anything below conflicts with it, `AGENTS.md` wins. Below that: this file → `docs/memory/*` (durable project knowledge — architecture, business rules, decisions) → existing code patterns → the current prompt.
+
 ## Stack & Architecture
 
 - **Framework**: Next.js 15 (App Router, React 19, TypeScript strict)

@@ -37,7 +37,10 @@ export interface VariantMeta {
 export interface ExperimentConfig {
   id: string
   name: string
+  description?: string | null
   isActive: boolean
+  startedAt: Date
+  endedAt?: Date | null
   variants: Record<string, VariantMeta>
 }
 

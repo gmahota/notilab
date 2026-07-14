@@ -7,6 +7,7 @@ const VALID_EVENTS = new Set<GrowthEvent>([
   "article_viewed",
   "article_saved",
   "article_shared",
+  "article_reacted",
   "article_explained",
   "link_pasted",
   "digest_opened",

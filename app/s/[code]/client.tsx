@@ -8,6 +8,7 @@
  */
 
 import { useEffect, useState } from "react"
+import Link from "next/link"
 import { MessageCircle, ExternalLink, Lightbulb, BookOpen, Clock, Newspaper } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -194,9 +195,9 @@ export function ShareLandingClient({
       {/* ── Footer nudge ── */}
       <p className="mt-6 text-xs text-gray-600 text-center max-w-xs">
         You arrived via a shared link.{" "}
-        <a href="/" className="text-blue-500 underline underline-offset-2">
+        <Link href="/" className="text-blue-500 underline underline-offset-2">
           Browse all news on NotiLab →
-        </a>
+        </Link>
       </p>
     </div>
   )

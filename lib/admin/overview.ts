@@ -224,7 +224,14 @@ export async function getOverviewStats(): Promise<OverviewStats> {
       frequency: lastDigest?.frequency ?? null,
       articleCount: lastDigest?.articleIds?.length ?? 0,
     },
-    recentNews: (recentNews ?? []).map((n) => ({
+    recentNews: (recentNews ?? []).map((n: {
+      id: string
+      title: string
+      status: string
+      publishedAt: Date
+      sourceName: string
+      rankingScore: number
+    }) => ({
       id: n.id,
       title: n.title,
       status: n.status,

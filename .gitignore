@@ -40,5 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-*-lock.json
-*-lock.yaml
+# Project standardizes on pnpm — ignore npm/yarn lockfiles, keep pnpm-lock.yaml tracked
+package-lock.json
+yarn.lock

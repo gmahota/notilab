@@ -2,8 +2,11 @@
  * providers.ts — Fetch raw articles from GNews (primary) and NewsAPI (fallback).
  *
  * Each query is isolated: one provider failing does not abort the others.
- * Rate-limit note: 5 queries × 1 provider = 5 req/run.
- *   Free tiers (100 req/day) → safe up to every 28 min. Use hourly on free plans.
+ * Rate-limit note: 12 queries × 1 provider = 12 req/run. The sync-news cron
+ * (vercel.json) runs every 30 min = 48 runs/day → 576 GNews req/day, ~5.75x a
+ * 100-req/day free tier. Query count is not the lever here — cron cadence is.
+ * Fix by dropping the cron to every 3h (8 runs/day × 12 = 96/day) or moving to
+ * a paid GNews plan — see docs/editor/content-focus.md Addendum v1.1 § C.
  */
 
 import type { RawArticle } from "./types"
@@ -12,12 +15,21 @@ const GNEWS_BASE   = "https://gnews.io/api/v4"
 const NEWSAPI_BASE = "https://newsapi.org/v2"
 
 // Topics covered on every sync run. Keep this list ≤ 10 for free-tier safety.
+// Scope per docs/editor/content-focus.md: world football, Real Madrid, PT/EN/ES
+// top-team backstage, Mozambique politics, South Africa xenophobia.
 const SYNC_QUERIES: { q: string; lang: string }[] = [
-  { q: "world news today",                lang: "en" },
-  { q: "technology artificial intelligence", lang: "en" },
-  { q: "economy finance markets",         lang: "en" },
-  { q: "sports football",                 lang: "en" },
-  { q: "science health",                  lang: "en" },
+  { q: "\"Real Madrid\"",                                                     lang: "en" },
+  { q: "\"Real Madrid\" OR Barcelona OR \"Atletico Madrid\"",                 lang: "es" },
+  { q: "\"Champions League\" OR \"World Cup\" OR FIFA OR UEFA",              lang: "en" },
+  { q: "Benfica OR \"FC Porto\" OR \"Sporting CP\"",                          lang: "pt" },
+  { q: "\"Premier League\" AND (Arsenal OR Liverpool OR Chelsea OR Tottenham OR Manchester)", lang: "en" },
+  { q: "Moçambique AND (política OR governo OR eleições OR Frelimo OR Renamo)", lang: "pt" },
+  { q: "Mozambique AND (politics OR government OR election)",                lang: "en" },
+  { q: "xenophobia AND \"South Africa\"",                                    lang: "en" },
+  { q: "xenofobia AND \"África do Sul\"",                                    lang: "pt" },
+  { q: "(Netflix OR \"Prime Video\" OR \"Marvel Studios\") AND (movie OR series OR review OR trailer)", lang: "en" },
+  { q: "(Netflix OR \"Prime Video\") AND (filme OR série OR estreia OR crítica)", lang: "pt" },
+  { q: "dorama OR \"k-drama\" OR \"korean drama\"",                          lang: "en" },
 ]
 
 // ─── GNews ────────────────────────────────────────────────────────────────────
