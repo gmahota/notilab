@@ -8,6 +8,8 @@ import { TrendingUp, Flame, Clock, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import { useEffect, useState } from "react"
 
+import { trendVolumeLabel, type TrendMode } from "@/lib/news-client"
+
 interface TrendingTopic {
   keyword: string
   volume: number
@@ -24,11 +26,16 @@ interface TrendingArticle {
   category: { name: string; color: string }
   publishedAt: string
   readTime: number
-  importanceScore: number | null
+  /** GET /api/news/feed sends the composite ranking as `rankScore`. */
+  rankScore: number | null
 }
+
+/** Articles below this ranking score are not "top ranked" enough to list. */
+const RANK_THRESHOLD = 70
 
 export default function TrendingPage() {
   const [topics, setTopics] = useState<TrendingTopic[]>([])
+  const [mode, setMode] = useState<TrendMode>("coverage")
   const [articles, setArticles] = useState<TrendingArticle[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -42,10 +49,15 @@ export default function TrendingPage() {
         if (topicsRes.ok) {
           const data = await topicsRes.json()
           setTopics(data.topics || [])
+          setMode(data.mode === "engagement" ? "engagement" : "coverage")
         }
         if (articlesRes.ok) {
           const data = await articlesRes.json()
-          setArticles((data.articles || []).filter((a: TrendingArticle) => a.importanceScore && a.importanceScore >= 70))
+          setArticles(
+            (data.articles || []).filter(
+              (a: TrendingArticle) => (a.rankScore ?? 0) >= RANK_THRESHOLD,
+            ),
+          )
         }
       } catch {
         // fallback: empty
@@ -104,7 +116,7 @@ export default function TrendingPage() {
                         </div>
                       </div>
                       <Badge variant="outline" className="text-xs">
-                        {formatVolume(topic.volume)} searches
+                        {formatVolume(topic.volume)} {trendVolumeLabel(mode, topic.volume)}
                       </Badge>
                     </CardContent>
                   </Card>
@@ -131,9 +143,9 @@ export default function TrendingPage() {
                             >
                               {article.category?.name}
                             </Badge>
-                            {article.importanceScore && article.importanceScore >= 85 && (
+                            {(article.rankScore ?? 0) >= 85 && (
                               <Badge variant="outline" className="text-[10px] border-primary/40 text-primary">
-                                AI Score: {article.importanceScore}
+                                Rank: {Math.round(article.rankScore ?? 0)}
                               </Badge>
                             )}
                           </div>

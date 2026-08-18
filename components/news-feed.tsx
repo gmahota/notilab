@@ -1,7 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useCallback, useState, useEffect } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import Image from "next/image"
 import { SocialShare } from "@/components/social-share"
 import { Button } from "@/components/ui/button"
@@ -18,79 +18,45 @@ import {
   Newspaper,
 } from "lucide-react"
 
-// Mock data - will be replaced with API calls
-const mockNews = [
-  {
-    id: "1",
-    title: "Nova Regulamentação de IA Aprovada na Europa",
-    summary:
-      "O Parlamento Europeu aprovou uma lei histórica que estabelece regras rigorosas para o desenvolvimento e uso de inteligência artificial, impactando empresas tecnológicas globalmente.",
-    imageUrl: "/european-parliament-ai-law.png",
-    sourceName: "TechNews EU",
-    publishedAt: new Date("2024-01-15T10:30:00Z"),
-    category: { name: "Política", color: "#ef4444" },
-    trending: true,
-    readTime: 4,
-    views: 12500,
-    author: "Ana Silva",
-  },
-  {
-    id: "2",
-    title: "Benfica Conquista Vitória Histórica na Champions",
-    summary:
-      "O Sport Lisboa e Benfica venceu por 3-1 no Estádio da Luz, garantindo classificação para as quartas de final da Liga dos Campeões após 10 anos.",
-    imageUrl: "/benfica-football-stadium-celebration.png",
-    sourceName: "Desporto Total",
-    publishedAt: new Date("2024-01-15T22:45:00Z"),
-    category: { name: "Desporto", color: "#22c55e" },
-    trending: true,
-    readTime: 3,
-    views: 25600,
-    author: "João Santos",
-  },
-  {
-    id: "3",
-    title: "Festival de Cinema de Lisboa Anuncia Programação 2024",
-    summary:
-      "O prestigiado festival apresenta uma seleção diversificada com filmes inéditos, documentários premiados e homenagens a cineastas portugueses.",
-    imageUrl: "/lisbon-cinema-festival-red-carpet.png",
-    sourceName: "Cultura Hoje",
-    publishedAt: new Date("2024-01-15T14:20:00Z"),
-    category: { name: "Cultura", color: "#8b5cf6" },
-    trending: false,
-    readTime: 5,
-    views: 8900,
-    author: "Maria Costa",
-  },
-  {
-    id: "4",
-    title: "Breakthrough in Quantum Computing Changes Everything",
-    summary:
-      "Scientists at MIT have achieved a new milestone in quantum error correction, bringing fault-tolerant quantum computing closer to practical reality.",
-    imageUrl: "/quantum-computing-lab.png",
-    sourceName: "Science Daily",
-    publishedAt: new Date("2024-01-16T08:00:00Z"),
-    category: { name: "Science", color: "#06b6d4" },
-    trending: true,
-    readTime: 6,
-    views: 18200,
-    author: "Dr. Sarah Chen",
-  },
-]
+import {
+  fetchFeedPage,
+  formatCompactNumber,
+  formatTimeAgo,
+  type FeedArticle,
+} from "@/lib/news-client"
 
-type Article = (typeof mockNews)[number]
+const PAGE_SIZE = 10
 
-function formatTimeAgo(date: Date): string {
-  const diffH = Math.floor((Date.now() - date.getTime()) / 3_600_000)
-  if (diffH < 1) return "Just now"
-  if (diffH < 24) return `${diffH}h ago`
-  return `${Math.floor(diffH / 24)}d ago`
+/** View model for one card — flattened from the API's FeedArticle. */
+interface Article {
+  id: string
+  title: string
+  summary: string
+  imageUrl: string
+  sourceName: string
+  publishedAt: string
+  category: { name: string; color: string }
+  trending: boolean
+  readTime: number
+  views: number
 }
 
-function formatViews(v: number): string {
-  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`
-  if (v >= 1_000) return `${(v / 1_000).toFixed(1)}K`
-  return String(v)
+function toArticle(article: FeedArticle): Article {
+  return {
+    id: article.id,
+    title: article.title,
+    summary: article.tldr || article.summary,
+    imageUrl: article.imageUrl || "/placeholder.svg",
+    sourceName: article.sourceName,
+    publishedAt: article.publishedAt,
+    category: {
+      name: article.category?.name || "News",
+      color: article.category?.color || "#007BFF",
+    },
+    trending: article.trending,
+    readTime: article.readTime,
+    views: article.stats?.reads ?? 0,
+  }
 }
 
 // ─── Skeleton Card ───────────────────────────────────────────────────────────
@@ -139,7 +105,7 @@ function SkeletonCard({ index = 0 }: { index?: number }) {
 
 // ─── Empty State ──────────────────────────────────────────────────────────────
 
-function EmptyState() {
+function EmptyState({ message }: { message?: string }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -155,7 +121,7 @@ function EmptyState() {
         <Newspaper className="h-7 w-7 text-white/25" />
       </motion.div>
       <p className="text-white/40 text-sm font-medium">
-        No news yet. We&apos;re working on it.
+        {message ?? "No news yet. We're working on it."}
       </p>
     </motion.div>
   )
@@ -222,7 +188,7 @@ function SocialCard({ article, index }: { article: Article; index: number }) {
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1">
               <Eye className="h-3 w-3" />
-              {formatViews(article.views)}
+              {formatCompactNumber(article.views)}
             </span>
             <span className="flex items-center gap-1">
               <Clock className="h-3 w-3" />
@@ -280,26 +246,71 @@ function SocialCard({ article, index }: { article: Article; index: number }) {
 // ─── Feed ─────────────────────────────────────────────────────────────────────
 
 export function NewsFeed() {
-  const [articles, setArticles] = useState(mockNews)
+  const searchParams = useSearchParams()
+  const search = searchParams.get("search") ?? undefined
+  const category = searchParams.get("category") ?? undefined
+
+  const [articles, setArticles] = useState<Article[]>([])
   const [refreshing, setRefreshing] = useState(false)
   const [loading, setLoading] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
+  const [hasMore, setHasMore] = useState(false)
 
+  const loadFirstPage = useCallback(
+    async (signal?: AbortSignal) => {
+      try {
+        const page = await fetchFeedPage({ limit: PAGE_SIZE, search, category, signal })
+        setArticles(page.articles.map(toArticle))
+        setHasMore(page.hasMore)
+      } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") return
+        // Fall through to the empty state — never show placeholder articles.
+        setArticles([])
+        setHasMore(false)
+      }
+    },
+    [search, category],
+  )
+
+  // Reload whenever the search/category in the URL changes.
   useEffect(() => {
-    const t = setTimeout(() => setInitialLoading(false), 1000)
-    return () => clearTimeout(t)
-  }, [])
+    const controller = new AbortController()
+    setInitialLoading(true)
+
+    loadFirstPage(controller.signal).finally(() => {
+      if (!controller.signal.aborted) setInitialLoading(false)
+    })
+
+    return () => controller.abort()
+  }, [loadFirstPage])
 
   const handleRefresh = async () => {
     setRefreshing(true)
-    await new Promise((r) => setTimeout(r, 900))
+    await loadFirstPage()
     setRefreshing(false)
   }
 
   const loadMore = async () => {
     setLoading(true)
-    await new Promise((r) => setTimeout(r, 900))
-    setLoading(false)
+    try {
+      const page = await fetchFeedPage({
+        limit: PAGE_SIZE,
+        offset: articles.length,
+        search,
+        category,
+      })
+      // The ranked feed can reorder between requests, so drop ids we already
+      // render instead of duplicating React keys.
+      setArticles((prev) => {
+        const seen = new Set(prev.map((a) => a.id))
+        return [...prev, ...page.articles.map(toArticle).filter((a) => !seen.has(a.id))]
+      })
+      setHasMore(page.hasMore)
+    } catch {
+      setHasMore(false)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const showSkeletons = initialLoading || refreshing
@@ -344,7 +355,10 @@ export function NewsFeed() {
             ))}
           </motion.div>
         ) : isEmpty ? (
-          <EmptyState key="empty" />
+          <EmptyState
+            key="empty"
+            message={search ? `No stories match “${search}”.` : undefined}
+          />
         ) : (
           <motion.div
             key="articles"
@@ -365,7 +379,7 @@ export function NewsFeed() {
       </AnimatePresence>
 
       {/* Load more */}
-      {!showSkeletons && !isEmpty && (
+      {!showSkeletons && !isEmpty && hasMore && (
         <div className="text-center pt-2">
           <Button
             variant="ghost"

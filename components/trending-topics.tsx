@@ -1,90 +1,94 @@
 "use client"
 
-import { useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Flame, Sparkles, ChevronLeft, ChevronRight, TrendingUp } from "lucide-react"
+import { Flame, Newspaper, ChevronLeft, ChevronRight, TrendingUp } from "lucide-react"
 import { motion } from "framer-motion"
 
+import {
+  fetchTrendingTopics,
+  formatCompactNumber,
+  trendVolumeLabel,
+  type TrendMode,
+  type TrendingTopic,
+} from "@/lib/news-client"
+
+// Keys cover both the short labels and the longer ones the trending endpoint
+// actually sends (lib/trends.ts uses "Technology", "Politics", …). Anything
+// unmatched falls back to the neutral style below.
 const CATEGORY_COLORS: Record<string, string> = {
   Tech: "from-blue-500/20 to-blue-500/5 border-blue-500/30",
+  Technology: "from-blue-500/20 to-blue-500/5 border-blue-500/30",
   World: "from-purple-500/20 to-purple-500/5 border-purple-500/30",
+  Politics: "from-purple-500/20 to-purple-500/5 border-purple-500/30",
   Science: "from-cyan-500/20 to-cyan-500/5 border-cyan-500/30",
   Sports: "from-orange-500/20 to-orange-500/5 border-orange-500/30",
   Economy: "from-emerald-500/20 to-emerald-500/5 border-emerald-500/30",
+  Laws: "from-pink-500/20 to-pink-500/5 border-pink-500/30",
 }
 
 const CATEGORY_BADGE_COLORS: Record<string, string> = {
   Tech: "text-blue-400 border-blue-500/40",
+  Technology: "text-blue-400 border-blue-500/40",
   World: "text-purple-400 border-purple-500/40",
+  Politics: "text-purple-400 border-purple-500/40",
   Science: "text-cyan-400 border-cyan-500/40",
   Sports: "text-orange-400 border-orange-500/40",
   Economy: "text-emerald-400 border-emerald-500/40",
+  Laws: "text-pink-400 border-pink-500/40",
 }
 
-const trendingTopics = [
-  {
-    id: "ai-regulation-eu",
-    keyword: "AI Regulation EU",
-    description: "EU Parliament passes landmark AI safety rules.",
-    volume: "2.1M",
-    category: "Tech",
-  },
-  {
-    id: "climate-summit-2026",
-    keyword: "Climate Summit 2026",
-    description: "Leaders meet for emergency climate talks.",
-    volume: "1.8M",
-    category: "World",
-  },
-  {
-    id: "quantum-computing",
-    keyword: "Quantum Computing",
-    description: "Google breaks quantum computing record.",
-    volume: "1.2M",
-    category: "Science",
-  },
-  {
-    id: "champions-league",
-    keyword: "Champions League",
-    description: "UCL semi-final draw shakes up Europe.",
-    volume: "980K",
-    category: "Sports",
-  },
-  {
-    id: "digital-euro",
-    keyword: "Digital Euro",
-    description: "ECB sets launch date for the digital euro.",
-    volume: "870K",
-    category: "Economy",
-  },
-  {
-    id: "space-tourism",
-    keyword: "Space Tourism",
-    description: "First civilian space hotel now taking bookings.",
-    volume: "750K",
-    category: "Science",
-  },
-  {
-    id: "cybersecurity-alert",
-    keyword: "Cybersecurity Alert",
-    description: "Critical flaw found in global infrastructure.",
-    volume: "1.5M",
-    category: "Tech",
-  },
-  {
-    id: "electric-vehicles",
-    keyword: "Electric Vehicles",
-    description: "New battery: 1000km range in small cars.",
-    volume: "920K",
-    category: "Tech",
-  },
-]
+const TOPIC_LIMIT = 10
+
+function TopicSkeleton() {
+  return (
+    <div className="min-w-[280px] max-w-[280px] shrink-0">
+      <div className="h-full rounded-2xl p-5 flex flex-col justify-between gap-4 bg-gradient-to-b from-white/5 to-white/0 border border-white/10">
+        <div className="flex items-center justify-between">
+          <div className="h-5 w-16 rounded-full bg-white/8 animate-pulse" />
+          <div className="h-3 w-10 rounded-full bg-white/6 animate-pulse" />
+        </div>
+        <div className="space-y-2 flex-1">
+          <div className="h-4 w-4/5 rounded bg-white/10 animate-pulse" />
+          <div className="h-3 w-full rounded bg-white/6 animate-pulse" />
+          <div className="h-3 w-3/5 rounded bg-white/6 animate-pulse" />
+        </div>
+        <div className="h-8 w-full rounded-xl bg-white/6 animate-pulse" />
+      </div>
+    </div>
+  )
+}
 
 export function TrendingTopics() {
   const scrollRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
+
+  const [topics, setTopics] = useState<TrendingTopic[]>([])
+  const [mode, setMode] = useState<TrendMode>("coverage")
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const controller = new AbortController()
+
+    fetchTrendingTopics({ limit: TOPIC_LIMIT, signal: controller.signal })
+      .then((result) => {
+        setTopics(result.topics)
+        setMode(result.mode)
+      })
+      .catch((err) => {
+        if (err instanceof Error && err.name === "AbortError") return
+        // Leave topics empty — the section hides itself rather than showing
+        // stale placeholder trends.
+        setTopics([])
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false)
+      })
+
+    return () => controller.abort()
+  }, [])
 
   const scroll = (direction: "left" | "right") => {
     if (scrollRef.current) {
@@ -95,9 +99,15 @@ export function TrendingTopics() {
     }
   }
 
-  const handleExplain = (topic: (typeof trendingTopics)[number]) => {
-    router.push(`/explain/${topic.id}`)
+  // Trending topics are search keywords, not articles, so there is no article
+  // id to explain — send the reader to the feed filtered by that keyword.
+  const handleSeeNews = (topic: TrendingTopic) => {
+    router.push(`/feed?search=${encodeURIComponent(topic.keyword)}`)
   }
+
+  // Nothing trending and nothing loading: drop the whole section instead of
+  // leaving a heading above an empty rail.
+  if (!loading && topics.length === 0) return null
 
   return (
     <section className="relative w-full bg-[#060a14] py-16 overflow-hidden">
@@ -119,7 +129,9 @@ export function TrendingTopics() {
             </span>
             <div>
               <h2 className="text-2xl sm:text-3xl font-bold text-white">Trending Now</h2>
-              <p className="text-xs text-white/35 mt-0.5">Live · 15 min updates</p>
+              {/* Cadence must match vercel.json — the Hobby plan caps crons at
+                  one run per day (see DEPLOYMENT.md § Cron Jobs). */}
+              <p className="text-xs text-white/35 mt-0.5">Updated daily</p>
             </div>
           </div>
 
@@ -146,13 +158,15 @@ export function TrendingTopics() {
           ref={scrollRef}
           className="scroll-horizontal flex gap-4 pb-4"
         >
-          {trendingTopics.map((topic, index) => {
+          {loading && Array.from({ length: 6 }).map((_, i) => <TopicSkeleton key={`skeleton-${i}`} />)}
+
+          {!loading && topics.map((topic, index) => {
             const cardGradient = CATEGORY_COLORS[topic.category] ?? "from-white/5 to-white/0 border-white/10"
             const badgeColor = CATEGORY_BADGE_COLORS[topic.category] ?? "text-white/50 border-white/20"
 
             return (
               <motion.div
-                key={topic.id}
+                key={topic.keyword}
                 initial={{ opacity: 0, y: 24 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 whileHover={{ scale: 1.04, y: -4 }}
@@ -181,7 +195,9 @@ export function TrendingTopics() {
                     </Badge>
                     <div className="flex items-center gap-1 text-xs text-white/40">
                       <TrendingUp className="h-3 w-3 text-[#39FF14]" />
-                      <span>{topic.volume}</span>
+                      <span>
+                        {formatCompactNumber(topic.volume)} {trendVolumeLabel(mode, topic.volume)}
+                      </span>
                     </div>
                   </div>
 
@@ -190,19 +206,24 @@ export function TrendingTopics() {
                     <h3 className="font-bold text-white text-base leading-snug">
                       {topic.keyword}
                     </h3>
-                    <p className="text-sm text-white/50 line-clamp-2 leading-relaxed">
-                      {topic.description}
-                    </p>
+                    {/* The endpoint's database branch returns no description
+                        (only the external-API branch does), so keep this
+                        conditional rather than rendering an empty line. */}
+                    {topic.description && (
+                      <p className="text-sm text-white/50 line-clamp-2 leading-relaxed">
+                        {topic.description}
+                      </p>
+                    )}
                   </div>
 
-                  {/* Explain button */}
+                  {/* See related news */}
                   <Button
                     size="sm"
-                    onClick={() => handleExplain(topic)}
+                    onClick={() => handleSeeNews(topic)}
                     className="w-full bg-white/5 hover:bg-blue-500/20 border border-white/10 hover:border-blue-500/40 text-white/70 hover:text-blue-300 rounded-xl transition-all duration-200"
                   >
-                    <Sparkles className="h-3.5 w-3.5 mr-2" />
-                    Explain
+                    <Newspaper className="h-3.5 w-3.5 mr-2" />
+                    See news
                   </Button>
                 </div>
               </motion.div>
