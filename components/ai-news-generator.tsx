@@ -8,8 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Switch } from "@/components/ui/switch"
-import { Progress } from "@/components/ui/progress"
+import type { GeneratedDraft } from "@/lib/ai-generate-service"
 import { TrendingTopics } from "./trending-topics"
 import { NewsResearcher } from "./news-researcher"
 import { AITemplates } from "./ai-templates"
@@ -22,8 +21,9 @@ interface AINewsGeneratorProps {
 export function AINewsGenerator({ user }: AINewsGeneratorProps) {
   const [activeTab, setActiveTab] = useState("generator")
   const [generating, setGenerating] = useState(false)
-  const [progress, setProgress] = useState(0)
-  const [generatedContent, setGeneratedContent] = useState<any>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
+  const [generatedContent, setGeneratedContent] = useState<GeneratedDraft | null>(null)
 
   const [formData, setFormData] = useState({
     topic: "",
@@ -31,64 +31,69 @@ export function AINewsGenerator({ user }: AINewsGeneratorProps) {
     style: "informativo",
     tone: "neutro",
     length: "medio",
-    includeAnalysis: true,
-    includeSources: true,
     targetAudience: "geral",
-    keywords: [] as string[],
   })
 
   const handleGenerate = async () => {
     setGenerating(true)
-    setProgress(0)
+    setError(null)
+    setGeneratedContent(null)
 
-    // Simular processo de geração
-    const steps = [
-      { message: "Pesquisando tópicos relacionados...", progress: 20 },
-      { message: "Analisando tendências...", progress: 40 },
-      { message: "Gerando conteúdo...", progress: 60 },
-      { message: "Aplicando análise de IA...", progress: 80 },
-      { message: "Finalizando...", progress: 100 },
-    ]
+    try {
+      const res = await fetch("/api/ai/generate-news", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topic: formData.topic,
+          category: formData.category,
+          tone: formData.tone,
+          length: formData.length,
+          style: formData.style,
+          audience: formData.targetAudience,
+        }),
+      })
 
-    for (const step of steps) {
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-      setProgress(step.progress)
+      const payload = await res.json()
+
+      if (!res.ok || !payload.success) {
+        // NO_SOURCES is the expected answer when we hold no coverage on the
+        // topic — surface it as guidance, not as a failure.
+        setError(
+          payload?.code === "NO_SOURCES"
+            ? payload.error
+            : payload?.error || "Não foi possível gerar o rascunho.",
+        )
+        return
+      }
+
+      setGeneratedContent(payload.data)
+    } catch {
+      setError("Falha de rede ao contactar o serviço de geração.")
+    } finally {
+      setGenerating(false)
     }
-
-    // Mock do conteúdo gerado
-    setGeneratedContent({
-      title: "IA Revoluciona Diagnósticos Médicos em Portugal",
-      summary:
-        "Nova tecnologia de inteligência artificial desenvolvida por investigadores portugueses promete transformar a medicina de precisão no país.",
-      content: `A inteligência artificial está a revolucionar o setor da saúde em Portugal, com uma nova tecnologia desenvolvida por investigadores da Universidade do Porto que promete transformar os diagnósticos médicos.
-
-O sistema, denominado MediAI, utiliza algoritmos avançados de machine learning para analisar exames médicos com uma precisão superior a 95%, superando os métodos tradicionais de diagnóstico.
-
-"Esta tecnologia representa um marco na medicina portuguesa", afirma o Dr. João Silva, coordenador do projeto. "Conseguimos reduzir o tempo de diagnóstico de horas para minutos, mantendo uma precisão excecional."
-
-O sistema já está a ser testado em três hospitais de Lisboa e Porto, com resultados promissores. Os primeiros testes mostram uma redução de 40% no tempo de diagnóstico e uma melhoria significativa na deteção precoce de doenças.
-
-A implementação nacional está prevista para 2025, com o apoio do Ministério da Saúde e financiamento europeu de 15 milhões de euros.`,
-      aiAnalysis: {
-        sentiment: "Positivo",
-        readability: "Fácil",
-        engagement: "Alto",
-        seoScore: 85,
-        keywords: ["IA", "medicina", "diagnóstico", "Portugal", "tecnologia"],
-      },
-      suggestions: [
-        "Adicionar citações de especialistas internacionais",
-        "Incluir dados estatísticos sobre eficácia",
-        "Mencionar impacto económico da tecnologia",
-      ],
-    })
-
-    setGenerating(false)
   }
 
-  const handleSendToEditor = () => {
-    // Implementar envio para o editor de notícias
-    console.log("Enviando para editor:", generatedContent)
+  const handleCopy = async () => {
+    if (!generatedContent) return
+    const plain = [
+      generatedContent.title,
+      "",
+      generatedContent.summary,
+      "",
+      generatedContent.content,
+      "",
+      "Fontes:",
+      ...generatedContent.sources.map((s) => `- ${s.title} (${s.sourceName}) ${s.sourceUrl}`),
+    ].join("\n")
+
+    try {
+      await navigator.clipboard.writeText(plain)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      setError("O navegador bloqueou o acesso à área de transferência.")
+    }
   }
 
   return (
@@ -260,29 +265,15 @@ A implementação nacional está prevista para 2025, com o apoio do Ministério 
                     </Select>
                   </div>
 
-                  <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="includeAnalysis" className="text-gray-300">
-                        Incluir Análise IA
-                      </Label>
-                      <Switch
-                        id="includeAnalysis"
-                        checked={formData.includeAnalysis}
-                        onCheckedChange={(checked: boolean) => setFormData({ ...formData, includeAnalysis: checked })}
-                      />
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="includeSources" className="text-gray-300">
-                        Incluir Fontes
-                      </Label>
-                      <Switch
-                        id="includeSources"
-                        checked={formData.includeSources}
-                        onCheckedChange={(checked: boolean) => setFormData({ ...formData, includeSources: checked })}
-                      />
-                    </div>
-                  </div>
+                  {/* The "Incluir Análise IA" and "Incluir Fontes" switches were
+                      removed: the analysis they gated was the fabricated metrics
+                      block, and source provenance is now mandatory rather than
+                      optional (AGENTS.md § AI-Content Correctness). Neither
+                      switch was ever sent to the server. */}
+                  <p className="text-xs text-gray-500 border border-gray-800 rounded-lg p-3">
+                    O rascunho é escrito exclusivamente a partir de artigos que já temos em base.
+                    Se não houver cobertura sobre o tópico, a geração falha em vez de inventar.
+                  </p>
 
                   <Button
                     onClick={handleGenerate}
@@ -302,11 +293,14 @@ A implementação nacional está prevista para 2025, com o apoio do Ministério 
                     )}
                   </Button>
 
-                  {generating && (
-                    <div className="space-y-2">
-                      <Progress value={progress} className="w-full" />
-                      <p className="text-sm text-gray-400 text-center">Processando... {progress}%</p>
-                    </div>
+                  {/* No progress bar: the previous one animated through fake
+                      stages on a timer. A single request has no real progress
+                      to report, so the spinner on the button is the honest
+                      signal. */}
+                  {error && (
+                    <p className="text-sm text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded-lg p-3">
+                      {error}
+                    </p>
                   )}
                 </CardContent>
               </Card>
@@ -320,11 +314,21 @@ A implementação nacional está prevista para 2025, com o apoio do Ministério 
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-white">Conteúdo Gerado</CardTitle>
                       <div className="flex items-center space-x-2">
-                        <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" onClick={handleCopy}>
                           <Download className="w-4 h-4 mr-2" />
-                          Exportar
+                          {copied ? "Copiado" : "Copiar"}
                         </Button>
-                        <Button onClick={handleSendToEditor} size="sm" className="bg-green-600 hover:bg-green-700">
+                        {/* Disabled deliberately: there is no news-creation
+                            endpoint yet, and AGENTS.md requires AI content to
+                            enter as DRAFT through the editorial workflow with an
+                            AdminAction audit row. The previous handler only ran
+                            console.log, which looked like it had worked. */}
+                        <Button
+                          size="sm"
+                          disabled
+                          title="Handoff para o editor ainda não implementado — copie o rascunho por agora"
+                          className="bg-green-600 hover:bg-green-700"
+                        >
                           <Send className="w-4 h-4 mr-2" />
                           Enviar para Editor
                         </Button>
@@ -353,50 +357,62 @@ A implementação nacional está prevista para 2025, com o apoio do Ministério 
                       </div>
                     </div>
 
-                    {/* AI Analysis */}
+                    {/* Only signals the model actually produced. The previous
+                        version also showed "Legibilidade", "Engagement" and an
+                        "SEO Score" that were invented — the score was literally
+                        Math.random(). Fabricated metrics were dropped rather
+                        than reimplemented. */}
                     <div>
-                      <Label className="text-gray-300">Análise IA</Label>
+                      <Label className="text-gray-300">Sinais</Label>
                       <div className="bg-gray-800 p-3 rounded-lg mt-1 space-y-2">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div>
-                            <span className="text-gray-400 text-sm">Sentimento:</span>
-                            <Badge className="ml-2 bg-green-600">{generatedContent.aiAnalysis.sentiment}</Badge>
-                          </div>
-                          <div>
-                            <span className="text-gray-400 text-sm">Legibilidade:</span>
-                            <Badge className="ml-2 bg-blue-600">{generatedContent.aiAnalysis.readability}</Badge>
-                          </div>
-                          <div>
-                            <span className="text-gray-400 text-sm">Engagement:</span>
-                            <Badge className="ml-2 bg-purple-600">{generatedContent.aiAnalysis.engagement}</Badge>
-                          </div>
-                          <div>
-                            <span className="text-gray-400 text-sm">SEO Score:</span>
-                            <Badge className="ml-2 bg-yellow-600">{generatedContent.aiAnalysis.seoScore}/100</Badge>
-                          </div>
-                        </div>
                         <div>
-                          <span className="text-gray-400 text-sm">Keywords:</span>
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {generatedContent.aiAnalysis.keywords.map((keyword: string) => (
-                              <Badge key={keyword} variant="outline" className="text-blue-400 border-blue-400">
-                                {keyword}
-                              </Badge>
-                            ))}
-                          </div>
+                          <span className="text-gray-400 text-sm">Sentimento:</span>
+                          <Badge className="ml-2 bg-green-600">{generatedContent.sentiment}</Badge>
                         </div>
+                        {generatedContent.keywords.length > 0 && (
+                          <div>
+                            <span className="text-gray-400 text-sm">Keywords:</span>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {generatedContent.keywords.map((keyword) => (
+                                <Badge key={keyword} variant="outline" className="text-blue-400 border-blue-400">
+                                  {keyword}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
 
-                    {/* Suggestions */}
+                    {/* Provenance — AGENTS.md requires AI-generated content to
+                        keep a traceable link to its source material. */}
                     <div>
-                      <Label className="text-gray-300">Sugestões de Melhoria</Label>
+                      <Label className="text-gray-300">
+                        Fontes usadas ({generatedContent.sources.length})
+                      </Label>
                       <div className="bg-gray-800 p-3 rounded-lg mt-1">
-                        <ul className="space-y-1">
-                          {generatedContent.suggestions.map((suggestion: string, index: number) => (
-                            <li key={index} className="text-gray-300 text-sm flex items-start">
-                              <Target className="w-3 h-3 mr-2 mt-0.5 text-blue-400 flex-shrink-0" />
-                              {suggestion}
+                        <p className="text-xs text-gray-500 mb-2">
+                          O rascunho foi escrito apenas a partir destes artigos. Verifique cada
+                          afirmação contra a fonte antes de aprovar.
+                        </p>
+                        <ul className="space-y-2">
+                          {generatedContent.sources.map((source) => (
+                            <li key={source.id} className="text-sm flex items-start">
+                              <Target className="w-3 h-3 mr-2 mt-1 text-blue-400 flex-shrink-0" />
+                              <span className="min-w-0">
+                                <a
+                                  href={source.sourceUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-gray-300 hover:text-blue-400 underline break-words"
+                                >
+                                  {source.title}
+                                </a>
+                                <span className="block text-xs text-gray-500">
+                                  {source.sourceName} ·{" "}
+                                  {new Date(source.publishedAt).toISOString().slice(0, 10)}
+                                </span>
+                              </span>
                             </li>
                           ))}
                         </ul>
