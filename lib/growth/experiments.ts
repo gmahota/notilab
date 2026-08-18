@@ -73,6 +73,37 @@ type PrismaExt = typeof prisma & {
 }
 
 // ---------------------------------------------------------------------------
+// Row → config mapping
+// ---------------------------------------------------------------------------
+
+/**
+ * Normalises a GrowthExperiment row into an ExperimentConfig.
+ *
+ * Prisma types the `variants` column as `JsonValue`, so it needs narrowing
+ * before it can be treated as a variant map. A row with a malformed
+ * `variants` value degrades to an empty map rather than throwing — callers
+ * already fall back to "control" when no variant matches.
+ */
+function toExperimentConfig(row: {
+  id: string
+  name: string
+  description: string | null
+  isActive: boolean
+  startedAt: Date
+  endedAt: Date | null
+  variants: unknown
+}): ExperimentConfig {
+  const { variants, ...rest } = row
+  const isVariantMap =
+    typeof variants === "object" && variants !== null && !Array.isArray(variants)
+
+  return {
+    ...rest,
+    variants: isVariantMap ? (variants as Record<string, VariantMeta>) : {},
+  }
+}
+
+// ---------------------------------------------------------------------------
 // Deterministic bucketing (no crypto randomness — must be reproducible)
 // ---------------------------------------------------------------------------
 
@@ -235,7 +266,8 @@ export async function trackConversion(
  */
 export async function listExperiments(): Promise<ExperimentConfig[]> {
   const db = prisma as unknown as PrismaExt
-  return db.growthExperiment.findMany({ orderBy: { startedAt: "desc" } })
+  const rows = await db.growthExperiment.findMany({ orderBy: { startedAt: "desc" } })
+  return rows.map(toExperimentConfig)
 }
 
 /**
@@ -254,7 +286,7 @@ export async function createExperiment(input: {
     Object.entries(input.variants).map(([k, v]) => [k, { weight: 1, ...v }]),
   )
 
-  return db.growthExperiment.create({
+  const row = await db.growthExperiment.create({
     data: {
       name: input.name,
       description: input.description ?? null,
@@ -262,6 +294,7 @@ export async function createExperiment(input: {
       isActive: true,
     },
   })
+  return toExperimentConfig(row)
 }
 
 /**
@@ -269,10 +302,11 @@ export async function createExperiment(input: {
  */
 export async function stopExperiment(id: string): Promise<ExperimentConfig> {
   const db = prisma as unknown as PrismaExt
-  return db.growthExperiment.update({
+  const row = await db.growthExperiment.update({
     where: { id },
     data: { isActive: false, endedAt: new Date() },
   })
+  return toExperimentConfig(row)
 }
 
 /**

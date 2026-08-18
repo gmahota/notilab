@@ -77,6 +77,19 @@ export interface ExperimentSummary extends Omit<ExperimentResult, "variants"> {
 // Internal helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * Reads the `variant` field out of a UserEvent.meta JSON column.
+ *
+ * Prisma types JSON columns as `JsonValue` (which includes primitives and
+ * arrays), so narrow to an object before reading the field instead of casting
+ * straight to a record.
+ */
+function variantOf(meta: unknown): string | null {
+  if (typeof meta !== "object" || meta === null || Array.isArray(meta)) return null
+  const value = (meta as Record<string, unknown>).variant
+  return typeof value === "string" ? value : null
+}
+
 async function countExposures(
   db: PrismaExt,
   experimentName: string,
@@ -90,7 +103,7 @@ async function countExposures(
     select: { userId: true, meta: true, createdAt: true },
   })
   // Filter in JS — Prisma JSON path filtering varies by provider
-  return rows.filter((r: UserEventRow) => (r.meta as Record<string, unknown>)?.variant === variant).length
+  return rows.filter((r) => variantOf(r.meta) === variant).length
 }
 
 async function countConversions(
@@ -105,7 +118,7 @@ async function countConversions(
     },
     select: { userId: true, meta: true, createdAt: true },
   })
-  return rows.filter((r: UserEventRow) => (r.meta as Record<string, unknown>)?.variant === variant).length
+  return rows.filter((r) => variantOf(r.meta) === variant).length
 }
 
 // ---------------------------------------------------------------------------
