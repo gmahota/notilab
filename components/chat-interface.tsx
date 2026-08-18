@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { MessageBubble } from "@/components/message-bubble"
 import { ChatSuggestions } from "@/components/chat-suggestions"
+import { fetchFeedPage } from "@/lib/news-client"
 import { Send, Mic, MicOff, ImageIcon, Sparkles, Loader2 } from "lucide-react"
 
 interface Message {
@@ -17,20 +18,29 @@ interface Message {
   timestamp: Date
   isTyping?: boolean
   suggestions?: string[]
+  sources?: ArticleSource[]
 }
 
+/** One article the answer was drawn from, so the reader can verify it. */
+interface ArticleSource {
+  id: string
+  title: string
+  sourceName: string
+}
+
+/**
+ * The opening suggestions used to be the four keys of the route's canned-answer
+ * table ("Explicar a nova lei de IA", …), so they were guaranteed to hit
+ * fabricated text. Only the roundup is offered up front now; the rest are
+ * replaced with real headlines once the feed loads.
+ */
 const initialMessages: Message[] = [
   {
     id: "1",
-    content: "Olá! Sou o NotiBot, seu assistente de notícias inteligente. Como posso ajudar hoje?",
+    content: "Olá! Sou o NotiBot. Respondo a partir das notícias que temos em base — se não tivermos cobertura sobre algo, digo-te.",
     type: "assistant",
     timestamp: new Date(),
-    suggestions: [
-      "Resumir as notícias de hoje",
-      "Explicar a nova lei de IA",
-      "Notícias sobre futebol",
-      "Tendências em tecnologia",
-    ],
+    suggestions: ["Resumir as notícias de hoje"],
   },
 ]
 
@@ -49,6 +59,27 @@ export function ChatInterface() {
   useEffect(() => {
     scrollToBottom()
   }, [messages])
+
+  // Offer real headlines as openers instead of hardcoded topics.
+  useEffect(() => {
+    const controller = new AbortController()
+
+    fetchFeedPage({ limit: 3, signal: controller.signal })
+      .then((page) => {
+        if (page.articles.length === 0) return
+        const openers = page.articles.map((a) => a.title.slice(0, 70))
+        setMessages((prev) =>
+          prev.map((m, i) =>
+            i === 0 ? { ...m, suggestions: ["Resumir as notícias de hoje", ...openers] } : m,
+          ),
+        )
+      })
+      .catch(() => {
+        // Keep the single roundup suggestion.
+      })
+
+    return () => controller.abort()
+  }, [])
 
   const sendMessage = async (content: string) => {
     if (!content.trim()) return
@@ -88,6 +119,7 @@ export function ChatInterface() {
         type: "assistant",
         timestamp: new Date(),
         suggestions: data.suggestions,
+        sources: Array.isArray(data.sources) ? data.sources : undefined,
       }
 
       setMessages((prev) => [...prev, assistantMessage])

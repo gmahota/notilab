@@ -1,49 +1,98 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import Image from "next/image"
 import { Brain, Clock, Sparkles, Baby, Loader2 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 
-const featuredArticle = {
-  title: "EU Parliament Approves Landmark AI Safety Act: What It Means for the World",
-  summary:
-    "The European Union has passed the most comprehensive AI regulation in history, setting global standards for artificial intelligence development, deployment, and oversight across all industries.",
-  image: "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800&q=80",
-  category: "Technology",
-  readTime: "8 min read",
-  source: "Reuters",
-}
+import { fetchFeedPage, type FeedArticle } from "@/lib/news-client"
 
 export function ExplainIt() {
+  const [featured, setFeatured] = useState<FeedArticle | null>(null)
+  const [loadingFeatured, setLoadingFeatured] = useState(true)
   const [explanation, setExplanation] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [mode, setMode] = useState<string | null>(null)
 
+  // The featured story is whatever currently ranks highest. It used to be a
+  // hardcoded EU AI-regulation article with an Unsplash stock photo, which is
+  // why production showed the same headline here for months.
+  useEffect(() => {
+    const controller = new AbortController()
+
+    fetchFeedPage({ limit: 1, signal: controller.signal })
+      .then((page) => setFeatured(page.articles[0] ?? null))
+      .catch((err) => {
+        if (err instanceof Error && err.name === "AbortError") return
+        setFeatured(null)
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoadingFeatured(false)
+      })
+
+    return () => controller.abort()
+  }, [])
+
   const handleExplain = async (complexity: "simple" | "child") => {
+    if (!featured) return
+
     setLoading(true)
     setMode(complexity === "simple" ? "30 seconds" : "like you're 10")
     setExplanation(null)
+    setError(null)
 
     try {
       const res = await fetch("/api/ai/explain", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic: featuredArticle.title, complexity }),
+        body: JSON.stringify({ articleId: featured.id, complexity }),
       })
-      const data = await res.json()
-      setExplanation(data.explanation)
+      const payload = await res.json()
+
+      if (!res.ok || !payload.success) {
+        // No canned fallback here on purpose. The previous version answered a
+        // failure with two hardcoded paragraphs about EU AI law, so a broken
+        // request was indistinguishable from a real explanation.
+        setError(
+          payload?.code === "NOT_ENRICHED"
+            ? "Esta história ainda não passou pelo enriquecimento de IA."
+            : payload?.error || "Não foi possível obter a explicação.",
+        )
+        return
+      }
+
+      setExplanation(payload.data.explanation)
     } catch {
-      setExplanation(
-        complexity === "simple"
-          ? "The EU just created the world's first major rulebook for AI. Companies must now be transparent about how their AI works, can't use it for mass surveillance, and face big fines if they break the rules. This affects every tech company globally."
-          : "Imagine AI is like a super-smart robot helper. The EU (a group of countries in Europe) just made rules so these robot helpers have to be nice and fair. They can't spy on people or be mean. If companies break the rules, they get in big trouble — like a really expensive time-out! 🤖"
-      )
+      setError("Falha de rede ao obter a explicação.")
     } finally {
       setLoading(false)
     }
+  }
+
+  // Nothing to explain yet — hide the section rather than show a placeholder story.
+  if (!loadingFeatured && !featured) return null
+
+  if (!featured) {
+    return (
+      <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div className="flex items-center gap-3 mb-8">
+          <Brain className="h-6 w-6 text-primary" />
+          <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Explain It</h2>
+        </div>
+        <div className="glass rounded-3xl overflow-hidden border border-border/50 grid md:grid-cols-2">
+          <div className="h-64 md:min-h-[300px] bg-muted/20 animate-pulse" />
+          <div className="p-6 md:p-8 space-y-4">
+            <div className="h-3 w-20 rounded bg-muted/20 animate-pulse" />
+            <div className="h-6 w-4/5 rounded-lg bg-muted/25 animate-pulse" />
+            <div className="h-4 w-full rounded bg-muted/15 animate-pulse" />
+            <div className="h-4 w-3/5 rounded bg-muted/15 animate-pulse" />
+          </div>
+        </div>
+      </section>
+    )
   }
 
   return (
@@ -68,18 +117,18 @@ export function ExplainIt() {
           {/* Image */}
           <div className="relative h-64 md:h-auto min-h-[300px]">
             <Image
-              src={featuredArticle.image}
-              alt={featuredArticle.title}
+              src={featured.imageUrl}
+              alt={featured.title}
               fill
               className="absolute inset-0 w-full h-full object-cover"
               unoptimized
             />
             <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-background/20 to-transparent md:bg-gradient-to-r md:from-transparent md:via-transparent md:to-background" />
             <div className="absolute top-4 left-4 flex items-center gap-2">
-              <Badge className="bg-primary/90 text-primary-foreground">{featuredArticle.category}</Badge>
+              <Badge className="bg-primary/90 text-primary-foreground">{featured.category.name}</Badge>
               <Badge variant="outline" className="glass text-foreground/80 border-white/10">
                 <Clock className="h-3 w-3 mr-1" />
-                {featuredArticle.readTime}
+                {featured.readTime} min read
               </Badge>
             </div>
           </div>
@@ -87,11 +136,11 @@ export function ExplainIt() {
           {/* Content */}
           <div className="p-6 md:p-8 flex flex-col justify-center space-y-6">
             <div className="space-y-3">
-              <p className="text-xs uppercase tracking-wider text-muted-foreground">{featuredArticle.source}</p>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">{featured.sourceName}</p>
               <h3 className="text-xl sm:text-2xl font-bold text-foreground leading-tight">
-                {featuredArticle.title}
+                {featured.title}
               </h3>
-              <p className="text-muted-foreground leading-relaxed">{featuredArticle.summary}</p>
+              <p className="text-muted-foreground leading-relaxed">{featured.tldr || featured.summary}</p>
             </div>
 
             {/* Action Buttons */}
@@ -145,6 +194,12 @@ export function ExplainIt() {
                 </motion.div>
               )}
             </AnimatePresence>
+
+            {error && (
+              <p className="text-sm text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded-2xl p-4">
+                {error}
+              </p>
+            )}
           </div>
         </div>
       </motion.div>
