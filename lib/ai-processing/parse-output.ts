@@ -15,6 +15,7 @@ export function parseAIOutput(raw: string): AIEnrichmentResult | null {
     return null
   }
 
+  const title = typeof parsed.title === "string" ? parsed.title.trim() : ""
   const summary = typeof parsed.summary === "string" ? parsed.summary.trim() : ""
   const tldr = typeof parsed.tldr === "string" ? parsed.tldr.trim() : ""
   const whyItMatters = typeof parsed.whyItMatters === "string" ? parsed.whyItMatters.trim() : ""
@@ -28,10 +29,13 @@ export function parseAIOutput(raw: string): AIEnrichmentResult | null {
   const importanceScore = clampInt(parsed.importanceScore, 0, 100, 50)
   const readTime = clampInt(parsed.readTime, 1, 60, 3)
 
-  // Require at minimum a summary and tldr
+  // Require at minimum a summary and tldr. A missing title is not fatal — the
+  // caller falls back to the original headline, which is merely untranslated
+  // rather than absent.
   if (!summary || !tldr) return null
 
   return {
+    title,
     summary,
     tldr,
     whyItMatters: whyItMatters || tldr,

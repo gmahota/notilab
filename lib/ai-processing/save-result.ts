@@ -26,6 +26,9 @@ export async function saveEnrichmentResult(
   await (db.articleAI as PrismaWithAI["articleAI"]).update({
     where: { id: articleAIId },
     data: {
+      // Left null when the AI produced no title, so the next batch retries the
+      // translation rather than treating the article as done.
+      titleTranslated: result.title || null,
       summary: result.summary,
       tldr: result.tldr,
       whyItMatters: result.whyItMatters,

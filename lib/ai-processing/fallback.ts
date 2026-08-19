@@ -15,9 +15,13 @@ export function generateFallback(
   const readTime = Math.max(1, Math.round(wordCount / 200))
 
   return {
+    // Empty, not `title`: this path has no way to translate, and writing the
+    // source headline into titleTranslated would mark a Spanish headline as
+    // already translated and stop the batch from ever retrying it.
+    title: "",
     summary,
     tldr: summary,
-    whyItMatters: "This story may be relevant to current events.",
+    whyItMatters: "Esta notícia pode ser relevante para a actualidade.",
     explainLikeIm10: summary,
     sentiment: "neutral",
     importanceScore: 50,

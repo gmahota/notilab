@@ -79,8 +79,8 @@ export interface TrendingResult {
 
 /** Human label for what `volume` counts, for use next to the number. */
 export function trendVolumeLabel(mode: TrendMode, volume: number): string {
-  if (mode === "engagement") return volume === 1 ? "interaction" : "interactions"
-  return volume === 1 ? "story" : "stories"
+  if (mode === "engagement") return volume === 1 ? "interação" : "interações"
+  return volume === 1 ? "notícia" : "notícias"
 }
 
 export interface FeedQuery {
@@ -133,6 +133,26 @@ export async function fetchTrendingTopics(
     mode: data.mode === "engagement" ? "engagement" : "coverage",
     topics: Array.isArray(data.topics) ? data.topics : [],
   }
+}
+
+/** What GET /api/stats returns. Every field is a live count, never an estimate. */
+export interface PublicStats {
+  articlesToday: number
+  aiSummaries: number
+  sources: number
+}
+
+/**
+ * Fetches the public counts shown in the feed sidebar. Throws on a non-2xx so
+ * callers hide the panel instead of rendering zeros, which would be
+ * indistinguishable from a genuinely empty database.
+ */
+export async function fetchPublicStats(
+  { signal }: { signal?: AbortSignal } = {},
+): Promise<PublicStats> {
+  const res = await fetch("/api/stats", { signal })
+  if (!res.ok) throw new Error(`Stats request failed: ${res.status}`)
+  return res.json()
 }
 
 // ─── Formatting ──────────────────────────────────────────────────────────────

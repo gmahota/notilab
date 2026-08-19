@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import Image from "next/image"
+import Link from "next/link"
 import { Newspaper, Sparkles, Bookmark, Share2, Loader2, BookmarkCheck } from "lucide-react"
 import { motion } from "framer-motion"
 
@@ -127,7 +128,7 @@ export function SocialFeed() {
               key={`skeleton-${i}`}
               className="glass rounded-2xl overflow-hidden border border-border/50"
             >
-              <div className="h-48 sm:h-56 bg-muted/20 animate-pulse" />
+              <div className="w-full aspect-[16/9] bg-muted/20 animate-pulse" />
               <div className="p-5 space-y-3">
                 <div className="h-5 w-4/5 rounded-lg bg-muted/25 animate-pulse" />
                 <div className="h-3.5 w-full rounded bg-muted/15 animate-pulse" />
@@ -163,76 +164,82 @@ export function SocialFeed() {
             transition={{ delay: Math.min(index * 0.05, 0.3) }}
             className="glass rounded-2xl overflow-hidden border border-border/50 hover:border-primary/20 transition-all duration-300 group"
           >
-            {/* Image */}
-            <div className="relative h-48 sm:h-56 overflow-hidden">
-              <Image
-                src={article.image}
-                alt={article.title}
-                fill
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                unoptimized
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
-              <div className="absolute top-3 left-3">
-                <Badge className="bg-background/60 backdrop-blur-sm text-foreground/80 border-none text-xs">
-                  {article.category}
-                </Badge>
+            {/* Image and text are one anchor, so the whole story area opens the
+                article — including middle-click and "open in new tab". A plain
+                Link (not an onClick) also survives a hydration failure. The
+                action buttons deliberately sit outside it. */}
+            <Link href={`/news/${article.id}`} className="block">
+              {/* Image */}
+              <div className="relative w-full aspect-[16/9] overflow-hidden">
+                <Image
+                  src={article.image}
+                  alt={article.title}
+                  fill
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  unoptimized
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
+                <div className="absolute top-3 left-3">
+                  <Badge className="bg-background/60 backdrop-blur-sm text-foreground/80 border-none text-xs">
+                    {article.category}
+                  </Badge>
+                </div>
+                <div className="absolute bottom-3 left-3 flex items-center gap-2 text-xs text-foreground/70">
+                  <span>{article.source}</span>
+                  <span>·</span>
+                  <span>{article.timeAgo}</span>
+                </div>
               </div>
-              <div className="absolute bottom-3 left-3 flex items-center gap-2 text-xs text-foreground/70">
-                <span>{article.source}</span>
-                <span>·</span>
-                <span>{article.timeAgo}</span>
+
+              {/* Content */}
+              <div className="px-5 pt-5 space-y-3">
+                <h3 className="font-semibold text-lg text-foreground leading-tight group-hover:text-primary transition-colors">
+                  {article.title}
+                </h3>
+                <p className="text-sm text-muted-foreground line-clamp-2">{article.summary}</p>
               </div>
-            </div>
+            </Link>
 
-            {/* Content */}
-            <div className="p-5 space-y-3">
-              <h3 className="font-semibold text-lg text-foreground leading-tight group-hover:text-primary transition-colors">
-                {article.title}
-              </h3>
-              <p className="text-sm text-muted-foreground line-clamp-2">{article.summary}</p>
-
-              {/* Actions */}
-              <div className="flex items-center justify-between pt-2">
+            {/* Actions */}
+            <div className="flex items-center justify-between px-5 pb-5 pt-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.push(`/explain/${article.id}`)}
+                className="text-primary hover:bg-primary/10 hover:text-primary"
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                Explain
+              </Button>
+              <div className="flex items-center gap-1">
                 <Button
                   variant="ghost"
-                  size="sm"
-                  onClick={() => router.push(`/explain/${article.id}`)}
-                  className="text-primary hover:bg-primary/10 hover:text-primary"
+                  size="icon"
+                  className={saved.has(article.id) ? "text-secondary" : "text-muted-foreground hover:text-foreground"}
+                  onClick={() => toggleSave(article.id)}
                 >
-                  <Sparkles className="h-4 w-4 mr-2" />
-                  Explain
+                  {saved.has(article.id) ? (
+                    <BookmarkCheck className="h-4 w-4" />
+                  ) : (
+                    <Bookmark className="h-4 w-4" />
+                  )}
                 </Button>
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className={saved.has(article.id) ? "text-secondary" : "text-muted-foreground hover:text-foreground"}
-                    onClick={() => toggleSave(article.id)}
-                  >
-                    {saved.has(article.id) ? (
-                      <BookmarkCheck className="h-4 w-4" />
-                    ) : (
-                      <Bookmark className="h-4 w-4" />
-                    )}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="text-muted-foreground hover:text-foreground"
-                    onClick={() => {
-                      if (navigator.share) {
-                        navigator.share({
-                          title: article.title,
-                          text: article.summary,
-                          url: `/news/${article.id}`,
-                        })
-                      }
-                    }}
-                  >
-                    <Share2 className="h-4 w-4" />
-                  </Button>
-                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-muted-foreground hover:text-foreground"
+                  onClick={() => {
+                    if (navigator.share) {
+                      navigator.share({
+                        title: article.title,
+                        text: article.summary,
+                        url: `/news/${article.id}`,
+                      })
+                    }
+                  }}
+                >
+                  <Share2 className="h-4 w-4" />
+                </Button>
               </div>
             </div>
           </motion.article>

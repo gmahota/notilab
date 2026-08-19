@@ -35,7 +35,15 @@ export async function GET(request: NextRequest) {
       orderBy: { publishedAt: "desc" },
       include: {
         category: { select: { name: true, slug: true, color: true } },
-        articleAI: { select: { summary: true, tldr: true, whyItMatters: true, importanceScore: true } },
+        articleAI: {
+          select: {
+            titleTranslated: true,
+            summary: true,
+            tldr: true,
+            whyItMatters: true,
+            importanceScore: true,
+          },
+        },
         reactions: { select: { type: true } },
         _count: { select: { readHistory: true, reactions: true, savedBy: true } },
       },
@@ -64,7 +72,10 @@ export async function GET(request: NextRequest) {
     // Transform for frontend
     const feed = ranked.map((article) => ({
       id: article.id,
-      title: article.title,
+      // The Portuguese headline when the AI batch has produced one, else the
+      // source headline — which may still be in the source's language until the
+      // next batch reaches this article. Never blank.
+      title: article.articleAI?.titleTranslated || article.title,
       slug: article.slug,
       summary: article.articleAI?.summary || article.summary || "",
       tldr: article.articleAI?.tldr || null,

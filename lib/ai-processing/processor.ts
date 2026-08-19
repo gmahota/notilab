@@ -20,8 +20,15 @@ type PrismaWithAI = typeof prisma & {
  * Selects unprocessed ArticleAI stubs from the database and enriches them
  * with AI-generated summaries, sentiment, and importance scores.
  *
- * An article is considered "pending" when `summary IS NULL` and it has not
- * exceeded the maximum retry attempts.
+ * An article is "pending" when it is missing either its summary or its
+ * Portuguese headline, and has not exceeded the maximum retry attempts.
+ *
+ * Including `titleTranslated IS NULL` is what backfills articles enriched
+ * before translation existed: they already have a summary, so a `summary IS
+ * NULL` filter alone would leave their foreign-language headlines in the feed
+ * forever. It also covers the case where a run produced a summary but no title.
+ * Bounded by MAX_ATTEMPTS, so a persistently untranslatable article stops
+ * consuming batch slots rather than looping.
  *
  * Falls back to heuristic enrichment if the AI call fails or produces
  * unparseable output, so every article ends up with some summary.
@@ -41,12 +48,16 @@ export async function runAiBatch(batchSize = 15): Promise<ProcessorResult> {
     db.articleAI as PrismaWithAI["articleAI"]
   ).findMany({
     where: {
-      summary: null,
+      OR: [{ summary: null }, { titleTranslated: null }],
       attempts: { lt: MAX_ATTEMPTS },
     },
     take: batchSize,
     orderBy: { createdAt: "asc" },
-    include: {
+    select: {
+      id: true,
+      articleId: true,
+      attempts: true,
+      titleTranslated: true,
       article: {
         select: {
           id: true,

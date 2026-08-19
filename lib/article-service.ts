@@ -76,6 +76,7 @@ export async function getArticleDetail(id: string): Promise<ArticleDetail | null
       category: { select: { name: true, slug: true, color: true } },
       articleAI: {
         select: {
+          titleTranslated: true,
           tldr: true,
           whyItMatters: true,
           explainLikeIm10: true,
@@ -116,7 +117,9 @@ export async function getArticleDetail(id: string): Promise<ArticleDetail | null
 
   return {
     id: article.id,
-    title: article.title,
+    // Must match what the feed card showed, or clicking a Portuguese headline
+    // would open a page titled in Spanish.
+    title: article.articleAI?.titleTranslated || article.title,
     summary: article.summary ?? "",
     content: article.content,
     imageUrl: article.imageUrl ?? "/placeholder.svg",
