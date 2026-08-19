@@ -2,39 +2,91 @@
  * providers.ts — Fetch raw articles from GNews (primary) and NewsAPI (fallback).
  *
  * Each query is isolated: one provider failing does not abort the others.
- * Rate-limit note: 12 queries × 1 provider = 12 req/run. The sync-news cron
- * (vercel.json) runs every 30 min = 48 runs/day → 576 GNews req/day, ~5.75x a
+ * Rate-limit note: 10 queries × 1 provider = 10 req/run. The sync-news cron
+ * (vercel.json) runs every 30 min = 48 runs/day → 480 GNews req/day, ~4.8x a
  * 100-req/day free tier. Query count is not the lever here — cron cadence is.
- * Fix by dropping the cron to every 3h (8 runs/day × 12 = 96/day) or moving to
+ * Fix by dropping the cron to every 3h (8 runs/day × 10 = 80/day) or moving to
  * a paid GNews plan — see docs/editor/content-focus.md Addendum v1.1 § C.
  */
 
-import type { RawArticle } from "./types"
+import type { RawArticle, SyncQuery } from "./types"
 
 const GNEWS_BASE   = "https://gnews.io/api/v4"
+
+/** Gap between provider requests, to stay under GNews's burst limit. */
+const QUERY_DELAY_MS = 1_200
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 const NEWSAPI_BASE = "https://newsapi.org/v2"
 
 // Topics covered on every sync run. Keep this list ≤ 10 for free-tier safety.
-// Scope per docs/editor/content-focus.md: world football, Real Madrid, PT/EN/ES
-// top-team backstage, Mozambique politics, South Africa xenophobia.
-const SYNC_QUERIES: { q: string; lang: string }[] = [
-  { q: "\"Real Madrid\"",                                                     lang: "en" },
-  { q: "\"Real Madrid\" OR Barcelona OR \"Atletico Madrid\"",                 lang: "es" },
-  { q: "\"Champions League\" OR \"World Cup\" OR FIFA OR UEFA",              lang: "en" },
-  { q: "Benfica OR \"FC Porto\" OR \"Sporting CP\"",                          lang: "pt" },
-  { q: "\"Premier League\" AND (Arsenal OR Liverpool OR Chelsea OR Tottenham OR Manchester)", lang: "en" },
-  { q: "Moçambique AND (política OR governo OR eleições OR Frelimo OR Renamo)", lang: "pt" },
-  { q: "Mozambique AND (politics OR government OR election)",                lang: "en" },
-  { q: "xenophobia AND \"South Africa\"",                                    lang: "en" },
-  { q: "xenofobia AND \"África do Sul\"",                                    lang: "pt" },
-  { q: "(Netflix OR \"Prime Video\" OR \"Marvel Studios\") AND (movie OR series OR review OR trailer)", lang: "en" },
-  { q: "(Netflix OR \"Prime Video\") AND (filme OR série OR estreia OR crítica)", lang: "pt" },
-  { q: "dorama OR \"k-drama\" OR \"korean drama\"",                          lang: "en" },
+//
+// Scope: world politics and world football. Entertainment queries (Netflix,
+// Prime Video, doramas) were removed — they were the widest, least specific
+// queries and pulled in the worst noise, including a scene-release listing.
+//
+// `mustMatch` is the relevance gate (lib/ingestion/quality.ts): at least one of
+// these terms must appear in the article's title or lead, not merely somewhere
+// in the body. Without it, "World Cup" in an OR query matched an NFL blog's
+// link roundup and a crypto fan-token piece.
+const SYNC_QUERIES: SyncQuery[] = [
+  // ── World politics ────────────────────────────────────────────────────────
+  {
+    q: "(\"Strait of Hormuz\" OR Hormuz) AND (Iran OR shipping OR oil OR navy)",
+    lang: "en",
+    mustMatch: ["hormuz"],
+  },
+  {
+    q: "(Ukraine OR Russia) AND (war OR ceasefire OR offensive OR \"peace talks\" OR strike)",
+    lang: "en",
+    mustMatch: ["ukraine", "russia", "russian", "ukrainian", "zelensky", "putin"],
+  },
+  {
+    q: "(Ucrânia OR Rússia) AND (guerra OR tréguas OR negociações OR ataque)",
+    lang: "pt",
+    mustMatch: ["ucrania", "russia", "zelensky", "putin"],
+  },
+  {
+    q: "Trump AND (\"White House\" OR administration OR tariffs OR \"executive order\" OR Congress)",
+    lang: "en",
+    mustMatch: ["trump"],
+  },
+  {
+    q: "Macron AND (France OR government OR Elysee OR parliament)",
+    lang: "en",
+    mustMatch: ["macron"],
+  },
+  {
+    q: "Moçambique AND (política OR governo OR eleições OR Frelimo OR Renamo)",
+    lang: "pt",
+    mustMatch: ["mocambique", "frelimo", "renamo", "maputo"],
+  },
+  // ── World football ────────────────────────────────────────────────────────
+  {
+    q: "\"Real Madrid\" OR Barcelona OR \"Atletico Madrid\"",
+    lang: "es",
+    mustMatch: ["real madrid", "barcelona", "atletico"],
+  },
+  {
+    q: "\"Champions League\" OR \"World Cup\" OR UEFA OR FIFA",
+    lang: "en",
+    mustMatch: ["champions league", "world cup", "uefa", "fifa"],
+  },
+  {
+    q: "Benfica OR \"FC Porto\" OR \"Sporting CP\"",
+    lang: "pt",
+    mustMatch: ["benfica", "porto", "sporting"],
+  },
+  {
+    q: "\"Premier League\" AND (Arsenal OR Liverpool OR Chelsea OR Tottenham OR Manchester)",
+    lang: "en",
+    mustMatch: ["premier league", "arsenal", "liverpool", "chelsea", "tottenham", "manchester"],
+  },
 ]
 
 // ─── GNews ────────────────────────────────────────────────────────────────────
 
-async function fetchGNews(query: string, lang: string): Promise<RawArticle[]> {
+async function fetchGNews({ q: query, lang, mustMatch }: SyncQuery): Promise<RawArticle[]> {
   const apiKey = process.env.GNEWS_API_KEY
   if (!apiKey) return []
 
@@ -60,12 +112,13 @@ async function fetchGNews(query: string, lang: string): Promise<RawArticle[]> {
     sourceName:  (a.source as Record<string, string>)?.name ?? "GNews",
     publishedAt: new Date(a.publishedAt as string),
     provider:    "gnews" as const,
+    mustMatch,
   }))
 }
 
 // ─── NewsAPI ──────────────────────────────────────────────────────────────────
 
-async function fetchNewsAPI(query: string, lang: string): Promise<RawArticle[]> {
+async function fetchNewsAPI({ q: query, lang, mustMatch }: SyncQuery): Promise<RawArticle[]> {
   const apiKey = process.env.NEWSAPI_KEY
   if (!apiKey) return []
 
@@ -92,6 +145,7 @@ async function fetchNewsAPI(query: string, lang: string): Promise<RawArticle[]> 
     sourceName:  (a.source as Record<string, string>)?.name ?? "NewsAPI",
     publishedAt: new Date(a.publishedAt as string),
     provider:    "newsapi" as const,
+    mustMatch,
   }))
 }
 
@@ -104,29 +158,35 @@ async function fetchNewsAPI(query: string, lang: string): Promise<RawArticle[]> 
  */
 export async function fetchFromProviders(errors: string[]): Promise<RawArticle[]> {
   const results: RawArticle[] = []
+  let first = true
 
-  for (const { q, lang } of SYNC_QUERIES) {
+  for (const query of SYNC_QUERIES) {
+    // GNews rate-limits bursts, not just daily volume: firing all queries
+    // back to back returned 429 for 6 of 10. Space them out.
+    if (!first) await sleep(QUERY_DELAY_MS)
+    first = false
+
     try {
       // Primary: GNews
-      const gnewsArticles = await fetchGNews(q, lang)
+      const gnewsArticles = await fetchGNews(query)
       if (gnewsArticles.length > 0) {
         results.push(...gnewsArticles)
         continue
       }
       // Fallback: NewsAPI (only when GNews returns 0)
-      const newsApiArticles = await fetchNewsAPI(q, lang)
+      const newsApiArticles = await fetchNewsAPI(query)
       results.push(...newsApiArticles)
     } catch (primaryErr) {
-      const msg = `GNews failed for "${q}": ${primaryErr instanceof Error ? primaryErr.message : String(primaryErr)}`
+      const msg = `GNews failed for "${query.q}": ${primaryErr instanceof Error ? primaryErr.message : String(primaryErr)}`
       console.warn("[providers]", msg)
       errors.push(msg)
 
       // Always attempt the fallback independently
       try {
-        const fallback = await fetchNewsAPI(q, lang)
+        const fallback = await fetchNewsAPI(query)
         results.push(...fallback)
       } catch (fallbackErr) {
-        const fbMsg = `NewsAPI also failed for "${q}": ${fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr)}`
+        const fbMsg = `NewsAPI also failed for "${query.q}": ${fallbackErr instanceof Error ? fallbackErr.message : String(fallbackErr)}`
         console.error("[providers]", fbMsg)
         errors.push(fbMsg)
       }

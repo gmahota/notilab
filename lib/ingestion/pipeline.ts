@@ -3,7 +3,8 @@
  *
  * Flow:
  *   fetchFromProviders
- *     → normalizeArticles
+ *     → applyQualityGate
+ *       → normalizeArticles
  *       → deduplicateArticles
  *         → resolveCategoryIds
  *           → saveToDatabase
@@ -14,6 +15,7 @@
  */
 
 import { fetchFromProviders }   from "./providers"
+import { applyQualityGate }     from "./quality"
 import { normalizeArticles }    from "./normalize"
 import { deduplicateArticles }  from "./deduplicate"
 import { resolveCategoryIds }   from "./categorize"
@@ -37,8 +39,30 @@ export async function runIngestionPipeline(): Promise<IngestionResult> {
     }
   }
 
+  // ── 1b. Quality gate ──────────────────────────────────────────────────────
+  // Runs before normalize so nothing off-scope is ever given an id, a category
+  // or an AI-enrichment slot. See quality.ts for what each gate rejects.
+  const quality = applyQualityGate(raw)
+  const { source: bySource, shape: byShape, relevance: byRelevance } = quality.rejected
+  console.log(
+    `[pipeline] Quality gate kept ${quality.kept.length}/${raw.length} ` +
+    `(dropped ${bySource} by source, ${byShape} by shape, ${byRelevance} as off-topic)`,
+  )
+  if (quality.rejectedSources.length > 0) {
+    // Logged so an outlet wrongly missing from the allowlist is visible as a
+    // name rather than as an unexplained drop in volume.
+    console.log(`[pipeline] Sources not in allowlist: ${quality.rejectedSources.join(", ")}`)
+  }
+
+  if (quality.kept.length === 0) {
+    return {
+      fetched: raw.length, normalized: 0, skipped: 0,
+      saved: 0, aiQueued: 0, errors, durationMs: Date.now() - startMs,
+    }
+  }
+
   // ── 2. Normalize ──────────────────────────────────────────────────────────
-  const normalized = normalizeArticles(raw)
+  const normalized = normalizeArticles(quality.kept)
   console.log(`[pipeline] Normalized ${normalized.length} valid article(s) (dropped ${raw.length - normalized.length})`)
 
   if (normalized.length === 0) {

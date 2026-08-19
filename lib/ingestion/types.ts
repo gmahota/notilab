@@ -9,6 +9,26 @@ export interface RawArticle {
   sourceName: string
   publishedAt: Date
   provider: "gnews" | "newsapi"
+  /**
+   * Terms from the query that fetched this article. The relevance gate needs
+   * them: providers do full-text OR matching, so an article can come back for
+   * merely mentioning a term in passing. Checking the terms against the title
+   * and lead is what separates "about this" from "mentions this".
+   */
+  mustMatch: string[]
+}
+
+/**
+ * One ingestion query.
+ *
+ * `q` is the provider's query string; `mustMatch` is the same intent expressed
+ * as bare terms, because a provider query string cannot be re-used as a filter
+ * (it carries OR/AND syntax and quoting).
+ */
+export interface SyncQuery {
+  q: string
+  lang: string
+  mustMatch: string[]
 }
 
 // ─── Normalized (pipeline-internal) ──────────────────────────────────────────

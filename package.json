@@ -16,7 +16,8 @@
     "db:reset": "prisma db push --force-reset && pnpm run db:seed",
     "setup": "chmod +x scripts/setup.sh && ./scripts/setup.sh",
     "check": "tsx scripts/health-check.ts",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "ingest:dry-run": "tsx scripts/ingestion-dry-run.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
