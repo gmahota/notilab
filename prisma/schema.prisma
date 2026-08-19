@@ -132,8 +132,17 @@ model ArticleAI {
   articleId        String @unique
   article          News   @relation(fields: [articleId], references: [id], onDelete: Cascade)
   
-  summary          String?  // Short summary
-  tldr             String?  // One-line TL;DR
+  // Portuguese rendering of the source headline. The site publishes in
+  // Portuguese, but ingestion deliberately keeps foreign-language sources (es,
+  // and any added later) because dropping them would lose fresh reporting. The
+  // original headline stays on News.title; this is what the feed renders.
+  //
+  // Null means "not translated yet", and that is what makes the AI batch pick
+  // an article up again — see lib/ai-processing/processor.ts.
+  titleTranslated  String?
+
+  summary          String?  // Short summary (Portuguese)
+  tldr             String?  // One-line TL;DR (Portuguese)
   whyItMatters     String?  // Why this story matters
   explainLikeIm10  String?  // Kid-friendly explanation
   shareText        String?  // Cached AI-generated punchy share copy

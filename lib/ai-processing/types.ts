@@ -1,4 +1,6 @@
 export interface AIEnrichmentResult {
+  /** Headline in Portuguese — translated when the source is another language. */
+  title: string
   summary: string
   tldr: string
   whyItMatters: string
@@ -12,6 +14,7 @@ export interface ArticleAIStub {
   id: string
   articleId: string
   attempts: number
+  titleTranslated: string | null
   article: {
     id: string
     title: string
