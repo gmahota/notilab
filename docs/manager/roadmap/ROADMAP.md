@@ -41,4 +41,14 @@ Scope narrowed from general Portugal/EU news to: world football, Real Madrid, PT
 | 19 | done | Add Film & Series Criticism vertical (Netflix/Prime Video/Marvel, action/comedy/doramas) — `filmes` category, `SYNC_QUERIES`/`CATEGORY_RULES` updated (Addendum v1.1) | integrations-social, database | 17 | 20 |
 | 20 | planned | Fix `sync-news` cron rate-limit overrun (576 GNews req/day vs ~100/day free tier) — drop cadence to every 3h or move to a paid plan | backend-api, cto | 19 | — |
 
+## Immersive Feed Redesign — 2026-07-15 (see `docs/cto/task/1. V01 - New Layout/designs/Agora - Bandeja.dc.html`)
+
+`/now` immersive feed redesigned end-to-end to match the hifi design prototype. Verified via `pnpm typecheck`/`pnpm lint` + live browser exercise of every flow (onboarding, category persistence, bandeja overlay, category refetch, why-popover, context panel). No automated test suite covers this area yet.
+
+| # | Status | Task | Area | Depends on | Blocks |
+|---|---|---|---|---|---|
+| 21 | done | `/now` redesign: `GET /api/categories`, `bandeja-store.ts` personalization store, onboarding picker, redesigned story card/feed/nav/context panel, bandeja overlay, dormant `spatialAsset` scaffolding | frontend, backend-api | 14 | 22 |
+| 22 | planned | Backend support for design's fabricated fields: `spatialAsset` schema (`DailyEdition`/`Story` model changes + cron population), multi-source/`facts`/`reasons` real data model | database, backend-api, ai-pipeline | 21 | — |
+| 23 | planned | "Explorar" mural redesign (`Explorar - Mural.dc.html`) — not started this pass | frontend | — | — |
+
 Add new entries at the bottom of the relevant section, or start a new section for a new initiative. Use `/task-spec` to produce the Task Spec that backs each entry (see `TASK_TEMPLATE.md`).

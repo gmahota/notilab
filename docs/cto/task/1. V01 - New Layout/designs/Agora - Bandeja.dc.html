@@ -1,0 +1,1079 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+body { margin: 0; background: #050508; font-family: 'Geist', sans-serif; overscroll-behavior: none; }
+a { color: #0A7FFF; text-decoration: none; }
+a:hover { color: #39FF14; }
+button { font-family: 'Geist', sans-serif; }
+@keyframes trayCardIn { from { opacity: 0; transform: translateY(40px) rotateX(14deg) scale(.92); } to { opacity: 1; transform: translateY(0) rotateX(0deg) scale(1); } }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes livePulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+@keyframes hintBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+</style>
+</helmet>
+
+<div data-screen-label="Agora — Bandeja" style="position: fixed; inset: 0; background: #050508; overflow: hidden; color: #F7F7F7;">
+
+  <!-- ═══ FEED ═══ -->
+  <div onWheel="{{ onWheel }}" onPointerDown="{{ onPointerDown }}" onPointerUp="{{ onPointerUp }}" style="position: absolute; inset: 0; touch-action: none; cursor: grab;">
+    <div style="{{ feedStyle }}">
+      <sc-for list="{{ visibleStories }}" as="story" hint-placeholder-count="1">
+        <div style="position: relative; height: 100vh; width: 100%; overflow: hidden; background: #050508;">
+          <sc-if value="{{ story.hasImage }}" hint-placeholder-val="{{ false }}">
+            <div role="img" aria-label="{{ story.title }}" style="{{ story.imgStyle }}"></div>
+          </sc-if>
+          <div style="{{ story.bg }}"></div>
+          <div style="{{ story.vignette }}"></div>
+          <div style="position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,.5) 0%, transparent 30%);"></div>
+
+          <!-- category watermark glyph for text-only stories -->
+          <sc-if value="{{ story.showGlyph }}" hint-placeholder-val="{{ false }}">
+            <div style="position: absolute; top: 50%; right: -4%; transform: translateY(-60%) rotate(-8deg); opacity: .1; pointer-events: none;">{{ story.bigIcon }}</div>
+          </sc-if>
+
+          <!-- top pills -->
+          <div style="position: absolute; top: 76px; left: 24px; right: 90px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px;">
+            <span style="{{ story.pillStyle }}">{{ story.catName }}</span>
+            <sc-if value="{{ story.live }}" hint-placeholder-val="{{ false }}">
+              <span style="display: inline-flex; align-items: center; gap: 6px; background: #E11D2E; color: #fff; font-size: 11px; font-weight: 800; letter-spacing: .08em; padding: 5px 12px; border-radius: 999px;">
+                <span style="width: 6px; height: 6px; border-radius: 999px; background: #fff; animation: livePulse 1.4s ease-in-out infinite;"></span>
+                AO VIVO
+              </span>
+            </sc-if>
+            <sc-if value="{{ story.trending }}" hint-placeholder-val="{{ false }}">
+              <span style="display: inline-flex; align-items: center; gap: 4px; border: 1px solid rgba(57,255,20,.35); background: rgba(57,255,20,.12); color: #39FF14; font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 999px; box-shadow: 0 0 8px rgba(57,255,20,.3);">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"></path></svg>
+                Em alta
+              </span>
+            </sc-if>
+          </div>
+
+          <!-- bottom editorial block -->
+          <div style="position: absolute; left: 0; right: 0; bottom: 0; padding: 80px 88px 108px 24px; max-width: 720px;">
+            <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: rgba(255,255,255,.6); margin-bottom: 10px;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+              <span style="color: rgba(255,255,255,.85); font-weight: 500;">{{ story.place }}</span>
+              <span>·</span>
+              <span>{{ story.time }}</span>
+              <span>·</span>
+              <span>{{ story.source }}</span>
+            </div>
+            <h2 style="{{ story.titleStyle }}">{{ story.title }}</h2>
+            <p style="{{ story.teaserStyle }}">{{ story.teaserText }}</p>
+            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+              <button onClick="{{ openCtx }}" style="display: inline-flex; align-items: center; gap: 7px; background: #0A7FFF; color: #fff; border: none; height: 40px; padding: 0 18px; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 0 12px rgba(10,127,255,.45), 0 0 40px rgba(10,127,255,.2);" style-hover="transform: translateY(-2px); box-shadow: 0 0 16px rgba(10,127,255,.6), 0 0 50px rgba(10,127,255,.3);">
+                Ver contexto
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10"></path><path d="M7 17 17 7"></path></svg>
+              </button>
+              <sc-if value="{{ story.hasScene }}" hint-placeholder-val="{{ false }}">
+                <button onClick="{{ story.enterScene }}" style="display: inline-flex; align-items: center; gap: 7px; background: linear-gradient(135deg, rgba(57,255,20,.18), rgba(10,127,255,.18)); backdrop-filter: blur(20px); border: 1px solid rgba(57,255,20,.45); color: #fff; height: 40px; padding: 0 16px; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 0 14px rgba(57,255,20,.25);" style-hover="transform: translateY(-2px); box-shadow: 0 0 20px rgba(57,255,20,.45);">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path></svg>
+                  Entrar na cena
+                </button>
+              </sc-if>
+              <button onClick="{{ toggleWhy }}" style="display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,.05); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,.1); color: rgba(255,255,255,.75); height: 40px; padding: 0 14px; border-radius: 12px; font-size: 13px; font-weight: 500; cursor: pointer;" style-hover="background: rgba(255,255,255,.1); color: #fff;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+                Porque vejo isto?
+              </button>
+            </div>
+          </div>
+
+          <!-- action rail -->
+          <div style="position: absolute; bottom: 108px; right: 20px; display: flex; flex-direction: column; align-items: center; gap: 14px;">
+            <button onClick="{{ story.toggleLike }}" aria-pressed="{{ story.liked }}" style="{{ story.likeStyle }}" style-hover="transform: scale(1.08);">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="{{ story.likeFill }}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path></svg>
+            </button>
+            <button onClick="{{ story.toggleSave }}" aria-pressed="{{ story.saved }}" style="{{ story.saveStyle }}" style-hover="transform: scale(1.08);">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="{{ story.saveFill }}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path></svg>
+            </button>
+            <button onClick="{{ share }}" aria-label="Partilhar" style="display: flex; width: 46px; height: 46px; align-items: center; justify-content: center; border-radius: 999px; background: rgba(255,255,255,.05); backdrop-filter: blur(24px); border: 1px solid rgba(255,255,255,.08); color: #fff; cursor: pointer;" style-hover="transform: scale(1.08);">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+            </button>
+            <button onClick="{{ story.lessOf }}" aria-label="Menos disto" title="Menos disto" style="display: flex; width: 46px; height: 46px; align-items: center; justify-content: center; border-radius: 999px; background: rgba(255,255,255,.03); backdrop-filter: blur(24px); border: 1px solid rgba(255,255,255,.06); color: rgba(255,255,255,.55); cursor: pointer;" style-hover="color: #ff6b6b; border-color: rgba(255,107,107,.4); transform: scale(1.08);">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path><line x1="2" y1="2" x2="22" y2="22"></line></svg>
+            </button>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+
+    <!-- empty state -->
+    <sc-if value="{{ feedEmpty }}" hint-placeholder-val="{{ false }}">
+      <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; padding: 32px;">
+        <p style="margin: 0; font-size: 18px; font-weight: 700;">Nada nesta bandeja por agora</p>
+        <p style="margin: 0; font-size: 14px; color: rgba(255,255,255,.55);">Escolhe outro tema ou volta ao "Para si".</p>
+        <button onClick="{{ pickParaSi }}" style="margin-top: 8px; background: #0A7FFF; color: #fff; border: none; height: 40px; padding: 0 18px; border-radius: 12px; font-size: 14px; font-weight: 600; cursor: pointer;">Voltar ao Para si</button>
+      </div>
+    </sc-if>
+  </div>
+
+  <!-- ═══ TOP BAR ═══ -->
+  <div style="position: absolute; top: 0; left: 0; right: 0; display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; z-index: 30; pointer-events: none;">
+    <div style="display: flex; align-items: center; gap: 10px; pointer-events: auto;">
+      <img src="assets/logo.png" alt="NotiLab" style="height: 26px; filter: drop-shadow(0 2px 8px rgba(0,0,0,.6));">
+      <span style="font-size: 12px; color: rgba(255,255,255,.5); font-weight: 500; border-left: 1px solid rgba(255,255,255,.15); padding-left: 10px; white-space: nowrap;">{{ counter }}</span>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px; pointer-events: auto;">
+      <button onClick="{{ cyclePace }}" title="Mudar ritmo de leitura" style="display: inline-flex; align-items: center; gap: 7px; background: rgba(255,255,255,.06); backdrop-filter: blur(24px); border: 1px solid rgba(255,255,255,.12); color: rgba(255,255,255,.8); height: 38px; padding: 0 13px; border-radius: 12px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;" style-hover="color: #fff; border-color: rgba(57,255,20,.4);">
+        {{ paceIconEl }}
+        {{ paceLabel }}
+      </button>
+      <button onClick="{{ openTray }}" style="{{ filterChipStyle }}" style-hover="transform: translateY(-1px);">
+        <span style="{{ filterDotStyle }}"></span>
+        {{ filterName }}
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg>
+      </button>
+      <button onClick="{{ openTray }}" aria-label="Abrir bandeja" style="display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,.06); backdrop-filter: blur(24px); border: 1px solid rgba(255,255,255,.12); color: #fff; height: 38px; padding: 0 14px; border-radius: 12px; font-size: 13px; font-weight: 600; cursor: pointer;" style-hover="border-color: rgba(10,127,255,.5); box-shadow: 0 0 16px rgba(10,127,255,.25);">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"></rect><rect width="7" height="7" x="14" y="3" rx="1"></rect><rect width="7" height="7" x="14" y="14" rx="1"></rect><rect width="7" height="7" x="3" y="14" rx="1"></rect></svg>
+        Bandeja
+        <span style="font-size: 10px; color: rgba(255,255,255,.4); border: 1px solid rgba(255,255,255,.2); border-radius: 4px; padding: 1px 5px;">G</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ═══ PROGRESS DOTS ═══ -->
+  <div style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 6px; z-index: 20; pointer-events: none;">
+    <sc-for list="{{ dots }}" as="dot" hint-placeholder-count="5">
+      <span style="{{ dot.style }}"></span>
+    </sc-for>
+  </div>
+
+  <!-- ═══ GESTURE HINT ═══ -->
+  <sc-if value="{{ showHint }}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; bottom: 84px; left: 50%; transform: translateX(-50%); z-index: 20; display: flex; flex-direction: column; align-items: center; gap: 4px; color: rgba(255,255,255,.55); font-size: 12px; pointer-events: none; animation: hintBob 2.4s ease-in-out infinite;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"></path></svg>
+      Desliza para a próxima história
+    </div>
+  </sc-if>
+
+  <!-- ═══ BOTTOM NAV ═══ -->
+  <div style="position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 30; display: flex; align-items: center; gap: 4px; background: rgba(10,10,14,.72); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,.09); border-radius: 999px; padding: 6px;">
+    <sc-for list="{{ navItems }}" as="nav" hint-placeholder-count="5">
+      <a href="{{ nav.href }}" style="{{ nav.style }}">
+        {{ nav.iconEl }}
+        <span>{{ nav.label }}</span>
+      </a>
+    </sc-for>
+  </div>
+
+  <!-- ═══ WHY POPOVER ═══ -->
+  <sc-if value="{{ whyOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; left: 24px; bottom: 170px; z-index: 40; width: 320px; background: rgba(16,16,20,.92); backdrop-filter: blur(28px); border: 1px solid rgba(255,255,255,.1); border-radius: 16px; padding: 18px; animation: fadeUp .3s cubic-bezier(.22,1,.36,1); box-shadow: 0 12px 48px rgba(0,0,0,.6);">
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+        <p style="margin: 0; font-size: 13px; font-weight: 700; color: #fff;">Porque estás a ver isto</p>
+        <button onClick="{{ toggleWhy }}" aria-label="Fechar" style="background: none; border: none; color: rgba(255,255,255,.5); cursor: pointer; padding: 2px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+        </button>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <sc-for list="{{ whyReasons }}" as="r" hint-placeholder-count="3">
+          <div style="display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: rgba(255,255,255,.75); line-height: 1.4;">
+            <span style="width: 5px; height: 5px; border-radius: 999px; background: #0A7FFF; margin-top: 6px; flex-shrink: 0;"></span>
+            {{ r.text }}
+          </div>
+        </sc-for>
+      </div>
+      <button onClick="{{ openTray }}" style="margin-top: 12px; background: none; border: none; color: #0A7FFF; font-size: 13px; font-weight: 600; cursor: pointer; padding: 0;">Ajustar a minha bandeja →</button>
+    </div>
+  </sc-if>
+
+  <!-- ═══ CONTEXT PANEL ═══ -->
+  <div style="{{ ctxBackdropStyle }}" onClick="{{ closeCtx }}"></div>
+  <div style="{{ ctxPanelStyle }}">
+    <div style="position: relative; height: 180px; flex-shrink: 0; overflow: hidden;">
+      <sc-if value="{{ curHasImage }}" hint-placeholder-val="{{ false }}">
+        <div style="{{ curImgStyle }}"></div>
+      </sc-if>
+      <div style="{{ curBg }}"></div>
+      <div style="position: absolute; inset: 0; background: linear-gradient(to top, #101014 0%, transparent 70%);"></div>
+      <button onClick="{{ closeCtx }}" aria-label="Fechar contexto" style="position: absolute; top: 14px; right: 14px; display: flex; width: 34px; height: 34px; align-items: center; justify-content: center; border-radius: 999px; background: rgba(0,0,0,.5); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,.12); color: #fff; cursor: pointer;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+      </button>
+    </div>
+    <div style="padding: 20px 24px 32px; overflow-y: auto; display: flex; flex-direction: column; gap: 18px;">
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span style="{{ curPillStyle }}">{{ curCatName }}</span>
+        <span style="font-size: 12px; color: rgba(255,255,255,.5);">{{ curSource }} · {{ curTime }}</span>
+      </div>
+      <h3 style="margin: 0; font-size: 22px; line-height: 1.2; font-weight: 800; letter-spacing: -0.02em; color: #fff;">{{ curTitle }}</h3>
+      <div>
+        <p style="margin: 0 0 6px; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.45);">O que aconteceu</p>
+        <p style="margin: 0; font-size: 14px; line-height: 1.65; color: rgba(255,255,255,.85);">{{ curWhat }}</p>
+      </div>
+      <div style="border: 1px solid rgba(10,127,255,.25); background: rgba(10,127,255,.06); border-radius: 14px; padding: 14px 16px;">
+        <p style="margin: 0 0 4px; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #4da3ff;">Porque é que importa</p>
+        <p style="margin: 0; font-size: 14px; line-height: 1.6; color: rgba(255,255,255,.85);">{{ curWhy }}</p>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+        <sc-for list="{{ curFacts }}" as="f" hint-placeholder-count="2">
+          <div style="background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.07); border-radius: 12px; padding: 12px 14px;">
+            <p style="margin: 0; font-size: 20px; font-weight: 800; color: #fff;">{{ f.v }}</p>
+            <p style="margin: 2px 0 0; font-size: 12px; color: rgba(255,255,255,.55);">{{ f.l }}</p>
+          </div>
+        </sc-for>
+      </div>
+      <div>
+        <p style="margin: 0 0 8px; font-size: 11px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.45);">Fontes ({{ curSourceCount }})</p>
+        <div style="display: flex; flex-direction: column; gap: 6px;">
+          <sc-for list="{{ curSources }}" as="s" hint-placeholder-count="3">
+            <div style="display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.06); border-radius: 10px; padding: 10px 12px; font-size: 13px; color: rgba(255,255,255,.8);">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#39FF14" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+              {{ s.name }}
+              <span style="margin-left: auto; font-size: 11px; color: rgba(255,255,255,.4);">{{ s.time }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ BANDEJA (3D grid overlay) ═══ -->
+  <sc-if value="{{ trayOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; inset: 0; z-index: 50; background: rgba(5,5,8,.78); backdrop-filter: blur(32px) saturate(140%); animation: fadeIn .25s ease-out; overflow-y: auto;" onClick="{{ closeTrayBackdrop }}">
+      <div style="max-width: 980px; margin: 0 auto; padding: 56px 32px 64px; perspective: 1400px;">
+        <div style="display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 28px; animation: fadeUp .35s cubic-bezier(.22,1,.36,1);">
+          <div>
+            <p style="margin: 0 0 6px; font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #39FF14;">A tua bandeja</p>
+            <h2 style="margin: 0; font-size: clamp(28px, 3.6vw, 42px); font-weight: 900; letter-spacing: -0.03em; color: #fff;">O que queres ver agora?</h2>
+          </div>
+          <button onClick="{{ closeTray }}" aria-label="Fechar bandeja" style="display: flex; width: 42px; height: 42px; align-items: center; justify-content: center; border-radius: 999px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); color: #fff; cursor: pointer; flex-shrink: 0;" style-hover="background: rgba(255,255,255,.12);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+          </button>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; transform-style: preserve-3d;">
+          <sc-for list="{{ trayCats }}" as="cat" hint-placeholder-count="6">
+            <button onClick="{{ cat.pick }}" style="{{ cat.style }}" style-hover="transform: translateY(-8px) scale(1.03); filter: brightness(1.2);">
+              <div style="display: flex; align-items: center; justify-content: space-between;">
+                {{ cat.iconEl }}
+                <sc-if value="{{ cat.followed }}" hint-placeholder-val="{{ false }}">
+                  <span style="font-size: 10px; font-weight: 700; letter-spacing: .08em; color: rgba(255,255,255,.8); background: rgba(255,255,255,.14); border-radius: 999px; padding: 3px 9px;">A SEGUIR</span>
+                </sc-if>
+              </div>
+              <div style="margin-top: auto;">
+                <p style="margin: 0; font-size: 19px; font-weight: 800; letter-spacing: -0.02em; color: #fff; text-align: left;">{{ cat.name }}</p>
+                <p style="margin: 4px 0 0; font-size: 12px; color: rgba(255,255,255,.65); text-align: left;">{{ cat.countLabel }}</p>
+              </div>
+            </button>
+          </sc-for>
+        </div>
+
+        <sc-if value="{{ hasHidden }}" hint-placeholder-val="{{ false }}">
+          <div style="margin-top: 32px; animation: fadeUp .5s cubic-bezier(.22,1,.36,1);">
+            <p style="margin: 0 0 10px; font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.45);">Silenciados — "menos disto"</p>
+            <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+              <sc-for list="{{ hiddenChips }}" as="h" hint-placeholder-count="1">
+                <button onClick="{{ h.restore }}" style="display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,.04); border: 1px dashed rgba(255,255,255,.2); color: rgba(255,255,255,.6); border-radius: 999px; padding: 8px 14px; font-size: 13px; cursor: pointer;" style-hover="color: #fff; border-color: rgba(255,255,255,.4);">
+                  {{ h.name }} · repor
+                </button>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ═══ ONBOARDING ═══ -->
+  <sc-if value="{{ onboardingOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; inset: 0; z-index: 60; background: radial-gradient(120% 100% at 50% 0%, #0b1224 0%, #050508 55%); overflow-y: auto;">
+      <div style="max-width: 760px; margin: 0 auto; padding: 64px 32px 48px; display: flex; flex-direction: column; align-items: center; text-align: center;">
+        <img src="assets/logo.png" alt="NotiLab" style="height: 40px; margin-bottom: 12px; animation: fadeUp .4s cubic-bezier(.22,1,.36,1);">
+        <p style="margin: 0 0 36px; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: rgba(255,255,255,.5); animation: fadeUp .5s cubic-bezier(.22,1,.36,1);">News you can enter.</p>
+        <h1 style="margin: 0 0 10px; font-size: clamp(30px, 4.4vw, 48px); font-weight: 900; letter-spacing: -0.03em; color: #fff; animation: fadeUp .55s cubic-bezier(.22,1,.36,1);">Monta a tua bandeja</h1>
+        <p style="margin: 0 0 36px; font-size: 15px; color: rgba(255,255,255,.6); max-width: 440px; line-height: 1.6; animation: fadeUp .6s cubic-bezier(.22,1,.36,1);">Escolhe pelo menos 3 temas. Quem quer cinema não vê basebol — o teu feed é só teu.</p>
+        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-bottom: 40px; animation: fadeUp .65s cubic-bezier(.22,1,.36,1);">
+          <sc-for list="{{ onboardChips }}" as="chip" hint-placeholder-count="8">
+            <button onClick="{{ chip.toggle }}" style="{{ chip.style }}" style-hover="transform: translateY(-2px);">
+              {{ chip.iconEl }}
+              {{ chip.name }}
+            </button>
+          </sc-for>
+        </div>
+        <div style="width: 100%; margin-bottom: 40px; animation: fadeUp .68s cubic-bezier(.22,1,.36,1);">
+          <p style="margin: 0 0 14px; font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: rgba(255,255,255,.45);">E ao teu ritmo</p>
+          <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;">
+            <sc-for list="{{ paceOptions }}" as="p" hint-placeholder-count="3">
+              <button onClick="{{ p.pick }}" style="{{ p.style }}" style-hover="transform: translateY(-2px);">
+                {{ p.iconEl }}
+                <span style="font-size: 15px; font-weight: 700;">{{ p.label }}</span>
+                <span style="font-size: 12px; line-height: 1.45; color: rgba(255,255,255,.55);">{{ p.desc }}</span>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+        <button onClick="{{ confirmOnboarding }}" style="{{ onboardCtaStyle }}" style-hover="transform: translateY(-2px);">{{ onboardCtaLabel }}</button>
+        <button onClick="{{ skipOnboarding }}" style="margin-top: 14px; background: none; border: none; color: rgba(255,255,255,.45); font-size: 13px; cursor: pointer;" style-hover="color: #fff;">Ver tudo primeiro</button>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ═══ ENTER THE SCENE ═══ -->
+  <sc-if value="{{ sceneOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; inset: 0; z-index: 65; background: radial-gradient(120% 100% at 50% 100%, #0a1220 0%, #030306 60%); animation: fadeIn .3s ease-out;">
+
+      <sc-if value="{{ sceneLoading }}" hint-placeholder-val="{{ false }}">
+        <div style="position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 32px; text-align: center;">
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#39FF14" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="animation: hintBob 2s ease-in-out infinite;"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path></svg>
+          <div>
+            <p style="margin: 0 0 4px; font-size: 16px; font-weight: 700; color: #fff;">A carregar a cena · {{ sceneProgress }}</p>
+            <p style="margin: 0; font-size: 13px; color: rgba(255,255,255,.5);">Reconstrução comprimida · {{ sceneSize }} · só carrega quando pedes</p>
+          </div>
+          <div style="width: min(320px, 70vw); height: 4px; background: rgba(255,255,255,.08); border-radius: 999px; overflow: hidden;">
+            <div style="{{ sceneProgressBarStyle }}"></div>
+          </div>
+          <button onClick="{{ closeScene }}" style="background: none; border: none; color: rgba(255,255,255,.45); font-size: 13px; cursor: pointer;" style-hover="color: #fff;">Cancelar</button>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ sceneReady }}" hint-placeholder-val="{{ false }}">
+        <div onPointerMove="{{ sceneMove }}" style="position: absolute; inset: 0; perspective: 1300px; overflow: hidden;">
+          <div style="{{ sceneStageStyle }}">
+            <div style="{{ sceneBgStyle }}"></div>
+            <div style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,.35), transparent 45%);"></div>
+            <sc-for list="{{ sceneHotspots }}" as="h" hint-placeholder-count="3">
+              <button onClick="{{ h.pick }}" style="{{ h.style }}">{{ h.n }}</button>
+            </sc-for>
+          </div>
+        </div>
+
+        <!-- scene top bar -->
+        <div style="position: absolute; top: 0; left: 0; right: 0; display: flex; align-items: flex-start; justify-content: space-between; padding: 18px 22px; background: linear-gradient(to bottom, rgba(0,0,0,.55), transparent);">
+          <div>
+            <p style="margin: 0 0 3px; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #39FF14;">Dentro da cena</p>
+            <p style="margin: 0; font-size: 17px; font-weight: 800; letter-spacing: -0.02em; color: #fff;">{{ sceneTitle }}</p>
+            <p style="margin: 3px 0 0; font-size: 12px; color: rgba(255,255,255,.55);">{{ sceneSubtitle }}</p>
+          </div>
+          <button onClick="{{ closeScene }}" style="display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,.07); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,.14); color: #fff; height: 38px; padding: 0 14px; border-radius: 12px; font-size: 13px; font-weight: 600; cursor: pointer; flex-shrink: 0;" style-hover="background: rgba(255,255,255,.14);">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+            Sair da cena
+          </button>
+        </div>
+
+        <!-- hotspot annotation -->
+        <sc-if value="{{ hsOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="position: absolute; left: 22px; bottom: 208px; width: min(340px, 80vw); background: rgba(12,14,18,.92); backdrop-filter: blur(28px); border: 1px solid rgba(57,255,20,.3); border-radius: 16px; padding: 18px; animation: fadeUp .3s cubic-bezier(.22,1,.36,1); box-shadow: 0 12px 48px rgba(0,0,0,.6);">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+              <p style="margin: 0; font-size: 14px; font-weight: 800; color: #39FF14;">{{ hsTitle }}</p>
+              <button onClick="{{ closeHs }}" aria-label="Fechar anotação" style="background: none; border: none; color: rgba(255,255,255,.5); cursor: pointer; padding: 2px;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+              </button>
+            </div>
+            <p style="margin: 0; font-size: 13px; line-height: 1.55; color: rgba(255,255,255,.82);">{{ hsText }}</p>
+          </div>
+        </sc-if>
+
+        <!-- timeline slider (map scenes) -->
+        <sc-if value="{{ sceneIsMap }}" hint-placeholder-val="{{ false }}">
+          <div style="position: absolute; left: 50%; bottom: 84px; transform: translateX(-50%); width: min(460px, calc(100vw - 48px)); display: flex; flex-direction: column; gap: 7px; background: rgba(10,10,14,.75); backdrop-filter: blur(28px); border: 1px solid rgba(255,255,255,.1); border-radius: 16px; padding: 12px 16px;">
+            <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+              <span style="font-size: 12px; font-weight: 700; color: #fff; white-space: nowrap;">{{ sceneTimeLabel }}</span>
+              <span style="font-size: 10px; font-weight: 700; letter-spacing: .1em; color: rgba(255,255,255,.45);">LINHA DO TEMPO</span>
+            </div>
+            <input type="range" min="0" max="100" step="1" value="{{ sceneTime }}" onChange="{{ setSceneTime }}" style="width: 100%; accent-color: #39FF14; cursor: pointer; height: 18px;">
+            <div style="display: flex; justify-content: space-between; font-size: 10px; color: rgba(255,255,255,.4);">
+              <span>14 Dez, 18:00</span>
+              <span>15 Dez, 02:00</span>
+              <span>15 Dez, 06:00</span>
+              <span>15 Dez, 12:00</span>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- scene bottom controls -->
+        <div style="position: absolute; left: 50%; bottom: 24px; transform: translateX(-50%); display: flex; align-items: center; gap: 8px; background: rgba(10,10,14,.75); backdrop-filter: blur(28px); border: 1px solid rgba(255,255,255,.1); border-radius: 999px; padding: 6px;">
+          <button onClick="{{ scenePrev }}" aria-label="Passo anterior" style="display: flex; width: 36px; height: 36px; align-items: center; justify-content: center; border-radius: 999px; background: rgba(255,255,255,.06); border: none; color: #fff; cursor: pointer;" style-hover="background: rgba(255,255,255,.14);">{{ chevLeftEl }}</button>
+          <span style="font-size: 13px; font-weight: 600; color: #fff; padding: 0 8px; white-space: nowrap;">{{ sceneStepLabel }}</span>
+          <button onClick="{{ sceneNext }}" aria-label="Passo seguinte" style="display: flex; width: 36px; height: 36px; align-items: center; justify-content: center; border-radius: 999px; background: rgba(255,255,255,.06); border: none; color: #fff; cursor: pointer;" style-hover="background: rgba(255,255,255,.14);">{{ chevRightEl }}</button>
+          <span style="width: 1px; height: 22px; background: rgba(255,255,255,.14);"></span>
+          <button onClick="{{ toggleSceneMode }}" style="display: inline-flex; align-items: center; gap: 7px; background: rgba(255,255,255,.06); border: none; color: rgba(255,255,255,.85); height: 36px; padding: 0 14px; border-radius: 999px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;" style-hover="background: rgba(255,255,255,.14); color: #fff;">
+            {{ boxIconEl }}
+            {{ sceneModeLabel }}
+          </button>
+        </div>
+      </sc-if>
+
+    </div>
+  </sc-if>
+
+  <!-- ═══ TOAST ═══ -->
+  <sc-if value="{{ toastVisible }}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; bottom: 78px; left: 50%; transform: translateX(-50%); z-index: 70;">
+      <div style="background: rgba(16,16,20,.94); backdrop-filter: blur(24px); border: 1px solid rgba(255,255,255,.12); color: #fff; font-size: 13px; font-weight: 500; padding: 11px 18px; border-radius: 999px; animation: fadeUp .3s cubic-bezier(.22,1,.36,1); box-shadow: 0 8px 32px rgba(0,0,0,.5); white-space: nowrap;">{{ toast }}</div>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;$preview&quot;: {},
+  &quot;movimento&quot;: { &quot;editor&quot;: &quot;enum&quot;, &quot;options&quot;: [&quot;cinematográfico&quot;, &quot;subtil&quot;], &quot;default&quot;: &quot;cinematográfico&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Motion&quot; },
+  &quot;intensidadeVinheta&quot;: { &quot;editor&quot;: &quot;range&quot;, &quot;min&quot;: 40, &quot;max&quot;: 90, &quot;step&quot;: 5, &quot;default&quot;: 70, &quot;unit&quot;: &quot;%&quot;, &quot;tsType&quot;: &quot;number&quot;, &quot;section&quot;: &quot;Visual&quot; },
+  &quot;mostrarOnboarding&quot;: { &quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Fluxo&quot; }
+}">
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    let persisted = null;
+    try { persisted = JSON.parse(localStorage.getItem('notilab:bandeja:v1') || 'null'); } catch (e) {}
+    this.state = {
+      index: 0,
+      filter: 'parasi',
+      trayOpen: false,
+      ctxOpen: false,
+      whyOpen: false,
+      onboardingOpen: !persisted,
+      selected: (persisted && persisted.followed) || [],
+      followed: (persisted && persisted.followed) || ['mocambique', 'tecnologia', 'filmes'],
+      hidden: [],
+      pace: (persisted && persisted.pace) || 'equilibrado',
+      sceneOpen: false, sceneStory: null, sceneLoading: false, sceneProgress: 0,
+      sceneMode: 'guiado', sceneStep: 0, sceneHotspot: null, tilt: { x: 0, y: 0 },
+      liked: {}, saved: {},
+      toast: null,
+      hintDismissed: false,
+    };
+    this.dragStart = null;
+    this.wheelAccum = 0;
+    this.wheelCooldown = false;
+  }
+
+  cats() {
+    return [
+      { slug: 'mocambique', name: 'Moçambique', color: '#E60000', icon: 'landmark' },
+      { slug: 'desporto', name: 'Desporto', color: '#39FF14', icon: 'trophy' },
+      { slug: 'filmes', name: 'Cinema & Séries', color: '#7c3aed', icon: 'clapperboard' },
+      { slug: 'tecnologia', name: 'Tecnologia', color: '#00D4FF', icon: 'cpu' },
+      { slug: 'economia', name: 'Economia', color: '#FFD23F', icon: 'chart' },
+      { slug: 'cultura', name: 'Cultura', color: '#FF6B35', icon: 'palette' },
+      { slug: 'politica', name: 'Política', color: '#007BFF', icon: 'landmark' },
+      { slug: 'leis', name: 'Leis', color: '#9B59B6', icon: 'scale' },
+      { slug: 'ciencia', name: 'Ciência', color: '#2ECC71', icon: 'flask' },
+    ];
+  }
+
+  stories() {
+    return [
+      { id: 'chido', cat: 'mocambique', live: true, trending: true, image: null,
+        title: 'Ciclone Chido deixa rastos de destruição na região central de Moçambique',
+        teaser: 'Ventos acima de 200 km/h, chuvas intensas e cheias provocaram danos em infra-estruturas, habitações e estradas. Equipas de socorro continuam no terreno.',
+        source: 'DW África · 5 fontes', place: 'Beira, Sofala', time: 'Há 2h',
+        what: 'O ciclone Chido atingiu a região central de Moçambique com ventos acima de 200 km/h, causando inundações severas, destruição de infra-estruturas e interrupção de serviços essenciais.',
+        why: 'Mais de 30 mil pessoas foram afectadas em 8 distritos. A resposta de emergência nas próximas 48 horas vai determinar o alcance da crise humanitária.',
+        facts: [{ v: '30K+', l: 'Afectados' }, { v: '12', l: 'Mortos' }, { v: '8', l: 'Distritos atingidos' }, { v: '150+', l: 'Casas destruídas' }],
+        sources: [{ name: 'DW África', time: '14:30' }, { name: 'STV Notícias', time: '13:10' }, { name: 'O País', time: '12:45' }, { name: 'INGD (oficial)', time: '11:00' }, { name: 'Lusa', time: '10:20' }],
+        reasons: ['Segues o tema Moçambique', 'História ao vivo com alta importância nacional', 'Confirmada por 5 fontes, incluindo uma fonte oficial'] },
+      { id: 'benfica', cat: 'desporto', live: false, trending: true, image: 'assets/benfica.png',
+        title: 'Benfica conquista a Liga num último dia dramático',
+        teaser: 'As águias garantiram o campeonato com uma vitória nos descontos, na jornada final.',
+        source: 'A Bola · 3 fontes', place: 'Lisboa', time: 'Há 4h',
+        what: 'O Benfica venceu nos minutos finais da última jornada e conquistou o título da Liga Portugal, num desfecho decidido por dois pontos.',
+        why: 'O título muda o acesso directo à Champions e o mercado de transferências de verão dos três grandes.',
+        facts: [{ v: '2-1', l: 'Resultado final' }, { v: '90+4\'', l: 'Golo decisivo' }, { v: '82', l: 'Pontos' }, { v: '38ª', l: 'Jornada' }],
+        sources: [{ name: 'A Bola', time: '18:02' }, { name: 'Record', time: '17:55' }, { name: 'Maisfutebol', time: '17:40' }],
+        reasons: ['Em alta em Portugal e Moçambique', 'Interagiste com histórias de Desporto esta semana'] },
+      { id: 'gemini', cat: 'tecnologia', live: false, trending: true, image: null,
+        title: 'Google lança Gemini 3: o modelo de IA mais capaz até hoje',
+        teaser: 'O novo sistema raciocina sobre texto, imagem, áudio e vídeo em simultâneo.',
+        source: 'The Verge · 4 fontes', place: 'Mountain View, EUA', time: 'Há 3h',
+        what: 'A Google apresentou o Gemini 3, um modelo multimodal que processa texto, imagens, áudio e vídeo em simultâneo, com ganhos significativos em raciocínio.',
+        why: 'Modelos multimodais estão a redefinir pesquisa, produtividade e criação de conteúdo — incluindo em português.',
+        facts: [{ v: '4', l: 'Modalidades' }, { v: '2M', l: 'Tokens de contexto' }, { v: '40+', l: 'Línguas' }, { v: '#1', l: 'Em benchmarks' }],
+        sources: [{ name: 'The Verge', time: '15:00' }, { name: 'Reuters', time: '14:48' }, { name: 'TechCrunch', time: '14:30' }, { name: 'Google Blog (oficial)', time: '14:00' }],
+        reasons: ['Segues o tema Tecnologia', 'Fonte oficial incluída'] },
+      { id: 'cannes', cat: 'filmes', live: false, trending: true, image: 'assets/cinema.png',
+        title: 'Filme lusófono vence a Palma de Ouro em Cannes',
+        teaser: 'A primeira longa-metragem do realizador conquistou o prémio máximo do festival mais prestigiado do mundo.',
+        source: 'Variety · 3 fontes', place: 'Cannes, França', time: 'Há 6h',
+        what: 'Uma estreia em longa-metragem de um realizador lusófono venceu a Palma de Ouro, o prémio principal do Festival de Cannes.',
+        why: 'É um marco para o cinema em língua portuguesa e deve acelerar o investimento das plataformas de streaming em produções lusófonas.',
+        facts: [{ v: '1ª', l: 'Longa do realizador' }, { v: '77ª', l: 'Edição do festival' }, { v: '22', l: 'Filmes em competição' }, { v: '12min', l: 'De ovação' }],
+        sources: [{ name: 'Variety', time: '20:15' }, { name: 'Le Monde', time: '20:02' }, { name: 'Público', time: '19:50' }],
+        reasons: ['Segues o tema Cinema & Séries', 'Em alta no mundo lusófono'] },
+      { id: 'bitcoin', cat: 'economia', live: false, trending: true, image: null,
+        title: 'Bitcoin ultrapassa os $150.000 com adopção institucional',
+        teaser: 'A criptomoeda atinge novo máximo histórico à medida que cresce a aceitação mainstream.',
+        source: 'Bloomberg · 4 fontes', place: 'Mercados globais', time: 'Há 1h',
+        what: 'O Bitcoin ultrapassou pela primeira vez os 150 mil dólares, impulsionado por fluxos recordes para ETFs e adopção por fundos soberanos.',
+        why: 'A subida reacende o debate sobre regulação cripto em economias emergentes, incluindo Moçambique.',
+        facts: [{ v: '$150K', l: 'Novo máximo' }, { v: '+38%', l: 'Este ano' }, { v: '$2.9T', l: 'Capitalização' }, { v: '11', l: 'ETFs aprovados' }],
+        sources: [{ name: 'Bloomberg', time: '16:30' }, { name: 'Reuters', time: '16:22' }, { name: 'CoinDesk', time: '16:10' }, { name: 'FT', time: '15:58' }],
+        reasons: ['História de grande importância global', 'Diversidade: um tema fora dos que segues'] },
+      { id: 'euai', cat: 'leis', live: false, trending: false, image: 'assets/eu-ai.png',
+        title: 'Parlamento Europeu aprova histórica Lei de Segurança da IA',
+        teaser: 'A regulação de IA mais abrangente da história define padrões globais.',
+        source: 'Euronews · 5 fontes', place: 'Estrasburgo, França', time: 'Há 8h',
+        what: 'O Parlamento Europeu aprovou o AI Safety Act, a mais completa regulação de inteligência artificial de sempre, com regras por nível de risco.',
+        why: 'Como o RGPD, a lei deve tornar-se padrão global — afectando qualquer empresa ou governo que use IA, incluindo em África.',
+        facts: [{ v: '523', l: 'Votos a favor' }, { v: '4', l: 'Níveis de risco' }, { v: '2027', l: 'Aplicação plena' }, { v: '€35M', l: 'Multa máxima' }],
+        sources: [{ name: 'Euronews', time: '09:40' }, { name: 'Politico', time: '09:31' }, { name: 'Reuters', time: '09:20' }, { name: 'Parlamento UE (oficial)', time: '09:00' }, { name: 'DW', time: '08:55' }],
+        reasons: ['Relacionado com Tecnologia, que segues', 'Confirmada por fonte oficial'] },
+      { id: 'nazare', cat: 'desporto', live: false, trending: true, image: null,
+        title: 'Recorde da onda da Nazaré volta a ser batido: 30 metros',
+        teaser: 'Novo recorde mundial estabelecido no spot português de ondas gigantes.',
+        source: 'Surfline · 2 fontes', place: 'Nazaré, Portugal', time: 'Há 9h',
+        what: 'Um surfista bateu o recorde mundial de onda gigante na Praia do Norte, com uma onda medida em 30 metros.',
+        why: 'A Nazaré consolida-se como capital mundial das ondas gigantes, com impacto directo no turismo da região.',
+        facts: [{ v: '30m', l: 'Altura da onda' }, { v: '+1.5m', l: 'Vs. recorde anterior' }, { v: '80km/h', l: 'Velocidade' }, { v: '2011', l: 'Primeiro recorde' }],
+        sources: [{ name: 'Surfline', time: '08:10' }, { name: 'WSL (oficial)', time: '07:45' }],
+        reasons: ['Em alta', 'Interagiste com histórias de Desporto'] },
+      { id: 'fusao', cat: 'ciencia', live: false, trending: true, image: null,
+        title: 'Reactor de fusão nuclear atinge ganho líquido de energia',
+        teaser: 'A instalação ITER produziu mais energia do que consumiu pelo primeiro período sustentado.',
+        source: 'Nature · 3 fontes', place: 'Cadarache, França', time: 'Há 12h',
+        what: 'O reactor experimental ITER manteve pela primeira vez um ganho líquido de energia durante um período sustentado de fusão.',
+        why: 'É o passo mais concreto até hoje rumo a energia limpa praticamente ilimitada — com implicações para África na próxima década.',
+        facts: [{ v: 'Q>1', l: 'Ganho líquido' }, { v: '8min', l: 'Duração' }, { v: '35', l: 'Países no projecto' }, { v: '150M°C', l: 'Temperatura' }],
+        sources: [{ name: 'Nature', time: '06:00' }, { name: 'BBC Science', time: '05:40' }, { name: 'ITER (oficial)', time: '05:00' }],
+        reasons: ['História de grande importância global', 'Diversidade: um tema fora dos que segues'] },
+      { id: 'ponte', cat: 'mocambique', live: false, trending: false, image: null,
+        title: 'Trânsito interrompido na Ponte de Maputo para inspecção de emergência',
+        teaser: 'Autoridades encerraram a travessia após detecção de anomalias num cabo de suspensão.',
+        source: 'O País · 2 fontes', place: 'Maputo', time: 'Há 18 min',
+        what: 'A ponte Maputo–Katembe foi encerrada temporariamente ao trânsito para uma inspecção de emergência a um dos cabos de suspensão.',
+        why: 'A ponte é a principal ligação a sul da capital; o encerramento afecta milhares de pessoas por dia.',
+        facts: [{ v: '3km', l: 'Extensão' }, { v: '20K+', l: 'Travessias/dia' }, { v: '48h', l: 'Inspecção prevista' }, { v: '2018', l: 'Inauguração' }],
+        sources: [{ name: 'O País', time: '16:44' }, { name: 'ANE (oficial)', time: '16:30' }],
+        reasons: ['Perto de ti: Maputo', 'Segues o tema Moçambique'] },
+      { id: 'streaming', cat: 'filmes', live: false, trending: false, image: null,
+        title: 'Plataformas de streaming investem €2 mil milhões em conteúdo em português',
+        teaser: 'Netflix, Amazon e Disney aprovam mais de 30 produções em língua portuguesa.',
+        source: 'Screen Daily · 3 fontes', place: 'Lisboa · Maputo · São Paulo', time: 'Há 1 dia',
+        what: 'As grandes plataformas anunciaram um investimento conjunto de dois mil milhões de euros em mais de 30 produções em língua portuguesa.',
+        why: 'É a maior aposta de sempre em conteúdo lusófono — com casting e rodagens previstos também em Moçambique.',
+        facts: [{ v: '€2B', l: 'Investimento' }, { v: '30+', l: 'Produções' }, { v: '3', l: 'Plataformas' }, { v: '300M', l: 'Falantes de português' }],
+        sources: [{ name: 'Screen Daily', time: 'ontem' }, { name: 'Variety', time: 'ontem' }, { name: 'Público', time: 'ontem' }],
+        reasons: ['Segues o tema Cinema & Séries'] },
+      { id: 'solar', cat: 'tecnologia', live: false, trending: false, image: null,
+        title: 'Energia solar cresce 30% em África em 2025',
+        teaser: 'Novos parques em Moçambique, Quénia e Marrocos lideram a expansão renovável do continente.',
+        source: 'AfricaNews · 3 fontes', place: 'África', time: 'Há 6h',
+        what: 'A capacidade solar instalada em África cresceu 30% num ano, com Moçambique entre os cinco mercados que mais cresceram.',
+        why: 'Cerca de 600 milhões de africanos ainda vivem sem electricidade fiável — o solar é o caminho mais rápido para fechar esse fosso.',
+        facts: [{ v: '+30%', l: 'Crescimento anual' }, { v: '5º', l: 'Moçambique no ranking' }, { v: '600M', l: 'Sem electricidade fiável' }, { v: '$12B', l: 'Investimento' }],
+        sources: [{ name: 'AfricaNews', time: '12:00' }, { name: 'Bloomberg Green', time: '11:30' }, { name: 'IRENA (oficial)', time: '10:00' }],
+        reasons: ['Segues o tema Tecnologia', 'Relevância regional: África'] },
+    ];
+  }
+
+  icon(name, size, color) {
+    const paths = {
+      landmark: '<line x1="3" x2="21" y1="22" y2="22"/><line x1="6" x2="6" y1="18" y2="11"/><line x1="10" x2="10" y1="18" y2="11"/><line x1="14" x2="14" y1="18" y2="11"/><line x1="18" x2="18" y1="18" y2="11"/><polygon points="12 2 20 7 4 7"/>',
+      trophy: '<path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>',
+      clapperboard: '<path d="M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1.1-.3 2.2.3 2.5 1.3Z"/><path d="m6.2 5.3 3.1 3.9"/><path d="m12.4 3.4 3.1 4"/><path d="M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/>',
+      cpu: '<rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9" rx="1"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/>',
+      chart: '<polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>',
+      palette: '<circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>',
+      scale: '<path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/>',
+      flask: '<path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"/><path d="M8.5 2h7"/><path d="M7 16h10"/>',
+      sparkles: '<path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>',
+      zap: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',
+      mappin: '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>',
+      compass: '<circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>',
+      users: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>',
+      user: '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>',
+      box: '<path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>',
+      chevleft: '<path d="m15 18-6-6 6-6"/>',
+      chevright: '<path d="m9 18 6-6-6-6"/>',
+    };
+    return React.createElement('svg', {
+      width: size, height: size, viewBox: '0 0 24 24', fill: 'none',
+      stroke: color || 'currentColor', strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round',
+      dangerouslySetInnerHTML: { __html: paths[name] || paths.sparkles },
+    });
+  }
+
+  catBySlug(slug) { return this.cats().find(c => c.slug === slug); }
+
+  scenes() {
+    return {
+      chido: {
+        type: 'map', size: '24 MB',
+        title: 'Beira vista de cima — reconstrução do impacto',
+        subtitle: 'Gerada a partir de imagens de satélite e drone · 15 Dez',
+        hotspots: [
+          { x: 28, y: 46, title: 'Praia Nova', text: 'Bairro costeiro mais atingido. Ondas de 4 metros galgaram a proteção marítima; 60% das habitações danificadas.' },
+          { x: 64, y: 30, title: 'Porto da Beira', text: 'Operações suspensas durante 36 horas. Dois guindastes danificados; corredor logístico para o interior interrompido.' },
+          { x: 54, y: 66, title: 'Hospital Central', text: 'A funcionar com geradores desde as 02:00. Mais de 200 feridos tratados nas primeiras 24 horas.' },
+        ],
+        steps: [
+          { rx: 52, ry: 0, z: 1, label: 'Vista geral' },
+          { rx: 38, ry: -14, z: 1.4, label: 'Praia Nova' },
+          { rx: 40, ry: 16, z: 1.35, label: 'Porto da Beira' },
+          { rx: 30, ry: 4, z: 1.5, label: 'Hospital Central' },
+        ],
+      },
+      benfica: {
+        type: 'photo', size: '18 MB', image: 'assets/benfica.png',
+        title: 'Estádio da Luz — o momento do título',
+        subtitle: 'Cena volumétrica captada aos 90+4\' · 3 câmaras',
+        hotspots: [
+          { x: 50, y: 38, title: 'O golo decisivo', text: 'Remate de primeira ao segundo poste, aos 90+4\'. O ponto exato onde o campeonato mudou de mãos.' },
+          { x: 20, y: 55, title: 'Bancada sul', text: '8.000 adeptos na claque. O pico de ruído atingiu 117 dB — recorde da época no estádio.' },
+          { x: 78, y: 62, title: 'Banco de suplentes', text: 'A equipa técnica invadiu o relvado antes do apito final. O treinador viu o golo de joelhos.' },
+        ],
+        steps: [
+          { rx: 6, ry: 0, z: 1, label: 'Vista geral' },
+          { rx: 4, ry: -10, z: 1.45, label: 'O golo' },
+          { rx: 8, ry: 12, z: 1.4, label: 'Bancada' },
+        ],
+      },
+    };
+  }
+
+  openScene(id) {
+    clearInterval(this._sceneT);
+    this.setState({ sceneOpen: true, sceneStory: id, sceneLoading: true, sceneProgress: 0, sceneMode: 'guiado', sceneStep: 0, sceneHotspot: null, sceneTime: 100, whyOpen: false, ctxOpen: false });
+    this._sceneT = setInterval(() => {
+      this.setState(p => {
+        const next = Math.min(100, p.sceneProgress + 4 + Math.random() * 9);
+        if (next >= 100) { clearInterval(this._sceneT); return { sceneProgress: 100, sceneLoading: false }; }
+        return { sceneProgress: next };
+      });
+    }, 90);
+  }
+  closeScene() { clearInterval(this._sceneT); this.setState({ sceneOpen: false, sceneStory: null, sceneHotspot: null }); }
+
+  visible() {
+    const { filter, hidden, followed } = this.state;
+    let list = this.stories().filter(s => !hidden.includes(s.cat));
+    if (filter !== 'parasi') {
+      list = list.filter(s => s.cat === filter);
+    } else if (followed.length > 0) {
+      // personalised order: followed categories first, keep one discovery story
+      const fav = list.filter(s => followed.includes(s.cat));
+      const rest = list.filter(s => !followed.includes(s.cat));
+      list = fav.concat(rest);
+    }
+    return list;
+  }
+
+  persist(extra) {
+    try {
+      localStorage.setItem('notilab:bandeja:v1', JSON.stringify(Object.assign({ onboarded: true, followed: this.state.followed, pace: this.state.pace }, extra || {})));
+    } catch (e) {}
+  }
+
+  showToast(msg) {
+    clearTimeout(this._toastT);
+    this.setState({ toast: msg });
+    this._toastT = setTimeout(() => this.setState({ toast: null }), 2400);
+  }
+
+  goTo(next) {
+    const len = this.visible().length;
+    if (!len) return;
+    const clamped = Math.max(0, Math.min(next, len - 1));
+    this.setState({ index: clamped, whyOpen: false, hintDismissed: true });
+  }
+
+  componentDidMount() {
+    this._onKey = (e) => {
+      if (this.state.onboardingOpen) return;
+      if (e.key === 'ArrowDown') { e.preventDefault(); this.goTo(this.state.index + 1); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); this.goTo(this.state.index - 1); }
+      else if (e.key === 'g' || e.key === 'G') { this.setState({ trayOpen: !this.state.trayOpen }); }
+      else if (e.key === 'Escape') {
+        if (this.state.sceneOpen) { this.closeScene(); return; }
+        this.setState({ trayOpen: false, ctxOpen: false, whyOpen: false });
+      }
+    };
+    window.addEventListener('keydown', this._onKey);
+  }
+  componentWillUnmount() { window.removeEventListener('keydown', this._onKey); clearTimeout(this._toastT); clearInterval(this._sceneT); }
+
+  renderVals() {
+    const st = this.state;
+    const paceDefs = {
+      dinamico: { label: 'Dinâmico', desc: 'Rápido e imersivo — vê o essencial em segundos', cine: true, titleSize: 'clamp(26px, 3.4vw, 44px)', teaserSize: 'clamp(14px, 1.2vw, 17px)', longTeaser: false, icon: 'zap' },
+      equilibrado: { label: 'Equilibrado', desc: 'Manchete forte com um resumo claro', cine: true, titleSize: 'clamp(28px, 3.6vw, 46px)', teaserSize: 'clamp(15px, 1.3vw, 18px)', longTeaser: false, icon: 'sparkles' },
+      calmo: { label: 'Calmo', desc: 'Texto maior, menos movimento, mais contexto', cine: false, titleSize: 'clamp(30px, 3.8vw, 48px)', teaserSize: 'clamp(17px, 1.5vw, 20px)', longTeaser: true, icon: 'users' },
+    };
+    const pace = paceDefs[st.pace] || paceDefs.equilibrado;
+    const motion = this.props.movimento ?? (pace.cine ? 'cinematográfico' : 'subtil');
+    const cine = motion !== 'subtil';
+    const vinheta = (this.props.intensidadeVinheta ?? 70) / 100;
+    const forceOnboard = this.props.mostrarOnboarding ?? false;
+    const visible = this.visible();
+    const idx = Math.min(st.index, Math.max(0, visible.length - 1));
+    const cur = visible[idx] || this.stories()[0];
+    const self = this;
+
+    const catOf = (s) => this.catBySlug(s.cat);
+
+    const storyVals = visible.map((s) => {
+      const cat = catOf(s);
+      const gradient = s.image
+        ? 'radial-gradient(100% 60% at 50% 100%, rgba(0,0,0,.25), transparent)'
+        : 'radial-gradient(130% 90% at 75% 15%, ' + cat.color + '2e, transparent 60%), radial-gradient(90% 70% at 15% 90%, ' + cat.color + '1f, transparent 55%), linear-gradient(165deg, #0B0B0F 0%, #101018 55%, #0B0B0F 100%)';
+      return Object.assign({}, s, {
+        hasScene: !!this.scenes()[s.id],
+        enterScene: () => self.openScene(s.id),
+        titleStyle: { margin: '0 0 12px', color: '#fff', fontSize: pace.titleSize, lineHeight: 1.08, fontWeight: 800, letterSpacing: '-0.03em', textWrap: 'balance', textShadow: '0 2px 24px rgba(0,0,0,.5)' },
+        teaserStyle: { margin: '0 0 18px', color: 'rgba(255,255,255,.82)', fontSize: pace.teaserSize, lineHeight: 1.6, maxWidth: 560, textWrap: 'pretty' },
+        teaserText: pace.longTeaser ? s.what : s.teaser,
+        hasImage: !!s.image,
+        imgStyle: { position: 'absolute', inset: 0, backgroundImage: s.image ? 'url("' + s.image + '")' : 'none', backgroundSize: 'cover', backgroundPosition: 'center' },
+        showGlyph: !s.image,
+        bigIcon: this.icon(cat.icon, 420, cat.color),
+        catName: cat.name,
+        bg: { position: 'absolute', inset: 0, background: gradient },
+        vignette: { position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,' + vinheta + ') 0%, rgba(0,0,0,' + (vinheta * 0.5).toFixed(2) + ') 45%, rgba(0,0,0,.05) 100%)' },
+        pillStyle: { background: cat.color + 'd9', color: '#fff', fontSize: 12, fontWeight: 700, padding: '4px 12px', borderRadius: 999, letterSpacing: '.02em' },
+        liked: !!st.liked[s.id],
+        saved: !!st.saved[s.id],
+        likeFill: st.liked[s.id] ? '#39FF14' : 'none',
+        saveFill: st.saved[s.id] ? '#0A7FFF' : 'none',
+        likeStyle: { display: 'flex', width: 46, height: 46, alignItems: 'center', justifyContent: 'center', borderRadius: 999, background: 'rgba(255,255,255,.05)', backdropFilter: 'blur(24px)', border: '1px solid ' + (st.liked[s.id] ? 'rgba(57,255,20,.45)' : 'rgba(255,255,255,.08)'), color: st.liked[s.id] ? '#39FF14' : '#fff', cursor: 'pointer', transition: 'all .2s' },
+        saveStyle: { display: 'flex', width: 46, height: 46, alignItems: 'center', justifyContent: 'center', borderRadius: 999, background: 'rgba(255,255,255,.05)', backdropFilter: 'blur(24px)', border: '1px solid ' + (st.saved[s.id] ? 'rgba(10,127,255,.55)' : 'rgba(255,255,255,.08)'), color: st.saved[s.id] ? '#4da3ff' : '#fff', cursor: 'pointer', transition: 'all .2s' },
+        toggleLike: () => self.setState(p => ({ liked: Object.assign({}, p.liked, { [s.id]: !p.liked[s.id] }) })),
+        toggleSave: () => self.setState(p => ({ saved: Object.assign({}, p.saved, { [s.id]: !p.saved[s.id] }) })),
+        lessOf: () => {
+          const cat2 = catOf(s);
+          self.setState(p => ({ hidden: p.hidden.includes(s.cat) ? p.hidden : p.hidden.concat(s.cat), index: 0 }));
+          self.showToast('Vais ver menos de ' + cat2.name + '. Podes repor na bandeja.');
+        },
+      });
+    });
+
+    const counts = {};
+    this.stories().forEach(s => { counts[s.cat] = (counts[s.cat] || 0) + 1; });
+
+    const trayCats = [{
+      slug: 'parasi', name: 'Para si', color: '#0A7FFF',
+      followed: false,
+      iconEl: this.icon('sparkles', 26, '#fff'),
+      countLabel: 'O teu feed pessoal',
+      pick: () => { self.setState({ filter: 'parasi', trayOpen: false, index: 0 }); },
+      style: this.trayCardStyle('#0A7FFF', 0, cine, st.filter === 'parasi', 'linear-gradient(150deg, rgba(10,127,255,.55), rgba(57,255,20,.3)), #0B0B0F'),
+    }].concat(this.cats().filter(c => !st.hidden.includes(c.slug)).map((c, i) => ({
+      slug: c.slug, name: c.name, color: c.color,
+      followed: st.followed.includes(c.slug),
+      iconEl: this.icon(c.icon, 26, '#fff'),
+      countLabel: (counts[c.slug] || 0) + (counts[c.slug] === 1 ? ' história hoje' : ' histórias hoje'),
+      pick: () => {
+        self.setState({ filter: c.slug, trayOpen: false, index: 0 });
+        self.showToast('Bandeja: ' + c.name);
+      },
+      style: this.trayCardStyle(c.color, i + 1, cine, st.filter === c.slug),
+    })));
+
+    const filterCat = st.filter === 'parasi' ? null : this.catBySlug(st.filter);
+    const filterColor = filterCat ? filterCat.color : '#0A7FFF';
+
+    const dots = visible.map((s, i) => ({
+      style: {
+        width: i === idx ? 6 : 4, height: i === idx ? 22 : 4, borderRadius: 999,
+        background: i === idx ? filterColor : 'rgba(255,255,255,.25)',
+        transition: 'all .35s cubic-bezier(.22,1,.36,1)', margin: '0 auto',
+        boxShadow: i === idx ? '0 0 10px ' + filterColor + '80' : 'none',
+      },
+    }));
+
+    const navDefs = [
+      { label: 'Agora', icon: 'zap', active: true, href: '#' },
+      { label: 'Perto', icon: 'mappin', active: false, href: '#' },
+      { label: 'Explorar', icon: 'compass', active: false, href: 'Explorar — Mural.dc.html' },
+      { label: 'Seguir', icon: 'users', active: false, href: '#' },
+      { label: 'Perfil', icon: 'user', active: false, href: '#' },
+    ];
+    const navItems = navDefs.map(n => ({
+      label: n.label, href: n.href,
+      iconEl: this.icon(n.icon, 16, n.active ? '#fff' : 'rgba(255,255,255,.55)'),
+      style: {
+        display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 16px', borderRadius: 999,
+        fontSize: 13, fontWeight: 600, cursor: 'pointer',
+        color: n.active ? '#fff' : 'rgba(255,255,255,.55)',
+        background: n.active ? 'linear-gradient(135deg, rgba(10,127,255,.9), rgba(10,127,255,.6))' : 'transparent',
+        boxShadow: n.active ? '0 0 16px rgba(10,127,255,.35)' : 'none',
+      },
+    }));
+
+    const selCount = st.selected.length;
+    const onboardChips = this.cats().map(c => {
+      const sel = st.selected.includes(c.slug);
+      return {
+        name: c.name,
+        iconEl: this.icon(c.icon, 16, sel ? '#fff' : 'rgba(255,255,255,.6)'),
+        toggle: () => self.setState(p => ({ selected: p.selected.includes(c.slug) ? p.selected.filter(x => x !== c.slug) : p.selected.concat(c.slug) })),
+        style: {
+          display: 'inline-flex', alignItems: 'center', gap: 8, padding: '12px 18px', borderRadius: 999,
+          fontSize: 14, fontWeight: 600, cursor: 'pointer', transition: 'all .2s',
+          color: sel ? '#fff' : 'rgba(255,255,255,.65)',
+          background: sel ? c.color + '33' : 'rgba(255,255,255,.04)',
+          border: '1.5px solid ' + (sel ? c.color : 'rgba(255,255,255,.12)'),
+          boxShadow: sel ? '0 0 18px ' + c.color + '40' : 'none',
+        },
+      };
+    });
+
+    const hiddenChips = st.hidden.map(slug => {
+      const c = this.catBySlug(slug);
+      return {
+        name: c.name,
+        restore: () => { self.setState(p => ({ hidden: p.hidden.filter(x => x !== slug) })); self.showToast(c.name + ' reposto na bandeja.'); },
+      };
+    });
+
+    const trans = cine ? 'transform .75s cubic-bezier(.22,1,.36,1)' : 'transform .35s ease-out';
+
+    return {
+      visibleStories: storyVals,
+      feedEmpty: visible.length === 0,
+      feedStyle: { transform: 'translateY(' + (-idx * 100) + 'vh)', transition: trans, willChange: 'transform' },
+      counter: visible.length ? (idx + 1) + ' / ' + visible.length : '—',
+      dots,
+      navItems,
+      showHint: !st.hintDismissed && idx === 0 && !st.onboardingOpen && !st.trayOpen && !st.ctxOpen,
+
+      // filter chip
+      filterName: filterCat ? filterCat.name : 'Para si',
+      filterChipStyle: { display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,255,255,.06)', backdropFilter: 'blur(24px)', border: '1px solid ' + filterColor + '66', color: '#fff', height: 38, padding: '0 14px', borderRadius: 12, fontSize: 13, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', boxShadow: '0 0 14px ' + filterColor + '33' },
+      filterDotStyle: { width: 8, height: 8, borderRadius: 999, background: filterColor, boxShadow: '0 0 8px ' + filterColor },
+
+      // handlers
+      onWheel: (e) => {
+        if (st.trayOpen || st.ctxOpen || st.onboardingOpen || this.wheelCooldown) return;
+        this.wheelAccum += e.deltaY;
+        if (Math.abs(this.wheelAccum) > 60) {
+          const dir = this.wheelAccum > 0 ? 1 : -1;
+          this.wheelAccum = 0; this.wheelCooldown = true;
+          this.goTo(idx + dir);
+          setTimeout(() => { this.wheelCooldown = false; }, 550);
+        }
+      },
+      onPointerDown: (e) => { this.dragStart = { x: e.clientX, y: e.clientY, t: Date.now() }; },
+      onPointerUp: (e) => {
+        if (!this.dragStart) return;
+        const dy = e.clientY - this.dragStart.y;
+        const dx = e.clientX - this.dragStart.x;
+        this.dragStart = null;
+        if (st.trayOpen || st.onboardingOpen) return;
+        if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 80) {
+          if (dx < 0) this.setState({ ctxOpen: true });
+          else this.setState({ ctxOpen: false });
+          return;
+        }
+        if (dy < -70) this.goTo(idx + 1);
+        else if (dy > 70) this.goTo(idx - 1);
+      },
+      openTray: () => this.setState({ trayOpen: true, whyOpen: false }),
+      closeTray: () => this.setState({ trayOpen: false }),
+      closeTrayBackdrop: (e) => { if (e.target === e.currentTarget) this.setState({ trayOpen: false }); },
+      openCtx: () => this.setState({ ctxOpen: true, whyOpen: false }),
+      closeCtx: () => this.setState({ ctxOpen: false }),
+      toggleWhy: () => this.setState(p => ({ whyOpen: !p.whyOpen })),
+      pickParaSi: () => this.setState({ filter: 'parasi', index: 0 }),
+      share: () => this.showToast('Link copiado — notilab.co/now?story=' + cur.id),
+
+      // tray
+      trayOpen: st.trayOpen,
+      trayCats,
+      hasHidden: st.hidden.length > 0,
+      hiddenChips,
+
+      // why
+      whyOpen: st.whyOpen,
+      whyReasons: (cur.reasons || []).map(t => ({ text: t })),
+
+      // context panel
+      ctxBackdropStyle: { position: 'absolute', inset: 0, zIndex: 44, background: 'rgba(0,0,0,.45)', opacity: st.ctxOpen ? 1 : 0, pointerEvents: st.ctxOpen ? 'auto' : 'none', transition: 'opacity .35s' },
+      ctxPanelStyle: { position: 'absolute', top: 0, bottom: 0, right: 0, zIndex: 45, width: 'min(440px, 100vw)', display: 'flex', flexDirection: 'column', background: 'rgba(16,16,20,.97)', backdropFilter: 'blur(30px)', borderLeft: '1px solid rgba(255,255,255,.09)', boxShadow: '-24px 0 80px rgba(0,0,0,.55)', transform: st.ctxOpen ? 'translateX(0)' : 'translateX(105%)', transition: 'transform ' + (cine ? '.55s cubic-bezier(.22,1,.36,1)' : '.3s ease-out') },
+      curHasImage: !!cur.image,
+      curImgStyle: { position: 'absolute', inset: 0, backgroundImage: cur.image ? 'url("' + cur.image + '")' : 'none', backgroundSize: 'cover', backgroundPosition: 'center' },
+      curBg: { position: 'absolute', inset: 0, background: cur.image ? 'transparent' : 'radial-gradient(120% 100% at 70% 20%, ' + catOf(cur).color + '38, transparent 60%), #101014' },
+      curPillStyle: { background: catOf(cur).color + 'd9', color: '#fff', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 999 },
+      curCatName: catOf(cur).name,
+      curTitle: cur.title,
+      curSource: cur.source,
+      curTime: cur.time,
+      curWhat: cur.what,
+      curWhy: cur.why,
+      curFacts: cur.facts,
+      curSources: cur.sources,
+      curSourceCount: cur.sources.length,
+
+      // pace
+      paceLabel: pace.label,
+      paceIconEl: this.icon(pace.icon, 14, 'rgba(255,255,255,.8)'),
+      cyclePace: () => {
+        const order = ['dinamico', 'equilibrado', 'calmo'];
+        const next = order[(order.indexOf(st.pace) + 1) % order.length];
+        this.setState({ pace: next }, () => this.persist());
+        this.showToast('Ritmo: ' + paceDefs[next].label);
+      },
+      paceOptions: Object.keys(paceDefs).map(key => {
+        const p = paceDefs[key];
+        const sel = st.pace === key;
+        return {
+          label: p.label, desc: p.desc,
+          iconEl: this.icon(p.icon, 20, sel ? '#39FF14' : 'rgba(255,255,255,.6)'),
+          pick: () => this.setState({ pace: key }),
+          style: {
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, flex: '1 1 160px', maxWidth: 220,
+            padding: '18px 16px', borderRadius: 16, cursor: 'pointer', transition: 'all .25s', textAlign: 'center',
+            color: sel ? '#fff' : 'rgba(255,255,255,.6)',
+            background: sel ? 'rgba(57,255,20,.08)' : 'rgba(255,255,255,.04)',
+            border: '1.5px solid ' + (sel ? 'rgba(57,255,20,.55)' : 'rgba(255,255,255,.12)'),
+            boxShadow: sel ? '0 0 20px rgba(57,255,20,.2)' : 'none',
+          },
+        };
+      }),
+
+      // onboarding
+      onboardingOpen: st.onboardingOpen || forceOnboard,
+      onboardChips,
+      onboardCtaLabel: selCount >= 3 ? 'Criar a minha bandeja' : 'Escolhe mais ' + (3 - selCount) + (3 - selCount === 1 ? ' tema' : ' temas'),
+      onboardCtaStyle: {
+        height: 52, padding: '0 34px', borderRadius: 16, border: 'none', fontSize: 16, fontWeight: 700,
+        cursor: selCount >= 3 ? 'pointer' : 'default',
+        color: selCount >= 3 ? '#fff' : 'rgba(255,255,255,.35)',
+        background: selCount >= 3 ? 'linear-gradient(135deg, #0A7FFF, #0663c9)' : 'rgba(255,255,255,.07)',
+        boxShadow: selCount >= 3 ? '0 0 24px rgba(10,127,255,.5), 0 0 60px rgba(10,127,255,.25)' : 'none',
+        transition: 'all .3s', animation: 'fadeUp .7s cubic-bezier(.22,1,.36,1)',
+      },
+      confirmOnboarding: () => {
+        if (st.selected.length < 3) return;
+        this.setState({ followed: st.selected, onboardingOpen: false, index: 0 });
+        this.persist({ followed: st.selected });
+        this.showToast('Bandeja criada com ' + st.selected.length + ' temas ✓');
+      },
+      skipOnboarding: () => { this.setState({ onboardingOpen: false }); this.persist(); },
+
+      // toast
+      toastVisible: !!st.toast,
+      toast: st.toast || '',
+
+      // ── enter the scene ──
+      sceneOpen: st.sceneOpen,
+      sceneLoading: st.sceneLoading,
+      sceneReady: st.sceneOpen && !st.sceneLoading,
+      sceneProgress: Math.round(st.sceneProgress) + '%',
+      sceneProgressBarStyle: { height: 4, width: Math.round(st.sceneProgress) + '%', background: 'linear-gradient(90deg, #0A7FFF, #39FF14)', borderRadius: 999, transition: 'width .12s linear', boxShadow: '0 0 12px rgba(10,127,255,.6)' },
+      sceneSize: (this.scenes()[st.sceneStory] || {}).size || '',
+      sceneTitle: (this.scenes()[st.sceneStory] || {}).title || '',
+      sceneSubtitle: (this.scenes()[st.sceneStory] || {}).subtitle || '',
+      sceneModeGuided: st.sceneMode === 'guiado',
+      sceneStepLabel: (() => {
+        const sc = this.scenes()[st.sceneStory];
+        if (!sc) return '';
+        return sc.steps[st.sceneStep].label + ' · ' + (st.sceneStep + 1) + '/' + sc.steps.length;
+      })(),
+      sceneStageStyle: (() => {
+        const sc = this.scenes()[st.sceneStory];
+        if (!sc) return {};
+        const isMap = sc.type === 'map';
+        let t;
+        if (st.sceneMode === 'guiado') {
+          const p = sc.steps[st.sceneStep];
+          t = 'rotateX(' + p.rx + 'deg) rotateY(' + p.ry + 'deg) scale(' + p.z + ')';
+        } else {
+          const base = isMap ? 45 : 5;
+          t = 'rotateX(' + (base + st.tilt.y * -10) + 'deg) rotateY(' + (st.tilt.x * 16) + 'deg) scale(1.15)';
+        }
+        return {
+          position: 'absolute', left: '50%', top: '50%', width: 'min(78vw, 900px)', height: 'min(60vh, 560px)',
+          margin: 'calc(min(60vh, 560px) / -2) 0 0 calc(min(78vw, 900px) / -2)',
+          transform: t, transformStyle: 'preserve-3d',
+          transition: st.sceneMode === 'guiado' ? 'transform .9s cubic-bezier(.22,1,.36,1)' : 'transform .12s linear',
+          borderRadius: 18, overflow: 'hidden',
+          boxShadow: '0 60px 120px rgba(0,0,0,.7), 0 0 60px rgba(10,127,255,.12)',
+          border: '1px solid rgba(255,255,255,.12)',
+        };
+      })(),
+      sceneIsMap: (() => { const sc = this.scenes()[st.sceneStory]; return !!sc && sc.type === 'map'; })(),
+      sceneTime: st.sceneTime,
+      setSceneTime: (e) => this.setState({ sceneTime: +e.target.value }),
+      sceneTimeLabel: st.sceneTime < 25 ? '14 Dez, 18:00 — Ciclone formado no canal'
+        : st.sceneTime < 50 ? '15 Dez, 02:00 — Primeiro impacto na Beira'
+        : st.sceneTime < 75 ? '15 Dez, 06:00 — Ventos acima de 200 km/h'
+        : '15 Dez, 12:00 — Inundações em vários bairros',
+      sceneBgStyle: (() => {
+        const sc = this.scenes()[st.sceneStory];
+        const t = st.sceneTime;
+        if (!sc) return {};
+        if (sc.type === 'photo') {
+          return { position: 'absolute', inset: 0, backgroundImage: 'url("' + sc.image + '")', backgroundSize: 'cover', backgroundPosition: 'center' };
+        }
+        return {
+          position: 'absolute', inset: 0,
+          background:
+            'radial-gradient(' + (14 + t * 0.41) + '% ' + (11 + t * 0.34) + '% at 62% 52%, rgba(10,127,255,' + (0.28 + t * 0.0022) + '), rgba(10,127,255,' + (0.08 + t * 0.001) + ') 55%, transparent 75%), ' +
+            'radial-gradient(' + (8 + t * 0.22) + '% ' + (6 + t * 0.19) + '% at 28% 46%, rgba(10,127,255,' + (0.2 + t * 0.002) + '), transparent 70%), ' +
+            'repeating-linear-gradient(0deg, rgba(255,255,255,.05) 0 1px, transparent 1px 56px), ' +
+            'repeating-linear-gradient(90deg, rgba(255,255,255,.05) 0 1px, transparent 1px 56px), ' +
+            'linear-gradient(130deg, #0e1a13 0%, #10181f 60%, #0b1118 100%)',
+        };
+      })(),
+      sceneHotspots: (() => {
+        const sc = this.scenes()[st.sceneStory];
+        if (!sc) return [];
+        return sc.hotspots.map((h, i) => ({
+          n: i + 1,
+          pick: () => self.setState(p => ({ sceneHotspot: p.sceneHotspot === i ? null : i })),
+          style: {
+            position: 'absolute', left: h.x + '%', top: h.y + '%', transform: 'translate(-50%, -50%)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34,
+            borderRadius: 999, cursor: 'pointer', fontSize: 13, fontWeight: 800,
+            color: st.sceneHotspot === i ? '#050508' : '#fff',
+            background: st.sceneHotspot === i ? '#39FF14' : 'rgba(5,5,8,.65)',
+            border: '2px solid ' + (st.sceneHotspot === i ? '#39FF14' : 'rgba(57,255,20,.7)'),
+            boxShadow: '0 0 16px rgba(57,255,20,.45)', backdropFilter: 'blur(8px)',
+            animation: st.sceneHotspot === i ? 'none' : 'livePulse 2.2s ease-in-out infinite',
+          },
+        }));
+      })(),
+      hsOpen: st.sceneHotspot !== null && st.sceneOpen && !st.sceneLoading,
+      hsTitle: (() => { const sc = this.scenes()[st.sceneStory]; return sc && st.sceneHotspot !== null ? sc.hotspots[st.sceneHotspot].title : ''; })(),
+      hsText: (() => { const sc = this.scenes()[st.sceneStory]; return sc && st.sceneHotspot !== null ? sc.hotspots[st.sceneHotspot].text : ''; })(),
+      closeHs: () => this.setState({ sceneHotspot: null }),
+      closeScene: () => this.closeScene(),
+      toggleSceneMode: () => {
+        const next = st.sceneMode === 'guiado' ? 'livre' : 'guiado';
+        this.setState({ sceneMode: next });
+        this.showToast(next === 'livre' ? 'Exploração livre — move o rato para orbitar' : 'Modo guiado');
+      },
+      sceneModeLabel: st.sceneMode === 'guiado' ? 'Modo guiado' : 'Exploração livre',
+      scenePrev: () => { const sc = this.scenes()[st.sceneStory]; if (sc) this.setState(p => ({ sceneStep: Math.max(0, p.sceneStep - 1), sceneMode: 'guiado' })); },
+      sceneNext: () => { const sc = this.scenes()[st.sceneStory]; if (sc) this.setState(p => ({ sceneStep: Math.min(sc.steps.length - 1, p.sceneStep + 1), sceneMode: 'guiado' })); },
+      sceneMove: (e) => {
+        if (st.sceneMode !== 'livre') return;
+        const r = e.currentTarget.getBoundingClientRect();
+        const nx = ((e.clientX - r.left) / r.width) * 2 - 1;
+        const ny = ((e.clientY - r.top) / r.height) * 2 - 1;
+        if (Math.abs(nx - st.tilt.x) > 0.02 || Math.abs(ny - st.tilt.y) > 0.02) this.setState({ tilt: { x: nx, y: ny } });
+      },
+      chevLeftEl: this.icon('chevleft', 16, '#fff'),
+      chevRightEl: this.icon('chevright', 16, '#fff'),
+      boxIconEl: this.icon('box', 15, '#fff'),
+    };
+  }
+
+  trayCardStyle(color, i, cine, active, customBg) {
+    return {
+      position: 'relative', display: 'flex', flexDirection: 'column', gap: 12, minHeight: 148,
+      padding: 18, borderRadius: 20, cursor: 'pointer', textAlign: 'left',
+      background: customBg || ('radial-gradient(130% 110% at 80% 0%, ' + color + '52, transparent 55%), linear-gradient(160deg, #14141a, #0B0B0F)'),
+      border: '1px solid ' + (active ? color : 'rgba(255,255,255,.09)'),
+      boxShadow: active ? '0 0 24px ' + color + '55, inset 0 0 0 1px ' + color : '0 8px 32px rgba(0,0,0,.4)',
+      color: '#fff',
+      transition: 'transform .35s cubic-bezier(.22,1,.36,1), filter .35s, box-shadow .35s',
+      animation: cine ? ('trayCardIn .55s cubic-bezier(.22,1,.36,1) both ' + (i * 45) + 'ms') : 'fadeIn .2s ease-out both',
+      transformStyle: 'preserve-3d',
+    };
+  }
+}
+</script>
+</body>
+</html>

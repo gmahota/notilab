@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+body { margin: 0; background: #050508; font-family: 'Geist', sans-serif; overscroll-behavior: none; }
+a { color: #0A7FFF; text-decoration: none; }
+a:hover { color: #39FF14; }
+button { font-family: 'Geist', sans-serif; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pingRing { 0% { transform: translate(-50%,-50%) scale(.6); opacity: .8; } 100% { transform: translate(-50%,-50%) scale(2.4); opacity: 0; } }
+</style>
+</helmet>
+
+<div data-screen-label="Explorar — Mapa" style="position: fixed; inset: 0; background: #04070d; overflow: hidden; color: #F7F7F7;">
+
+  <!-- ═══ MAP PLANE ═══ -->
+  <div onClick="{{ resetView }}" style="position: absolute; inset: 0; overflow: hidden; cursor: grab;">
+    <div style="{{ planeStyle }}">
+      <!-- ocean texture -->
+      <div style="position: absolute; inset: 0; background: radial-gradient(70% 60% at 55% 45%, rgba(10,127,255,.06), transparent 70%), repeating-linear-gradient(0deg, rgba(255,255,255,.022) 0 1px, transparent 1px 50px), repeating-linear-gradient(90deg, rgba(255,255,255,.022) 0 1px, transparent 1px 50px), #04070d;"></div>
+      <!-- stylised continents -->
+      <svg viewBox="0 0 1000 500" preserveAspectRatio="none" style="position: absolute; inset: 0; width: 100%; height: 100%;">
+        <path d="M483 153 L528 147 L560 152 L589 167 L600 195 L614 219 L611 261 L586 333 L568 345 L550 344 L536 300 L536 275 L508 233 L470 225 L453 208 L460 175 Z" fill="#0c131c" stroke="rgba(255,255,255,.09)" stroke-width="1.2"></path>
+        <path d="M475 142 L490 120 L510 95 L528 83 L548 88 L570 100 L590 112 L597 125 L580 138 L561 147 L540 142 L520 148 L500 150 L482 150 Z" fill="#0c131c" stroke="rgba(255,255,255,.09)" stroke-width="1.2"></path>
+        <path d="M278 222 L330 230 L403 272 L390 320 L360 370 L339 394 L322 360 L300 300 L285 260 Z" fill="#0b1119" stroke="rgba(255,255,255,.07)" stroke-width="1"></path>
+        <path d="M120 90 L200 80 L280 95 L314 125 L300 150 L278 181 L245 195 L231 206 L200 190 L181 161 L150 140 Z" fill="#0b1119" stroke="rgba(255,255,255,.07)" stroke-width="1"></path>
+        <path d="M597 125 L680 105 L780 100 L875 125 L860 160 L839 186 L800 205 L792 222 L750 220 L717 228 L690 205 L667 181 L640 160 L625 167 L605 150 Z" fill="#0b1119" stroke="rgba(255,255,255,.07)" stroke-width="1"></path>
+        <path d="M819 311 L880 315 L925 328 L915 348 L908 356 L860 358 L822 347 Z" fill="#0b1119" stroke="rgba(255,255,255,.07)" stroke-width="1"></path>
+      </svg>
+
+      <!-- cluster badges -->
+      <sc-for list="{{ clusters }}" as="c" hint-placeholder-count="3">
+        <button onClick="{{ c.pick }}" style="{{ c.style }}">
+          <span style="{{ c.ringStyle }}"></span>
+          <span style="{{ c.countStyle }}">{{ c.count }}</span>
+          <span style="{{ c.labelStyle }}">{{ c.name }}</span>
+        </button>
+      </sc-for>
+
+      <!-- story pins -->
+      <sc-for list="{{ pins }}" as="p" hint-placeholder-count="3">
+        <button onClick="{{ p.pick }}" style="{{ p.style }}">
+          <span style="{{ p.dotStyle }}"></span>
+          <span style="{{ p.pinLabelStyle }}">{{ p.short }}</span>
+        </button>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- ═══ TOP BAR ═══ -->
+  <div style="position: absolute; top: 0; left: 0; right: 0; z-index: 30; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 20px; pointer-events: none; background: linear-gradient(to bottom, rgba(4,7,13,.8), transparent);">
+    <div style="display: flex; align-items: center; gap: 12px; pointer-events: auto;">
+      <img src="assets/logo.png" alt="NotiLab" style="height: 26px; filter: drop-shadow(0 2px 8px rgba(0,0,0,.6));">
+      <div style="border-left: 1px solid rgba(255,255,255,.15); padding-left: 12px;">
+        <p style="margin: 0; font-size: 15px; font-weight: 800; letter-spacing: -0.02em;">Explorar</p>
+        <p style="margin: 0; font-size: 11px; color: rgba(255,255,255,.5); white-space: nowrap;">{{ viewLabel }}</p>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px; pointer-events: auto;">
+      <sc-if value="{{ zoomed }}" hint-placeholder-val="{{ false }}">
+        <button onClick="{{ backToWorld }}" style="display: inline-flex; align-items: center; gap: 7px; background: rgba(255,255,255,.07); backdrop-filter: blur(24px); border: 1px solid rgba(255,255,255,.14); color: #fff; height: 38px; padding: 0 14px; border-radius: 12px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;" style-hover="background: rgba(255,255,255,.14);">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg>
+          Vista mundial
+        </button>
+      </sc-if>
+    </div>
+  </div>
+
+  <!-- ═══ FILTERS ═══ -->
+  <div style="position: absolute; top: 70px; left: 20px; right: 20px; z-index: 25; display: flex; flex-wrap: wrap; gap: 8px; pointer-events: none;">
+    <div style="display: flex; gap: 6px; background: rgba(10,10,14,.7); backdrop-filter: blur(24px); border: 1px solid rgba(255,255,255,.09); border-radius: 999px; padding: 5px; pointer-events: auto;">
+      <sc-for list="{{ timeChips }}" as="t" hint-placeholder-count="3">
+        <button onClick="{{ t.pick }}" style="{{ t.style }}">{{ t.label }}</button>
+      </sc-for>
+    </div>
+    <div style="display: flex; gap: 6px; flex-wrap: wrap; background: rgba(10,10,14,.7); backdrop-filter: blur(24px); border: 1px solid rgba(255,255,255,.09); border-radius: 999px; padding: 5px; pointer-events: auto;">
+      <sc-for list="{{ catChips }}" as="c" hint-placeholder-count="5">
+        <button onClick="{{ c.pick }}" style="{{ c.style }}">
+          <span style="{{ c.dotStyle }}"></span>
+          {{ c.label }}
+        </button>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- ═══ STORY PREVIEW CARD ═══ -->
+  <sc-if value="{{ cardOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; left: 20px; bottom: 88px; z-index: 40; width: min(360px, calc(100vw - 40px)); background: rgba(13,15,20,.94); backdrop-filter: blur(30px); border: 1px solid rgba(255,255,255,.11); border-radius: 18px; overflow: hidden; animation: fadeUp .35s cubic-bezier(.22,1,.36,1); box-shadow: 0 16px 56px rgba(0,0,0,.65);">
+      <div style="{{ cardMediaStyle }}">
+        <div style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(13,15,20,.95), transparent 70%);"></div>
+        <button onClick="{{ closeCard }}" aria-label="Fechar" style="position: absolute; top: 10px; right: 10px; display: flex; width: 30px; height: 30px; align-items: center; justify-content: center; border-radius: 999px; background: rgba(0,0,0,.5); border: 1px solid rgba(255,255,255,.14); color: #fff; cursor: pointer;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+        </button>
+      </div>
+      <div style="padding: 14px 18px 18px; display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="{{ cardPillStyle }}">{{ cardCat }}</span>
+          <span style="font-size: 12px; color: rgba(255,255,255,.5); white-space: nowrap;">{{ cardPlace }} · {{ cardTime }}</span>
+        </div>
+        <p style="margin: 0; font-size: 17px; line-height: 1.25; font-weight: 800; letter-spacing: -0.02em; color: #fff;">{{ cardTitle }}</p>
+        <p style="margin: 0; font-size: 13px; line-height: 1.55; color: rgba(255,255,255,.7);">{{ cardTeaser }}</p>
+        <div style="display: flex; gap: 8px; margin-top: 4px;">
+          <a href="{{ cardFeedHref }}" style="display: inline-flex; align-items: center; gap: 6px; background: #0A7FFF; color: #fff; height: 36px; padding: 0 15px; border-radius: 10px; font-size: 13px; font-weight: 600; box-shadow: 0 0 12px rgba(10,127,255,.4);" style-hover="color: #fff; transform: translateY(-1px);">
+            Abrir no feed
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10"></path><path d="M7 17 17 7"></path></svg>
+          </a>
+          <sc-if value="{{ cardHasScene }}" hint-placeholder-val="{{ false }}">
+            <a href="{{ cardFeedHref }}" style="display: inline-flex; align-items: center; gap: 6px; background: rgba(57,255,20,.12); border: 1px solid rgba(57,255,20,.4); color: #fff; height: 36px; padding: 0 13px; border-radius: 10px; font-size: 13px; font-weight: 600;" style-hover="color: #fff; box-shadow: 0 0 14px rgba(57,255,20,.3);">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path></svg>
+              Cena 3D
+            </a>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ═══ BOTTOM NAV ═══ -->
+  <div style="position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 30; display: flex; align-items: center; gap: 4px; background: rgba(10,10,14,.72); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,.09); border-radius: 999px; padding: 6px;">
+    <sc-for list="{{ navItems }}" as="nav" hint-placeholder-count="5">
+      <a href="{{ nav.href }}" style="{{ nav.style }}">
+        {{ nav.iconEl }}
+        <span>{{ nav.label }}</span>
+      </a>
+    </sc-for>
+  </div>
+
+  <!-- ═══ LEGEND / HINT ═══ -->
+  <sc-if value="{{ showHint }}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; left: 20px; bottom: 88px; z-index: 20; background: rgba(10,10,14,.7); backdrop-filter: blur(24px); border: 1px solid rgba(255,255,255,.09); border-radius: 14px; padding: 12px 16px; font-size: 12px; color: rgba(255,255,255,.6); pointer-events: none; animation: fadeIn .5s ease-out; max-width: 220px; line-height: 1.5;">
+      Toca num cluster para aproximar. Cada ponto é uma história verificada.
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  state = { view: 'world', selected: null, catFilter: 'all', timeFilter: 'all' };
+
+  componentDidMount() {
+    this._onResize = () => this.forceUpdate();
+    window.addEventListener('resize', this._onResize);
+  }
+  componentWillUnmount() { window.removeEventListener('resize', this._onResize); }
+
+  cats() {
+    return [
+      { slug: 'mocambique', name: 'Moçambique', color: '#E60000' },
+      { slug: 'desporto', name: 'Desporto', color: '#39FF14' },
+      { slug: 'filmes', name: 'Cinema & Séries', color: '#7c3aed' },
+      { slug: 'tecnologia', name: 'Tecnologia', color: '#00D4FF' },
+      { slug: 'economia', name: 'Economia', color: '#FFD23F' },
+      { slug: 'leis', name: 'Leis', color: '#9B59B6' },
+      { slug: 'ciencia', name: 'Ciência', color: '#2ECC71' },
+      { slug: 'filmes2', name: 'Cultura', color: '#FF6B35' },
+    ];
+  }
+
+  clustersDef() {
+    return [
+      { id: 'afr', name: 'África Austral', x: 59.3, y: 58.5 },
+      { id: 'eur', name: 'Europa', x: 49.8, y: 26.5 },
+      { id: 'nam', name: 'América do Norte', x: 23, y: 28.5 },
+    ];
+  }
+
+  storiesDef() {
+    return [
+      { id: 'chido', cluster: 'afr', x: 59.7, y: 61.0, cat: 'mocambique', short: 'Ciclone Chido', title: 'Ciclone Chido deixa rastos de destruição na região central de Moçambique', teaser: 'Ventos acima de 200 km/h e cheias severas. Equipas de socorro no terreno.', place: 'Beira, Sofala', time: 'Há 2h', bucket: 'hoje', scene: true, image: null },
+      { id: 'ponte', cluster: 'afr', x: 59.0, y: 64.4, cat: 'mocambique', short: 'Ponte de Maputo', title: 'Trânsito interrompido na Ponte de Maputo para inspecção de emergência', teaser: 'Travessia encerrada após anomalia num cabo de suspensão.', place: 'Maputo', time: 'Há 18 min', bucket: 'hoje', scene: false, image: null },
+      { id: 'solar', cluster: 'afr', x: 60.2, y: 50.7, cat: 'tecnologia', short: 'Solar +30%', title: 'Energia solar cresce 30% em África em 2025', teaser: 'Moçambique entre os cinco mercados que mais cresceram.', place: 'África', time: 'Há 6h', bucket: 'hoje', scene: false, image: null },
+      { id: 'benfica', cluster: 'eur', x: 47.5, y: 28.3, cat: 'desporto', short: 'Benfica campeão', title: 'Benfica conquista a Liga num último dia dramático', teaser: 'Título decidido nos descontos da jornada final.', place: 'Lisboa', time: 'Há 4h', bucket: 'hoje', scene: true, image: 'assets/benfica.png' },
+      { id: 'nazare', cluster: 'eur', x: 47.0, y: 27.2, cat: 'desporto', short: 'Onda 30 m', title: 'Recorde da onda da Nazaré volta a ser batido: 30 metros', teaser: 'Novo recorde mundial no spot português de ondas gigantes.', place: 'Nazaré', time: 'Há 9h', bucket: 'hoje', scene: false, image: null },
+      { id: 'streaming', cluster: 'eur', x: 48.2, y: 29.4, cat: 'filmes', short: 'Streaming €2B', title: 'Plataformas de streaming investem €2 mil milhões em conteúdo em português', teaser: '30+ produções aprovadas — com rodagens também em Moçambique.', place: 'Lisboa', time: 'Há 1 dia', bucket: 'semana', scene: false, image: null },
+      { id: 'cannes', cluster: 'eur', x: 51.9, y: 25.8, cat: 'filmes', short: 'Palma de Ouro', title: 'Filme lusófono vence a Palma de Ouro em Cannes', teaser: 'Estreia em longa-metragem conquista o prémio máximo do festival.', place: 'Cannes', time: 'Há 6h', bucket: 'hoje', scene: false, image: 'assets/cinema.png' },
+      { id: 'euai', cluster: 'eur', x: 52.1, y: 22.8, cat: 'leis', short: 'Lei da IA', title: 'Parlamento Europeu aprova histórica Lei de Segurança da IA', teaser: 'A regulação de IA mais abrangente da história.', place: 'Estrasburgo', time: 'Há 8h', bucket: 'hoje', scene: false, image: 'assets/eu-ai.png' },
+      { id: 'fusao', cluster: 'eur', x: 51.3, y: 24.6, cat: 'ciencia', short: 'Fusão Q>1', title: 'Reactor de fusão nuclear atinge ganho líquido de energia', teaser: 'ITER produz mais energia do que consome pela primeira vez.', place: 'Cadarache', time: 'Há 12h', bucket: 'hoje', scene: false, image: null },
+      { id: 'gemini', cluster: 'nam', x: 16.1, y: 29.4, cat: 'tecnologia', short: 'Gemini 3', title: 'Google lança Gemini 3: o modelo de IA mais capaz até hoje', teaser: 'Raciocina sobre texto, imagem, áudio e vídeo em simultâneo.', place: 'Mountain View', time: 'Há 3h', bucket: 'hoje', scene: false, image: null },
+      { id: 'bitcoin', cluster: 'nam', x: 29.4, y: 27.4, cat: 'economia', short: 'BTC $150K', title: 'Bitcoin ultrapassa os $150.000 com adopção institucional', teaser: 'Novo máximo histórico com fluxos recordes para ETFs.', place: 'Nova Iorque', time: 'Há 1h', bucket: 'hoje', scene: false, image: null },
+    ];
+  }
+
+  catBy(slug) { return this.cats().find(c => c.slug === slug) || { name: slug, color: '#8899A6' }; }
+
+  filtered() {
+    const { catFilter, timeFilter } = this.state;
+    return this.storiesDef().filter(s =>
+      (catFilter === 'all' || s.cat === catFilter) &&
+      (timeFilter === 'all' || s.bucket === 'hoje' || timeFilter === 'semana')
+    );
+  }
+
+  renderVals() {
+    const st = this.state;
+    const self = this;
+    const PW = 2200, PH = 1100;
+    const stories = this.filtered();
+    const zoomed = st.view !== 'world';
+    const cluster = zoomed ? this.clustersDef().find(c => c.id === st.view) : null;
+    const vw = window.innerWidth || 1200, vh = window.innerHeight || 700;
+
+    // fit the view to the extent of what must be visible (clusters in world view,
+    // the active cluster's pins when zoomed), keeping clear of the top filter chrome
+    const pts = zoomed
+      ? this.storiesDef().filter(x => x.cluster === st.view)
+      : this.clustersDef();
+    const xs = pts.map(p => p.x), ys = pts.map(p => p.y);
+    const minX = Math.min(...xs), maxX = Math.max(...xs);
+    const minY = Math.min(...ys), maxY = Math.max(...ys);
+    const extW = Math.max(1, (maxX - minX) / 100 * PW);
+    const extH = Math.max(1, (maxY - minY) / 100 * PH);
+    let s = Math.min((vw - 220) / extW, (vh - 320) / extH);
+    s = zoomed ? Math.max(1.5, Math.min(3.2, s)) : Math.max(0.45, Math.min(0.9, s));
+    const fx = (minX + maxX) / 2, fy = (minY + maxY) / 2;
+    const fxpx = fx / 100 * PW * s, fypx = fy / 100 * PH * s;
+
+    const sel = st.selected ? this.storiesDef().find(x => x.id === st.selected) : null;
+
+    const clusters = this.clustersDef().map(c => {
+      const count = stories.filter(x => x.cluster === c.id).length;
+      const active = st.view === c.id;
+      const hidden = count === 0 || active;
+      return {
+        name: c.name, count: count,
+        pick: (e) => { e.stopPropagation(); self.setState({ view: c.id, selected: null }); },
+        style: {
+          position: 'absolute', left: c.x + '%', top: c.y + '%',
+          transform: 'translate(-50%,-50%) scale(' + (1 / s) + ')',
+          display: hidden ? 'none' : 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+          background: 'none', border: 'none', cursor: 'pointer', zIndex: 5,
+          transition: 'transform 1s cubic-bezier(.22,1,.36,1)',
+        },
+        ringStyle: { position: 'absolute', top: 24, left: '50%', width: 48, height: 48, borderRadius: 999, border: '1.5px solid rgba(10,127,255,.6)', animation: 'pingRing 2.4s ease-out infinite' },
+        countStyle: { display: 'flex', alignItems: 'center', justifyContent: 'center', width: 48, height: 48, borderRadius: 999, background: 'radial-gradient(circle at 35% 30%, rgba(10,127,255,.95), rgba(6,80,170,.95))', border: '1.5px solid rgba(255,255,255,.35)', color: '#fff', fontSize: 17, fontWeight: 800, boxShadow: '0 0 24px rgba(10,127,255,.55)' },
+        labelStyle: { fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,.85)', background: 'rgba(5,5,8,.7)', backdropFilter: 'blur(8px)', padding: '3px 10px', borderRadius: 999, border: '1px solid rgba(255,255,255,.12)', whiteSpace: 'nowrap' },
+      };
+    });
+
+    const pins = stories.filter(x => zoomed && x.cluster === st.view).map(p => {
+      const cat = this.catBy(p.cat);
+      const active = st.selected === p.id;
+      return {
+        short: p.short,
+        pick: (e) => { e.stopPropagation(); self.setState({ selected: active ? null : p.id }); },
+        style: {
+          position: 'absolute', left: p.x + '%', top: p.y + '%',
+          transform: 'translate(-50%,-50%) scale(' + (1 / s) + ')',
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
+          background: 'none', border: 'none', cursor: 'pointer', zIndex: 6,
+          animation: 'fadeIn .6s ease-out both .4s',
+        },
+        dotStyle: { width: 16, height: 16, borderRadius: 999, background: cat.color, border: '2.5px solid rgba(255,255,255,' + (active ? '.95' : '.5') + ')', boxShadow: '0 0 ' + (active ? '22px' : '12px') + ' ' + cat.color, transition: 'all .25s' },
+        pinLabelStyle: { fontSize: 11.5, fontWeight: 700, color: active ? '#fff' : 'rgba(255,255,255,.8)', background: active ? cat.color + '2e' : 'rgba(5,5,8,.75)', backdropFilter: 'blur(8px)', padding: '3px 9px', borderRadius: 999, border: '1px solid ' + (active ? cat.color : 'rgba(255,255,255,.12)'), whiteSpace: 'nowrap', transition: 'all .25s' },
+      };
+    });
+
+    const timeDefs = [{ id: 'all', label: 'Tudo' }, { id: 'hoje', label: 'Hoje' }, { id: 'semana', label: '7 dias' }];
+    const timeChips = timeDefs.map(t => ({
+      label: t.label,
+      pick: () => self.setState({ timeFilter: t.id, selected: null }),
+      style: { background: st.timeFilter === t.id ? 'rgba(10,127,255,.85)' : 'transparent', border: 'none', color: st.timeFilter === t.id ? '#fff' : 'rgba(255,255,255,.6)', height: 30, padding: '0 13px', borderRadius: 999, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all .2s' },
+    }));
+
+    const usedCats = ['all'].concat([...new Set(this.storiesDef().map(x => x.cat))]);
+    const catChips = usedCats.map(slug => {
+      const isAll = slug === 'all';
+      const cat = isAll ? { name: 'Todos', color: '#0A7FFF' } : this.catBy(slug);
+      const sel2 = st.catFilter === slug;
+      return {
+        label: cat.name,
+        pick: () => self.setState({ catFilter: slug, selected: null }),
+        style: { display: 'inline-flex', alignItems: 'center', gap: 6, background: sel2 ? 'rgba(255,255,255,.12)' : 'transparent', border: 'none', color: sel2 ? '#fff' : 'rgba(255,255,255,.6)', height: 30, padding: '0 12px', borderRadius: 999, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all .2s' },
+        dotStyle: { width: 7, height: 7, borderRadius: 999, background: cat.color, boxShadow: sel2 ? '0 0 8px ' + cat.color : 'none' },
+      };
+    });
+
+    const icon = (paths, size, color) => React.createElement('svg', { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', dangerouslySetInnerHTML: { __html: paths } });
+    const navDefs = [
+      { label: 'Agora', href: 'Agora — Bandeja.dc.html', active: false, p: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>' },
+      { label: 'Perto', href: '#', active: false, p: '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>' },
+      { label: 'Explorar', href: '#', active: true, p: '<circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>' },
+      { label: 'Seguir', href: '#', active: false, p: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>' },
+      { label: 'Perfil', href: '#', active: false, p: '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>' },
+    ];
+    const navItems = navDefs.map(n => ({
+      label: n.label, href: n.href,
+      iconEl: icon(n.p, 16, n.active ? '#fff' : 'rgba(255,255,255,.55)'),
+      style: { display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 16px', borderRadius: 999, fontSize: 13, fontWeight: 600, cursor: 'pointer', color: n.active ? '#fff' : 'rgba(255,255,255,.55)', background: n.active ? 'linear-gradient(135deg, rgba(10,127,255,.9), rgba(10,127,255,.6))' : 'transparent', boxShadow: n.active ? '0 0 16px rgba(10,127,255,.35)' : 'none' },
+    }));
+
+    const selCat = sel ? this.catBy(sel.cat) : null;
+
+    return {
+      planeStyle: {
+        position: 'absolute', top: 0, left: 0, width: PW, height: PH, transformOrigin: '0 0',
+        transform: 'translate(calc(50vw - ' + fxpx + 'px), calc(57vh - ' + fypx + 'px)) scale(' + s + ')',
+        transition: 'transform 1.1s cubic-bezier(.22,1,.36,1)',
+      },
+      clusters, pins, timeChips, catChips, navItems,
+      zoomed,
+      viewLabel: zoomed ? cluster.name + ' · ' + stories.filter(x => x.cluster === st.view).length + ' histórias' : stories.length + ' histórias em ' + clusters.filter(c => c.count > 0).length + ' regiões',
+      showHint: !zoomed && !st.selected,
+      resetView: () => self.setState({ selected: null }),
+      backToWorld: (e) => { e.stopPropagation(); self.setState({ view: 'world', selected: null }); },
+
+      cardOpen: !!sel,
+      closeCard: () => self.setState({ selected: null }),
+      cardTitle: sel ? sel.title : '',
+      cardTeaser: sel ? sel.teaser : '',
+      cardCat: selCat ? selCat.name : '',
+      cardPlace: sel ? sel.place : '',
+      cardTime: sel ? sel.time : '',
+      cardHasScene: sel ? sel.scene : false,
+      cardFeedHref: sel ? 'Agora — Bandeja.dc.html' : '#',
+      cardPillStyle: selCat ? { background: selCat.color + 'd9', color: '#fff', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 999, whiteSpace: 'nowrap' } : {},
+      cardMediaStyle: sel ? {
+        position: 'relative', height: 110,
+        backgroundImage: sel.image ? 'url("' + sel.image + '")' : 'none',
+        background: sel.image ? 'url("' + sel.image + '") center / cover' : 'radial-gradient(120% 100% at 70% 20%, ' + selCat.color + '40, transparent 60%), #0d0f14',
+      } : {},
+    };
+  }
+}
+</script>
+</body>
+</html>

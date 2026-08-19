@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Compass, Flame, MapPin, User, Users, Zap } from "lucide-react"
+import { Compass, MapPin, User, Users, Zap } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
@@ -14,24 +14,29 @@ const NAV_ITEMS = [
   { href: "/profile", label: "Perfil", icon: User },
 ] as const
 
-const TRENDING_ITEM = { href: "/trending", label: "Em Alta", icon: Flame } as const
-
+/**
+ * Always a single floating centered pill, on every breakpoint — no
+ * responsive sidebar variant. Shared across /now, /now/perto, /now/explorar,
+ * /now/seguir (all render it fixed/floating, so it never affects page
+ * layout flow).
+ */
 export function ImmersiveNav() {
   const pathname = usePathname()
 
   return (
     <nav
       aria-label="Navegação da experiência Agora"
-      className={cn(
-        "fixed z-40 flex text-white",
-        "inset-x-0 bottom-0 h-16 flex-row items-center justify-around border-t border-white/10 bg-black/70 backdrop-blur-xl",
-        "md:inset-y-0 md:left-0 md:right-auto md:h-full md:w-20 md:flex-col md:justify-start md:gap-1 md:border-t-0 md:border-r md:py-8"
-      )}
+      className="fixed z-40 flex items-center gap-1 rounded-full p-1.5"
+      style={{
+        left: "50%",
+        bottom: 16,
+        transform: "translateX(-50%)",
+        background: "rgba(10,10,14,.72)",
+        backdropFilter: "blur(28px) saturate(160%)",
+        WebkitBackdropFilter: "blur(28px) saturate(160%)",
+        border: "1px solid rgba(255,255,255,.09)",
+      }}
     >
-      <div className="hidden md:mb-6 md:flex md:flex-col md:items-center">
-        <span className="text-gradient text-lg font-bold">N</span>
-      </div>
-
       {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
         const active = pathname === href
         return (
@@ -40,29 +45,23 @@ export function ImmersiveNav() {
             href={href}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-1.5 text-[10px] font-medium transition-colors",
-              "md:w-16 md:py-3",
-              active ? "text-primary" : "text-white/55 hover:text-white"
+              "flex items-center gap-1.5 rounded-full font-semibold transition-colors",
+              active ? "text-white" : "text-white/55 hover:text-white"
             )}
+            style={{
+              padding: "9px 16px",
+              fontSize: 13,
+              background: active
+                ? "linear-gradient(135deg, rgba(10,127,255,.9), rgba(10,127,255,.6))"
+                : "transparent",
+              boxShadow: active ? "0 0 16px rgba(10,127,255,.35)" : "none",
+            }}
           >
-            <Icon className={cn("h-5 w-5", active && "glow-blue-sm rounded-full")} />
+            <Icon className="h-4 w-4" />
             {label}
           </Link>
         )
       })}
-
-      <Link
-        href={TRENDING_ITEM.href}
-        aria-current={pathname === TRENDING_ITEM.href ? "page" : undefined}
-        className={cn(
-          "flex flex-col items-center justify-center gap-1 rounded-xl px-2 py-1.5 text-[10px] font-medium transition-colors",
-          "md:mt-auto md:w-16 md:py-3",
-          pathname === TRENDING_ITEM.href ? "text-secondary" : "text-white/55 hover:text-white"
-        )}
-      >
-        <Flame className="h-5 w-5" />
-        {TRENDING_ITEM.label}
-      </Link>
     </nav>
   )
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 
 import { ImmersiveNav } from "@/components/immersive/immersive-nav"
+import { OnboardingBandeja } from "@/components/immersive/onboarding-bandeja"
 import { StoryFeed } from "@/components/immersive/story-feed"
 
 export const metadata: Metadata = {
@@ -13,6 +14,7 @@ export default function NowPage() {
     <div className="fixed inset-0 h-dvh w-screen overflow-hidden bg-black">
       <StoryFeed />
       <ImmersiveNav />
+      <OnboardingBandeja />
     </div>
   )
 }

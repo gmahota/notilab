@@ -1,0 +1,2 @@
+- [Immersive feed redesign 2026-07-15](project_immersive_feed_redesign.md) — /now redesign shipped, backend follow-up (spatialAsset, Explorar mural) deferred on roadmap
+- [Decisions/roadmap conventions](feedback_decisions_and_roadmap_conventions.md) — exact format to follow when appending to decisions.md/ROADMAP.md/daily reports

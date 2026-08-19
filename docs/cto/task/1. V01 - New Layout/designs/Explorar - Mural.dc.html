@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+body { margin: 0; background: #050508; font-family: 'Geist', sans-serif; overscroll-behavior: none; }
+a { color: #0A7FFF; text-decoration: none; }
+a:hover { color: #39FF14; }
+button { font-family: 'Geist', sans-serif; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes placeBlock {
+  0% { opacity: 0; transform: translate(var(--fx, 0px), var(--fy, -60px)) rotate(var(--fr, 5deg)) scale(1.1); }
+  55% { opacity: 1; }
+  78% { transform: translate(var(--ox, 0px), calc(var(--oy, 0px) + 3px)) rotate(calc(var(--br, 0deg) * 1.6)) scale(.99); }
+  100% { opacity: 1; transform: translate(var(--ox, 0px), var(--oy, 0px)) rotate(var(--br, 0deg)) scale(1); }
+}
+@keyframes gridPan { to { background-position: 0 -44px, -44px 0, 0 0; } }
+@keyframes baSweep { 0% { background-position: 100% 0; } 100% { background-position: 0% 0; } }
+@keyframes assembleFade { 0% { opacity: 0; } 15% { opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes marquee { to { transform: translateX(-50%); } }
+@keyframes glowBreathe { 0%, 100% { box-shadow: 0 4px 16px rgba(0,0,0,.25), 0 0 0px var(--g, transparent); } 50% { box-shadow: 0 4px 16px rgba(0,0,0,.25), 0 0 24px var(--g, transparent); } }
+@keyframes livePulse { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+@keyframes floatDust { 0% { transform: translateY(0); opacity: 0; } 20% { opacity: .18; } 80% { opacity: .12; } 100% { transform: translateY(-46vh); opacity: 0; } }
+@keyframes orbPulse { 0%, 100% { box-shadow: 0 0 40px var(--glow, rgba(10,127,255,.5)), 0 0 120px var(--glow, rgba(10,127,255,.25)); } 50% { box-shadow: 0 0 60px var(--glow, rgba(10,127,255,.7)), 0 0 160px var(--glow, rgba(10,127,255,.4)); } }
+@keyframes nodeIn { from { opacity: 0; transform: translate(-50%,-50%) scale(.5); } to { opacity: 1; transform: translate(-50%,-50%) scale(1); } }
+@keyframes dashFlow { to { stroke-dashoffset: -20; } }
+</style>
+</helmet>
+
+<div data-screen-label="Explorar — Mural" style="position: fixed; inset: 0; background: radial-gradient(120% 90% at 50% 0%, #0a0e18 0%, #050508 60%); overflow: hidden; color: #F7F7F7;">
+
+  <!-- ambient dust -->
+  <sc-for list="{{ dust }}" as="d" hint-placeholder-count="6">
+    <span style="{{ d.style }}"></span>
+  </sc-for>
+
+  <!-- ═══ HEADER ═══ -->
+  <div style="position: absolute; top: 0; left: 0; right: 0; z-index: 30; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 22px;">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <img src="assets/logo.png" alt="NotiLab" style="height: 26px; filter: drop-shadow(0 2px 8px rgba(0,0,0,.6));">
+      <div style="border-left: 1px solid rgba(255,255,255,.15); padding-left: 12px;">
+        <p style="margin: 0; font-size: 15px; font-weight: 800; letter-spacing: -0.02em;">Explorar</p>
+        <p style="margin: 0; font-size: 11px; color: rgba(255,255,255,.5); white-space: nowrap;">{{ headerSub }}</p>
+      </div>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <div style="text-align: right; line-height: 1.3;">
+        <p style="margin: 0; font-size: 11px; font-weight: 700; color: rgba(255,255,255,.75); white-space: nowrap;">Edição #142 · curada por IA às 05:00</p>
+        <p style="margin: 0; font-size: 11px; color: rgba(255,255,255,.45); white-space: nowrap;">Mood de hoje: <span style="color: #FF6B35; font-weight: 700;">Mundo em fúria</span> · amanhã: desconhecida</p>
+      </div>
+      <div style="position: relative;">
+        <button onClick="{{ toggleViewMenu }}" style="display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,.06); backdrop-filter: blur(24px); border: 1px solid rgba(255,255,255,.14); color: #fff; height: 38px; padding: 0 14px; border-radius: 12px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;" style-hover="border-color: rgba(10,127,255,.5);">
+          Vista de hoje: <span style="color: #39FF14;">{{ todaysView }}</span>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg>
+        </button>
+        <sc-if value="{{ viewMenuOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="position: absolute; top: 44px; right: 0; z-index: 60; width: 230px; background: rgba(13,15,20,.96); backdrop-filter: blur(28px); border: 1px solid rgba(255,255,255,.11); border-radius: 14px; padding: 6px; animation: fadeUp .25s cubic-bezier(.22,1,.36,1); box-shadow: 0 16px 56px rgba(0,0,0,.65);">
+            <sc-for list="{{ viewOptions }}" as="v" hint-placeholder-count="5">
+              <button onClick="{{ v.pick }}" style="{{ v.style }}">
+                <span>{{ v.label }}</span>
+                <span style="{{ v.tagStyle }}">{{ v.tag }}</span>
+              </button>
+            </sc-for>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ MURAL ═══ -->
+  <sc-if value="{{ muralVisible }}" hint-placeholder-val="{{ true }}">
+    <div style="position: absolute; top: 62px; left: 22px; right: 22px; z-index: 25; display: flex; align-items: baseline; justify-content: space-between; gap: 16px; pointer-events: none;">
+      <p style="margin: 0; font-size: clamp(12px, 1.15vw, 15px); color: rgba(255,255,255,.62); font-weight: 500; font-style: italic; animation: fadeUp .8s ease-out .9s both;">"{{ editorSentence }}"</p>
+      <p style="margin: 0; font-size: 11px; color: rgba(255,255,255,.4); font-weight: 600; white-space: nowrap; animation: fadeUp .8s ease-out 1.1s both;">12 843 notícias → 91 histórias → <span style="color: #39FF14;">1 edição</span></p>
+    </div>
+    <sc-if value="{{ assembling }}" hint-placeholder-val="{{ false }}">
+      <div style="position: absolute; top: 45%; left: 50%; transform: translate(-50%,-50%); z-index: 40; pointer-events: none; animation: assembleFade 1.4s ease-out both; text-align: center;">
+        <p style="margin: 0; font-size: 14px; font-weight: 700; color: rgba(255,255,255,.85); letter-spacing: .04em;">✦ A IA está a montar a edição #142…</p>
+      </div>
+    </sc-if>
+    <div style="position: absolute; top: 92px; left: 22px; right: 22px; bottom: 118px; display: grid; grid-template-columns: repeat(12, 1fr); grid-template-rows: 1.08fr 0.92fr 1.12fr 0.88fr 0.98fr 1.02fr; gap: 11px;">
+      <sc-for list="{{ blocks }}" as="b" hint-placeholder-count="8">
+        <button onClick="{{ b.pick }}" onMouseEnter="{{ b.enter }}" onMouseLeave="{{ b.leave }}" style="{{ b.style }}" style-hover="transform: scale(1.035); z-index: 6; filter: brightness(1.16);">
+          <sc-if value="{{ b.isScene }}" hint-placeholder-val="{{ false }}">
+            <span style="{{ b.peekStyle }}"></span>
+          </sc-if>
+          <span style="{{ b.kickerStyle }}">
+            <sc-if value="{{ b.isLive }}" hint-placeholder-val="{{ false }}">
+              <span style="display: inline-block; width: 7px; height: 7px; border-radius: 999px; background: #FF3B4A; box-shadow: 0 0 10px #FF3B4A; animation: livePulse 1.3s ease-in-out infinite; margin-right: 6px;"></span>
+            </sc-if>
+            {{ b.kicker }}
+          </span>
+          <span style="{{ b.titleStyle }}">{{ b.title }}</span>
+          <sc-if value="{{ b.hasSub }}" hint-placeholder-val="{{ false }}">
+            <span style="{{ b.subStyle }}">{{ b.sub }}</span>
+          </sc-if>
+          <sc-if value="{{ b.hasChips }}" hint-placeholder-val="{{ false }}">
+            <span style="display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px;">
+              <sc-for list="{{ b.chips }}" as="ch" hint-placeholder-count="2">
+                <span style="{{ ch.style }}">{{ ch.t }}</span>
+              </sc-for>
+            </span>
+          </sc-if>
+        </button>
+      </sc-for>
+    </div>
+
+    <!-- kinetic ticker -->
+    <div style="position: absolute; left: 0; right: 0; bottom: 70px; height: 38px; overflow: hidden; border-top: 1px solid rgba(255,255,255,.07); border-bottom: 1px solid rgba(255,255,255,.07); background: rgba(255,255,255,.02); display: flex; align-items: center;">
+      <div style="{{ tickerStyle }}">
+        <span style="white-space: nowrap; font-size: 13px; font-weight: 600; color: rgba(255,255,255,.55); letter-spacing: .02em;">{{ tickerText }}</span>
+        <span style="white-space: nowrap; font-size: 13px; font-weight: 600; color: rgba(255,255,255,.55); letter-spacing: .02em;">{{ tickerText }}</span>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ═══ UNIVERSO DO TEMA ═══ -->
+  <sc-if value="{{ universeOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position: absolute; inset: 0; z-index: 20; animation: fadeIn .5s ease-out;">
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" style="position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none;">
+        <sc-for list="{{ uniLinks }}" as="l" hint-placeholder-count="4">
+          <line x1="{{ l.x1 }}" y1="{{ l.y1 }}" x2="{{ l.x2 }}" y2="{{ l.y2 }}" stroke="{{ l.stroke }}" stroke-width="0.18" stroke-dasharray="1.2 1" style="animation: dashFlow 1.6s linear infinite;"></line>
+        </sc-for>
+      </svg>
+
+      <div style="{{ uniOrbStyle }}">
+        <span style="font-size: 12px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; opacity: .8;">Universo</span>
+        <span style="font-size: clamp(20px, 2.4vw, 30px); font-weight: 900; letter-spacing: -0.02em;">{{ uniName }}</span>
+        <span style="font-size: 12px; opacity: .75;">{{ uniCount }}</span>
+      </div>
+
+      <sc-for list="{{ uniNodes }}" as="n" hint-placeholder-count="5">
+        <button onClick="{{ n.pick }}" style="{{ n.style }}" style-hover="filter: brightness(1.3);">
+          <span style="{{ n.dotStyle }}"></span>
+          {{ n.label }}
+        </button>
+      </sc-for>
+
+      <button onClick="{{ backToMural }}" style="position: absolute; top: 76px; left: 22px; z-index: 30; display: inline-flex; align-items: center; gap: 7px; background: rgba(255,255,255,.07); backdrop-filter: blur(24px); border: 1px solid rgba(255,255,255,.14); color: #fff; height: 38px; padding: 0 14px; border-radius: 12px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; animation: fadeUp .4s ease-out;" style-hover="background: rgba(255,255,255,.14);">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg>
+        Voltar ao mural
+      </button>
+
+      <sc-if value="{{ uniCardOpen }}" hint-placeholder-val="{{ false }}">
+        <div style="position: absolute; left: 22px; bottom: 88px; z-index: 40; width: min(340px, calc(100vw - 44px)); background: rgba(13,15,20,.94); backdrop-filter: blur(30px); border: 1px solid rgba(255,255,255,.11); border-radius: 16px; padding: 18px; animation: fadeUp .3s cubic-bezier(.22,1,.36,1); box-shadow: 0 16px 56px rgba(0,0,0,.65);">
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px;">
+            <span style="{{ uniCardPillStyle }}">{{ uniCardTag }}</span>
+            <button onClick="{{ closeUniCard }}" aria-label="Fechar" style="background: none; border: none; color: rgba(255,255,255,.5); cursor: pointer; padding: 2px;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+            </button>
+          </div>
+          <p style="margin: 0 0 6px; font-size: 16px; line-height: 1.25; font-weight: 800; letter-spacing: -0.02em; color: #fff;">{{ uniCardTitle }}</p>
+          <p style="margin: 0 0 12px; font-size: 13px; line-height: 1.55; color: rgba(255,255,255,.7);">{{ uniCardText }}</p>
+          <a href="Agora — Bandeja.dc.html" style="display: inline-flex; align-items: center; gap: 6px; background: #0A7FFF; color: #fff; height: 36px; padding: 0 15px; border-radius: 10px; font-size: 13px; font-weight: 600; box-shadow: 0 0 12px rgba(10,127,255,.4);" style-hover="color: #fff; transform: translateY(-1px);">
+            Mergulhar no feed
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10"></path><path d="M7 17 17 7"></path></svg>
+          </a>
+        </div>
+      </sc-if>
+    </div>
+  </sc-if>
+
+  <!-- ═══ BOTTOM NAV ═══ -->
+  <div style="position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 30; display: flex; align-items: center; gap: 4px; background: rgba(10,10,14,.72); backdrop-filter: blur(28px) saturate(160%); border: 1px solid rgba(255,255,255,.09); border-radius: 999px; padding: 6px;">
+    <sc-for list="{{ navItems }}" as="nav" hint-placeholder-count="5">
+      <a href="{{ nav.href }}" style="{{ nav.style }}">
+        {{ nav.iconEl }}
+        <span>{{ nav.label }}</span>
+      </a>
+    </sc-for>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;$preview&quot;: {},
+  &quot;inclinacao&quot;: { &quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Colagem&quot; },
+  &quot;velocidadeTicker&quot;: { &quot;editor&quot;: &quot;range&quot;, &quot;min&quot;: 15, &quot;max&quot;: 90, &quot;step&quot;: 5, &quot;default&quot;: 42, &quot;unit&quot;: &quot;s&quot;, &quot;tsType&quot;: &quot;number&quot;, &quot;section&quot;: &quot;Colagem&quot; }
+}">
+class Component extends DCLogic {
+  state = { view: 'mural', leaving: false, node: null, viewMenuOpen: false, btc: 150214, aff: 30412, assembling: true, peek: false, baHover: false, zoomTo: null };
+
+  componentDidMount() {
+    this._onResize = () => this.forceUpdate();
+    window.addEventListener('resize', this._onResize);
+    this._asm = setTimeout(() => this.setState({ assembling: false }), 1500);
+    this._live = setInterval(() => {
+      this.setState(p => ({
+        btc: Math.max(149000, Math.round(p.btc + (Math.random() - 0.44) * 120)),
+        aff: p.aff + (Math.random() < 0.35 ? Math.floor(Math.random() * 14) : 0),
+      }));
+    }, 2400);
+  }
+  componentWillUnmount() { clearInterval(this._live); clearTimeout(this._t); clearTimeout(this._asm); clearTimeout(this._peekT); clearTimeout(this._zoomT); window.removeEventListener('resize', this._onResize); }
+
+  zoomToFeed(i) {
+    this.setState({ leaving: true, zoomTo: i, viewMenuOpen: false });
+    clearTimeout(this._zoomT);
+    this._zoomT = setTimeout(() => { window.location.href = 'Agora — Bandeja.dc.html'; }, 680);
+  }
+
+  themes() {
+    return {
+      bola: {
+        name: 'A Bola', color: '#39FF14', count: '14 histórias hoje',
+        nodes: [
+          { id: 'benfica', label: 'Benfica campeão', x: 26, y: 30, story: { tag: 'Há 4h · Lisboa', title: 'Benfica conquista a Liga num último dia dramático', text: 'Título decidido aos 90+4\'. Tem cena 3D do momento do golo.' } },
+          { id: 'mercado', label: 'Mercado de verão', x: 24, y: 62, story: { tag: 'A desenvolver', title: 'Campeão muda as contas das transferências', text: 'O acesso directo à Champions redefine os alvos dos três grandes.' } },
+          { id: 'champions', label: 'Champions 25/26', x: 46, y: 78, story: { tag: 'Análise', title: 'Sorteio e caminho do campeão na Europa', text: 'O que muda no coeficiente português.' } },
+          { id: 'nazare', label: 'Nazaré · onda 30 m', x: 74, y: 28, story: { tag: 'Há 9h · Nazaré', title: 'Recorde mundial de onda gigante batido outra vez', text: 'Novo máximo no spot português.' } },
+          { id: 'mambas', label: 'Os Mambas', x: 78, y: 62, story: { tag: 'Qualificação', title: 'Moçambique prepara dupla jornada decisiva', text: 'Convocatória sai esta semana.' } },
+        ],
+        links: [['c', 'benfica'], ['c', 'nazare'], ['c', 'mambas'], ['benfica', 'mercado'], ['mercado', 'champions']],
+      },
+      artistas: {
+        name: 'Artistas & Fofoca', color: '#7c3aed', count: '9 histórias hoje',
+        nodes: [
+          { id: 'palma', label: 'Palma de Ouro lusófona', x: 26, y: 30, story: { tag: 'Há 6h · Cannes', title: 'Filme lusófono vence a Palma de Ouro', text: '12 minutos de ovação. O cinema em português no topo do mundo.' } },
+          { id: 'streaming', label: 'Streaming €2B', x: 30, y: 66, story: { tag: 'Há 1 dia', title: 'Plataformas investem €2 mil milhões em português', text: '30+ produções aprovadas.' } },
+          { id: 'rodagens', label: 'Rodagens em Moçambique', x: 56, y: 80, story: { tag: 'Exclusivo', title: 'Duas séries internacionais escolhem Maputo e Ilha de Moçambique', text: 'Casting local abre no próximo mês.' } },
+          { id: 'doramas', label: 'Doramas & Netflix', x: 74, y: 30, story: { tag: 'Tendência', title: 'Doramas dominam o top 10 lusófono', text: 'O fenómeno que os estúdios querem replicar.' } },
+        ],
+        links: [['c', 'palma'], ['c', 'doramas'], ['palma', 'streaming'], ['streaming', 'rodagens']],
+      },
+      cripto: {
+        name: 'Cripto', color: '#FFD23F', count: '6 histórias hoje',
+        nodes: [
+          { id: 'btc', label: 'Bitcoin $150K', x: 25, y: 30, story: { tag: 'Há 1h · Mercados', title: 'Bitcoin ultrapassa os $150.000', text: 'Novo máximo histórico com fluxos recordes.' } },
+          { id: 'etfs', label: 'ETFs', x: 30, y: 64, story: { tag: 'Contexto', title: 'ETFs à vista absorvem $4B numa semana', text: 'A porta de entrada institucional.' } },
+          { id: 'blackrock', label: 'BlackRock', x: 52, y: 80, story: { tag: 'Entidade', title: 'O maior gestor de activos do mundo lidera os fluxos', text: 'IBIT torna-se o ETF com crescimento mais rápido de sempre.' } },
+          { id: 'sec', label: 'SEC', x: 74, y: 66, story: { tag: 'Regulador', title: 'SEC prepara novas regras de custódia', text: 'Decisão esperada este trimestre.' } },
+          { id: 'eua', label: 'EUA', x: 78, y: 30, story: { tag: 'Geopolítica', title: 'Eleições e cripto: o que muda na política americana', text: 'O tema entrou na campanha.' } },
+        ],
+        links: [['c', 'btc'], ['btc', 'etfs'], ['etfs', 'blackrock'], ['blackrock', 'sec'], ['sec', 'eua']],
+      },
+      mocambique: {
+        name: 'Moçambique', color: '#E60000', count: '11 histórias hoje',
+        nodes: [
+          { id: 'chido', label: 'Ciclone Chido · AO VIVO', x: 25, y: 30, story: { tag: 'AO VIVO · Beira', title: 'Ciclone Chido deixa rastos de destruição', text: '30K+ afectados em 8 distritos. Tem reconstrução 3D da Beira.' } },
+          { id: 'ingd', label: 'Resposta INGD', x: 26, y: 64, story: { tag: 'Fonte oficial', title: 'INGD activa plano de contingência nacional', text: 'Equipas e helicópteros mobilizados para Sofala.' } },
+          { id: 'ponte', label: 'Ponte de Maputo', x: 54, y: 78, story: { tag: 'Há 18 min · Maputo', title: 'Trânsito interrompido na Ponte de Maputo', text: 'Inspecção de emergência a cabo de suspensão.' } },
+          { id: 'solar', label: 'Solar +30%', x: 76, y: 60, story: { tag: 'Há 6h · África', title: 'Energia solar cresce 30% em África', text: 'Moçambique no top 5 do crescimento.' } },
+          { id: 'beira', label: 'Beira', x: 76, y: 28, story: { tag: 'Local', title: 'Todas as histórias da Beira', text: 'Segue a cidade para receberes actualizações.' } },
+        ],
+        links: [['c', 'chido'], ['chido', 'ingd'], ['chido', 'beira'], ['c', 'ponte'], ['c', 'solar']],
+      },
+      tech: {
+        name: 'Tecnologia', color: '#00D4FF', count: '8 histórias hoje',
+        nodes: [
+          { id: 'gemini', label: 'Gemini 3', x: 26, y: 30, story: { tag: 'Há 3h', title: 'Google lança Gemini 3', text: 'Raciocínio multimodal em 40+ línguas.' } },
+          { id: 'leiia', label: 'Lei da IA (UE)', x: 30, y: 66, story: { tag: 'Há 8h · Estrasburgo', title: 'Parlamento Europeu aprova Lei de Segurança da IA', text: 'O padrão global que vem aí.' } },
+          { id: 'fusao', label: 'Fusão Q>1', x: 60, y: 78, story: { tag: 'Há 12h · ITER', title: 'Fusão nuclear atinge ganho líquido', text: 'Mais energia produzida do que consumida.' } },
+          { id: 'africa', label: 'IA em África', x: 74, y: 32, story: { tag: 'Dossier', title: 'O que a corrida da IA significa para África', text: 'Dados, energia e talento local.' } },
+        ],
+        links: [['c', 'gemini'], ['gemini', 'leiia'], ['c', 'fusao'], ['gemini', 'africa']],
+      },
+      politica: {
+        name: 'Política', color: '#007BFF', count: '7 histórias hoje',
+        nodes: [
+          { id: 'brics', label: 'BRICS+6', x: 28, y: 32, story: { tag: 'Geopolítica', title: 'BRICS alarga-se a seis novos membros', text: 'O bloco redesenha o poder económico global.' } },
+          { id: 'ue', label: 'Eleições UE', x: 50, y: 76, story: { tag: 'Europa', title: 'Clima, IA e migração dominam a campanha', text: 'O que está em jogo para a lusofonia.' } },
+          { id: 'sadc', label: 'Cimeira SADC', x: 74, y: 34, story: { tag: 'Regional', title: 'SADC discute resposta conjunta a ciclones', text: 'Maputo recebe a cimeira extraordinária.' } },
+        ],
+        links: [['c', 'brics'], ['c', 'ue'], ['c', 'sadc']],
+      },
+    };
+  }
+
+  fmt(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+
+  blocksDef() {
+    const st = this.state;
+    return [
+      { theme: 'bola', col: '1 / span 5', row: '1 / span 4', kind: 'hero', kicker: '⚽ A BOLA · EM ALTA', title: 'BENFICA CAMPEÃO', sub: 'Título decidido aos 90+4\' — o momento tem cena 3D', image: 'assets/benfica.png', rot: -0.7, off: [0, 3],
+        chips: [{ t: '2–1 · 38ª jornada' }, { t: '🌊 Nazaré 30 m também em alta' }] },
+      { theme: 'mocambique', col: '6 / span 4', row: '1 / span 2', kind: 'live', live: true, kicker: 'AO VIVO · BEIRA', title: this.fmt(st.aff) + ' afectados', sub: 'Ciclone Chido · 5 fontes · actualizado agora', rot: 0.8, off: [0, -5],
+        chips: [{ t: '12 mortos' }, { t: '8 distritos' }] },
+      { theme: 'cripto', col: '10 / span 3', row: '1 / span 2', kind: 'stat', kicker: 'CRIPTO · ATH', title: '$' + this.fmt(st.btc), sub: '', rot: -1.3, off: [3, 2],
+        chips: [{ t: '▲ +' + (((st.btc - 146800) / 146800) * 100).toFixed(1).replace('.', ',') + '% · últimos 20 min', hot: true }, { t: 'BlackRock ETF ↗' }] },
+      { theme: 'artistas', col: '6 / span 3', row: '3 / span 2', kind: 'photo', kicker: '🎬 ARTISTAS & FOFOCA', title: 'Palma de Ouro fala português', sub: '12 min de ovação em Cannes', image: 'assets/cinema.png', rot: 0.6, off: [-4, 4] },
+      { theme: 'mocambique', col: '9 / span 2', row: '3 / span 2', kind: 'scene', kicker: '3D · BEIRA', title: 'ENTRAR NA CENA', sub: 'Reconstrução aérea do impacto', rot: -0.9, off: [2, -3] },
+      { theme: 'tech', col: '11 / span 2', row: '3 / span 2', kind: 'plain', kicker: 'TECH', title: 'Gemini 3 chegou', sub: 'E a UE aprovou a Lei da IA', rot: 1.1, off: [0, 5] },
+      { theme: 'politica', col: '1 / span 2', row: '5 / span 2', kind: 'plain', kicker: 'POLÍTICA', title: 'BRICS +6', sub: 'O bloco que redesenha o mundo', rot: -0.8, off: [0, -4] },
+      { theme: 'tech', col: '3 / span 2', row: '5 / span 2', kind: 'stat', kicker: 'CIÊNCIA', title: 'Q>1', sub: 'A fusão passou a dar lucro energético', rot: 0.7, off: [4, 2] },
+      { theme: 'mocambique', col: '5 / span 3', row: '5 / span 2', kind: 'beforeafter', kicker: 'ANTES ⟶ DEPOIS', title: 'A costa da Beira', sub: 'Arrasta para comparar o impacto do Chido', rot: -0.5, off: [-3, 3] },
+      { theme: 'artistas', col: '8 / span 3', row: '5 / span 2', kind: 'plain', kicker: 'STREAMING', title: '€2 mil milhões', sub: 'A maior aposta de sempre no português', rot: 0.9, off: [2, -3] },
+      { theme: 'mocambique', col: '11 / span 2', row: '5 / span 2', kind: 'plain', kicker: 'MAPUTO · HÁ 18 MIN', title: 'Ponte encerrada', sub: 'Inspecção de emergência', rot: -1.1, off: [0, 4] },
+    ];
+  }
+
+  goUniverse(themeId) {
+    this.setState({ leaving: true, viewMenuOpen: false });
+    clearTimeout(this._t);
+    this._t = setTimeout(() => this.setState({ view: themeId, leaving: false, node: null }), 520);
+  }
+
+  renderVals() {
+    const st = this.state;
+    const self = this;
+    const themes = this.themes();
+    const inclinado = this.props.inclinacao ?? true;
+    const tickerDur = this.props.velocidadeTicker ?? 42;
+
+    const dust = [
+      { l: 12, b: 10, s: 3, d: 11 }, { l: 28, b: 30, s: 2, d: 14 }, { l: 46, b: 16, s: 3, d: 9 },
+      { l: 62, b: 34, s: 2, d: 13 }, { l: 78, b: 12, s: 3, d: 10 }, { l: 90, b: 26, s: 2, d: 15 },
+    ].map((p, i) => ({
+      style: { position: 'absolute', left: p.l + '%', bottom: p.b + '%', width: p.s, height: p.s, borderRadius: 999, background: i % 2 ? '#39FF14' : '#0A7FFF', opacity: 0, animation: 'floatDust ' + p.d + 's linear infinite ' + (i * 1.7) + 's', pointerEvents: 'none', zIndex: 2 },
+    }));
+
+    // small viewports: kicker + title are the block's identity and must always fit;
+    // chips and subs are the first to go on 2-row blocks
+    const vh = window.innerHeight || 800;
+    const compact = vh < 820, tiny = vh < 640;
+
+    const blocks = this.blocksDef().map((b, i) => {
+      const th = themes[b.theme];
+      const leaving = st.leaving;
+      const dx = ((i % 3) - 1) * 60, dy = (i % 2 === 0 ? -1 : 1) * 50;
+      const isHero = b.kind === 'hero';
+      const isStat = b.kind === 'stat' || b.kind === 'live';
+      let bg;
+      if (b.image) bg = 'linear-gradient(to top, rgba(5,5,8,.85) 10%, rgba(5,5,8,.25) 60%), url("' + b.image + '") center / cover';
+      else if (b.kind === 'live') bg = 'radial-gradient(120% 100% at 80% 0%, rgba(255,59,74,.28), transparent 60%), linear-gradient(160deg, #180a0d, #0B0B0F)';
+      else if (b.kind === 'scene') bg = 'repeating-linear-gradient(0deg, rgba(57,255,20,.07) 0 1px, transparent 1px 22px), repeating-linear-gradient(90deg, rgba(57,255,20,.07) 0 1px, transparent 1px 22px), radial-gradient(100% 100% at 50% 100%, rgba(57,255,20,.14), transparent 65%), #0a0f0a';
+      else if (b.kind === 'beforeafter') bg = 'linear-gradient(103deg, #1a2b1e 0%, #1a2b1e 48.5%, rgba(255,255,255,.25) 49.5%, rgba(255,255,255,.25) 50.5%, #0e2036 51.5%, #0e2036 100%)';
+      else bg = 'radial-gradient(120% 100% at 80% 0%, ' + th.color + '2b, transparent 60%), linear-gradient(160deg, #12121a, #0B0B0F)';
+      const baseT = 'translate(' + b.off[0] + 'px,' + b.off[1] + 'px)' + (inclinado ? ' rotate(' + b.rot + 'deg)' : '');
+      const glow = b.kind === 'live' ? 'rgba(255,59,74,.28)' : b.kind === 'scene' ? 'rgba(57,255,20,.22)' : th.color + '24';
+      const isZoomTarget = st.zoomTo === i;
+      const isBA = b.kind === 'beforeafter';
+      if (isBA && st.baHover) {
+        bg = 'linear-gradient(103deg, #1a2b1e 0%, #1a2b1e 48.5%, rgba(255,255,255,.3) 49.5%, rgba(255,255,255,.3) 50.5%, #0e2036 51.5%, #0e2036 100%)';
+      }
+      return {
+        pick: (b.kind === 'scene' || isHero) ? () => self.zoomToFeed(i) : () => self.goUniverse(b.theme),
+        isScene: b.kind === 'scene',
+        enter: b.kind === 'scene'
+          ? () => { self.setState({ peek: true }); clearTimeout(self._peekT); self._peekT = setTimeout(() => self.setState({ peek: false }), 3000); }
+          : isBA ? () => self.setState({ baHover: true }) : undefined,
+        leave: b.kind === 'scene'
+          ? () => { clearTimeout(self._peekT); self.setState({ peek: false }); }
+          : isBA ? () => self.setState({ baHover: false }) : undefined,
+        peekStyle: {
+          position: 'absolute', inset: 0, pointerEvents: 'none',
+          background:
+            'radial-gradient(40% 30% at 35% 40%, rgba(57,255,20,.35), transparent 70%), ' +
+            'radial-gradient(30% 24% at 68% 60%, rgba(10,127,255,.3), transparent 70%), ' +
+            'repeating-linear-gradient(0deg, rgba(57,255,20,.16) 0 1px, transparent 1px 22px), ' +
+            'repeating-linear-gradient(90deg, rgba(57,255,20,.16) 0 1px, transparent 1px 22px)',
+          backgroundSize: 'auto, auto, auto 44px, 44px auto',
+          transform: 'perspective(400px) rotateX(38deg) scale(1.35)',
+          transformOrigin: '50% 100%',
+          opacity: st.peek ? 1 : 0,
+          transition: 'opacity .45s ease',
+          animation: st.peek ? 'gridPan 1.4s linear infinite' : 'none',
+        },
+        kicker: b.kicker, isLive: !!b.live,
+        title: b.title,
+        sub: b.sub, hasSub: !!b.sub && !tiny && !(isHero && compact),
+        hasChips: !!(b.chips && b.chips.length) && !compact,
+        chips: (b.chips || []).map(ch => ({ t: ch.t, style: { fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 999, whiteSpace: 'nowrap', background: ch.hot ? 'rgba(57,255,20,.14)' : 'rgba(255,255,255,.07)', border: '1px solid ' + (ch.hot ? 'rgba(57,255,20,.45)' : 'rgba(255,255,255,.12)'), color: ch.hot ? '#39FF14' : 'rgba(255,255,255,.75)' } })),
+        style: {
+          gridColumn: b.col, gridRow: b.row, position: 'relative', overflow: 'hidden',
+          display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'flex-start', gap: compact ? 3 : 6,
+          padding: isHero ? 26 : (compact ? 12 : 17), borderRadius: 11,
+          border: '1px solid ' + (b.kind === 'live' ? 'rgba(255,59,74,.35)' : b.kind === 'scene' ? 'rgba(57,255,20,.35)' : th.color + '2b'),
+          background: bg, cursor: 'pointer', textAlign: 'left', color: '#fff',
+          backgroundSize: isBA ? '220% 100%' : undefined,
+          backgroundPosition: isBA && !st.baHover ? '50% 0' : undefined,
+          transform: isZoomTarget
+            ? 'translate(0px, 0px) rotate(0deg) scale(1.6)'
+            : leaving ? 'translate(' + dx + 'px,' + dy + 'px) rotate(' + (b.rot * 6) + 'deg) scale(.8)' : baseT,
+          opacity: leaving && !isZoomTarget ? 0 : 1,
+          zIndex: isZoomTarget ? 30 : undefined,
+          transition: isZoomTarget
+            ? 'transform .68s cubic-bezier(.22,1,.36,1), filter .68s'
+            : 'transform .5s cubic-bezier(.5,0,.75,0), opacity .5s, filter .25s',
+          transitionDelay: leaving && !isZoomTarget ? (i * 30) + 'ms' : '0ms',
+          '--g': glow,
+          '--fx': (((i * 97) % 160) - 80) + 'px',
+          '--fy': (-(90 + (i * 53) % 120)) + 'px',
+          '--fr': ((((i * 37) % 15) - 7)) + 'deg',
+          '--ox': b.off[0] + 'px',
+          '--oy': b.off[1] + 'px',
+          '--br': (inclinado ? b.rot : 0) + 'deg',
+          animation: (leaving || st.zoomTo !== null)
+            ? 'none'
+            : 'placeBlock .8s cubic-bezier(.3,1.2,.35,1) both ' + (200 + i * 75) + 'ms, glowBreathe ' + (5.5 + i * 0.7) + 's ease-in-out infinite ' + (i * 0.9) + 's'
+              + (isBA && st.baHover ? ', baSweep 1.8s ease-in-out infinite alternate' : ''),
+        },
+        kickerStyle: { display: 'inline-flex', alignItems: 'center', flexShrink: 0, fontSize: compact ? 9.5 : 11, fontWeight: 800, letterSpacing: '.1em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%', color: b.kind === 'live' ? '#FF3B4A' : th.color, textShadow: '0 0 12px ' + (b.kind === 'live' ? 'rgba(255,59,74,.4)' : th.color + '66') },
+        titleStyle: {
+          fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 1.02, textWrap: 'balance', flexShrink: 0,
+          fontSize: isHero ? 'clamp(34px, 4.4vw, 64px)' : isStat ? (compact ? 'clamp(18px, 2.2vw, 30px)' : 'clamp(24px, 2.8vw, 42px)') : b.kind === 'scene' ? (compact ? 'clamp(14px, 1.5vw, 20px)' : 'clamp(18px, 1.8vw, 26px)') : (compact ? 'clamp(13px, 1.3vw, 18px)' : 'clamp(16px, 1.5vw, 22px)'),
+          textShadow: '0 2px 20px rgba(0,0,0,.55)',
+          fontVariantNumeric: 'tabular-nums',
+        },
+        subStyle: { fontSize: isHero ? 14 : (compact ? 11 : 12.5), color: 'rgba(255,255,255,.72)', lineHeight: 1.4, textWrap: 'pretty' },
+        kickerCompactFix: null,
+      };
+    });
+
+    const tickerText = '⚽ Benfica campeão aos 90+4\'  ·  🔴 Chido: ' + this.fmt(st.aff) + ' afectados — INGD mobiliza helicópteros  ·  🎬 Palma de Ouro lusófona  ·  ₿ $' + this.fmt(st.btc) + '  ·  🤖 Gemini 3 lançado  ·  🌊 Nazaré 30 m  ·  🏛️ BRICS +6  ·  ⚡ Fusão Q>1  ·  📺 €2B em conteúdo português  ·  ';
+
+    const viewDefs = [
+      { id: 'mural', label: 'Mural editorial', tag: 'hoje', enabled: true },
+      { id: 'constelacao', label: 'Constelação', tag: 'espreitar', enabled: true },
+      { id: 'globo', label: 'Globo', tag: 'espreitar', enabled: true },
+      { id: 'timeline', label: 'Linha do tempo', tag: 'em breve', enabled: false },
+      { id: 'mosaico', label: 'Mosaico', tag: 'em breve', enabled: false },
+      { id: 'heat', label: 'Heatmap', tag: 'em breve', enabled: false },
+      { id: 'arquivo', label: 'Arquivo · Edições #1–141', tag: 'em breve', enabled: false },
+    ];
+    const viewOptions = viewDefs.map(v => ({
+      label: v.label, tag: v.tag,
+      pick: () => {
+        if (v.id === 'mural') self.setState({ view: 'mural', viewMenuOpen: false, node: null });
+        else if (v.id === 'constelacao') self.goUniverse('mocambique');
+        else if (v.id === 'globo') window.location.href = 'Explorar — Mapa.dc.html';
+        else self.setState({ viewMenuOpen: false });
+      },
+      style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, width: '100%', background: v.id === 'mural' && st.view === 'mural' ? 'rgba(10,127,255,.14)' : 'transparent', border: 'none', color: v.enabled ? '#fff' : 'rgba(255,255,255,.35)', padding: '10px 12px', borderRadius: 9, fontSize: 13, fontWeight: 600, cursor: v.enabled ? 'pointer' : 'default', textAlign: 'left' },
+      tagStyle: { fontSize: 10, fontWeight: 700, letterSpacing: '.06em', textTransform: 'uppercase', color: v.tag === 'hoje' ? '#39FF14' : 'rgba(255,255,255,.35)', whiteSpace: 'nowrap' },
+    }));
+
+    // ── universe ──
+    const uni = st.view !== 'mural' ? themes[st.view] : null;
+    const C = { x: 50, y: 47 };
+    const uniNodes = uni ? uni.nodes.map((n, i) => {
+      const active = st.node === n.id;
+      return {
+        label: n.label,
+        pick: () => self.setState({ node: active ? null : n.id }),
+        style: {
+          position: 'absolute', left: n.x + '%', top: n.y + '%', transform: 'translate(-50%,-50%)',
+          display: 'inline-flex', alignItems: 'center', gap: 8, padding: '11px 17px', borderRadius: 999,
+          fontSize: 'clamp(12px, 1.15vw, 15px)', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', zIndex: 25,
+          color: '#fff', background: active ? uni.color + '30' : 'rgba(12,14,20,.85)',
+          border: '1.5px solid ' + (active ? uni.color : uni.color + '55'),
+          backdropFilter: 'blur(16px)',
+          boxShadow: active ? '0 0 24px ' + uni.color + '66' : '0 6px 24px rgba(0,0,0,.5)',
+          animation: 'nodeIn .5s cubic-bezier(.22,1,.36,1) both ' + (150 + i * 90) + 'ms',
+          transition: 'all .25s',
+        },
+        dotStyle: { width: 8, height: 8, borderRadius: 999, background: uni.color, boxShadow: '0 0 10px ' + uni.color, flexShrink: 0 },
+      };
+    }) : [];
+
+    const uniLinks = uni ? uni.links.map(pair => {
+      const pt = (id) => id === 'c' ? C : uni.nodes.find(n => n.id === id);
+      const a = pt(pair[0]), b = pt(pair[1]);
+      const active = st.node === pair[0] || st.node === pair[1];
+      return { x1: a.x, y1: a.y, x2: b.x, y2: b.y, stroke: active ? uni.color : 'rgba(255,255,255,.18)' };
+    }) : [];
+
+    const selNode = uni && st.node ? uni.nodes.find(n => n.id === st.node) : null;
+
+    const icon = (paths, size, color) => React.createElement('svg', { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: 2, strokeLinecap: 'round', strokeLinejoin: 'round', dangerouslySetInnerHTML: { __html: paths } });
+    const navDefs = [
+      { label: 'Agora', href: 'Agora — Bandeja.dc.html', active: false, p: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>' },
+      { label: 'Perto', href: '#', active: false, p: '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>' },
+      { label: 'Explorar', href: '#', active: true, p: '<circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>' },
+      { label: 'Seguir', href: '#', active: false, p: '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>' },
+      { label: 'Perfil', href: '#', active: false, p: '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>' },
+    ];
+    const navItems = navDefs.map(n => ({
+      label: n.label, href: n.href,
+      iconEl: icon(n.p, 16, n.active ? '#fff' : 'rgba(255,255,255,.55)'),
+      style: { display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 16px', borderRadius: 999, fontSize: 13, fontWeight: 600, cursor: 'pointer', color: n.active ? '#fff' : 'rgba(255,255,255,.55)', background: n.active ? 'linear-gradient(135deg, rgba(10,127,255,.9), rgba(10,127,255,.6))' : 'transparent', boxShadow: n.active ? '0 0 16px rgba(10,127,255,.35)' : 'none' },
+    }));
+
+    return {
+      headerSub: uni ? 'Universo · ' + uni.name : 'O mural de hoje · 14 Jul 2026',
+      dust,
+      assembling: st.assembling,
+      editorSentence: 'Hoje o mundo acordou dividido entre um título de futebol, um máximo histórico da cripto e um ciclone que não dá tréguas.',
+      muralVisible: st.view === 'mural',
+      blocks,
+      tickerText,
+      tickerStyle: { display: 'flex', gap: 48, animation: 'marquee ' + tickerDur + 's linear infinite', willChange: 'transform' },
+      toggleViewMenu: () => self.setState(p => ({ viewMenuOpen: !p.viewMenuOpen })),
+      viewMenuOpen: st.viewMenuOpen,
+      viewOptions,
+      todaysView: st.view === 'mural' ? 'Mural' : 'Constelação',
+      universeOpen: st.view !== 'mural',
+      uniName: uni ? uni.name : '',
+      uniCount: uni ? uni.count : '',
+      uniOrbStyle: uni ? {
+        position: 'absolute', left: C.x + '%', top: C.y + '%', transform: 'translate(-50%,-50%)', zIndex: 24,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, textAlign: 'center',
+        width: 'clamp(160px, 18vw, 230px)', height: 'clamp(160px, 18vw, 230px)', borderRadius: 999, color: '#fff', padding: 16,
+        background: 'radial-gradient(circle at 35% 30%, ' + uni.color + '66, ' + uni.color + '1f 60%, rgba(10,10,14,.9))',
+        border: '1.5px solid ' + uni.color + '88',
+        '--glow': uni.color + '59',
+        animation: 'orbPulse 3.2s ease-in-out infinite, nodeIn .6s cubic-bezier(.22,1,.36,1) both',
+      } : {},
+      uniNodes, uniLinks,
+      backToMural: () => self.setState({ view: 'mural', node: null }),
+      uniCardOpen: !!selNode,
+      closeUniCard: () => self.setState({ node: null }),
+      uniCardTag: selNode ? selNode.story.tag : '',
+      uniCardTitle: selNode ? selNode.story.title : '',
+      uniCardText: selNode ? selNode.story.text : '',
+      uniCardPillStyle: uni ? { background: uni.color + '26', border: '1px solid ' + uni.color + '66', color: '#fff', fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 999, whiteSpace: 'nowrap' } : {},
+      navItems,
+    };
+  }
+}
+</script>
+</body>
+</html>

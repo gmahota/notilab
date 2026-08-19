@@ -1,0 +1,3 @@
+- [Project baseline: pnpm typecheck](project_baseline_typecheck.md) — pre-existing unrelated failures on main as of 2026-07-15; lint is clean
+- [/now feed personalization foundation](now_feed_personalization.md) — pace/bandeja-store API + story-feed/card/nav/context-panel redesign, phases 1-2 & 4 of 5
+- [No state-management library policy](no_state_lib_policy.md) — use useSyncExternalStore singletons, not zustand/jotai/redux

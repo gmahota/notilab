@@ -339,4 +339,13 @@
   .animate-fade-up {
     animation: fade-up 0.45s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   }
+
+  /* Live pulse (AO VIVO pill dot, /now immersive feed) */
+  @keyframes live-pulse {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.3; }
+  }
+  .animate-live-pulse {
+    animation: live-pulse 1.4s ease-in-out infinite;
+  }
 }

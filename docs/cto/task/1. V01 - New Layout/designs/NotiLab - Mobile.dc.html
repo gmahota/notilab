@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+body { margin: 0; background: #17171c; font-family: 'Geist', sans-serif; }
+a { color: #0A7FFF; text-decoration: none; }
+a:hover { color: #39FF14; }
+@keyframes livePulse { 0%, 100% { opacity: 1; } 50% { opacity: .3; } }
+</style>
+</helmet>
+
+<section style="padding: 48px; display: flex; flex-wrap: wrap; gap: 44px; align-items: flex-start;">
+
+  <!-- ══ 1a · Feed Agora ══ -->
+  <div id="1a" style="display: flex; flex-direction: column; gap: 12px;">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <a href="#1a" style="background: #0A7FFF; color: #fff; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px;">1a</a>
+      <span style="color: #9a9aa4; font-size: 13px; font-weight: 500;">Agora — feed imersivo</span>
+    </div>
+    <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="390px,844px">
+      <div data-screen-label="Mobile — Agora" style="position: relative; width: 100%; height: 100%; background: #050508; overflow: hidden; font-family: 'Geist', sans-serif; color: #F7F7F7;">
+        <div style="position: absolute; inset: 0; background: radial-gradient(130% 90% at 75% 15%, rgba(230,0,0,.18), transparent 60%), radial-gradient(90% 70% at 15% 90%, rgba(230,0,0,.12), transparent 55%), linear-gradient(165deg, #0B0B0F 0%, #101018 55%, #0B0B0F 100%);"></div>
+        <div style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,.75) 0%, rgba(0,0,0,.35) 45%, rgba(0,0,0,.05) 100%);"></div>
+
+        <!-- top bar -->
+        <div style="position: absolute; top: 62px; left: 16px; right: 16px; display: flex; align-items: center; justify-content: space-between;">
+          <img src="assets/logo.png" alt="NotiLab" style="height: 22px; filter: drop-shadow(0 2px 8px rgba(0,0,0,.6));">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <span style="display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,.06); backdrop-filter: blur(24px); border: 1px solid rgba(230,0,0,.5); color: #fff; height: 32px; padding: 0 11px; border-radius: 10px; font-size: 12px; font-weight: 600; white-space: nowrap;">
+              <span style="width: 7px; height: 7px; border-radius: 999px; background: #E60000; box-shadow: 0 0 8px #E60000;"></span>
+              Moçambique
+            </span>
+            <span style="display: inline-flex; align-items: center; gap: 6px; background: rgba(255,255,255,.06); backdrop-filter: blur(24px); border: 1px solid rgba(255,255,255,.12); color: #fff; height: 32px; padding: 0 11px; border-radius: 10px; font-size: 12px; font-weight: 600;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"></rect><rect width="7" height="7" x="14" y="3" rx="1"></rect><rect width="7" height="7" x="14" y="14" rx="1"></rect><rect width="7" height="7" x="3" y="14" rx="1"></rect></svg>
+              Bandeja
+            </span>
+          </div>
+        </div>
+
+        <!-- pills -->
+        <div style="position: absolute; top: 110px; left: 16px; display: flex; align-items: center; gap: 8px;">
+          <span style="background: rgba(230,0,0,.85); color: #fff; font-size: 11px; font-weight: 700; padding: 4px 11px; border-radius: 999px;">Moçambique</span>
+          <span style="display: inline-flex; align-items: center; gap: 6px; background: #E11D2E; color: #fff; font-size: 10px; font-weight: 800; letter-spacing: .08em; padding: 5px 11px; border-radius: 999px;">
+            <span style="width: 6px; height: 6px; border-radius: 999px; background: #fff; animation: livePulse 1.4s ease-in-out infinite;"></span>
+            AO VIVO
+          </span>
+        </div>
+
+        <!-- bottom content -->
+        <div style="position: absolute; left: 0; right: 60px; bottom: 0; padding: 0 0 118px 16px;">
+          <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: rgba(255,255,255,.6); margin-bottom: 8px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+            <span style="color: rgba(255,255,255,.85); font-weight: 500;">Beira, Sofala</span>
+            <span>·</span>
+            <span>Há 2h · DW África</span>
+          </div>
+          <h2 style="margin: 0 0 10px; color: #fff; font-size: 27px; line-height: 1.1; font-weight: 800; letter-spacing: -0.03em; text-wrap: balance;">Ciclone Chido deixa rastos de destruição na região central</h2>
+          <p style="margin: 0 0 14px; color: rgba(255,255,255,.78); font-size: 14px; line-height: 1.55;">Ventos acima de 200 km/h e cheias severas. Equipas de socorro continuam no terreno.</p>
+          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <span style="display: inline-flex; align-items: center; gap: 6px; background: #0A7FFF; color: #fff; height: 38px; padding: 0 15px; border-radius: 11px; font-size: 13px; font-weight: 600; box-shadow: 0 0 12px rgba(10,127,255,.45);">Ver contexto</span>
+            <span style="display: inline-flex; align-items: center; gap: 6px; background: linear-gradient(135deg, rgba(57,255,20,.18), rgba(10,127,255,.18)); border: 1px solid rgba(57,255,20,.45); color: #fff; height: 38px; padding: 0 13px; border-radius: 11px; font-size: 13px; font-weight: 600;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"></path><path d="m3.3 7 8.7 5 8.7-5"></path><path d="M12 22V12"></path></svg>
+              Entrar na cena
+            </span>
+          </div>
+        </div>
+
+        <!-- action rail -->
+        <div style="position: absolute; bottom: 122px; right: 12px; display: flex; flex-direction: column; align-items: center; gap: 12px;">
+          <span style="display: flex; width: 44px; height: 44px; align-items: center; justify-content: center; border-radius: 999px; background: rgba(255,255,255,.05); backdrop-filter: blur(24px); border: 1px solid rgba(255,255,255,.08); color: #fff;">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"></path></svg>
+          </span>
+          <span style="display: flex; width: 44px; height: 44px; align-items: center; justify-content: center; border-radius: 999px; background: rgba(255,255,255,.05); backdrop-filter: blur(24px); border: 1px solid rgba(255,255,255,.08); color: #fff;">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"></path></svg>
+          </span>
+          <span style="display: flex; width: 44px; height: 44px; align-items: center; justify-content: center; border-radius: 999px; background: rgba(255,255,255,.05); backdrop-filter: blur(24px); border: 1px solid rgba(255,255,255,.08); color: #fff;">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
+          </span>
+          <span style="display: flex; width: 44px; height: 44px; align-items: center; justify-content: center; border-radius: 999px; background: rgba(255,255,255,.03); backdrop-filter: blur(24px); border: 1px solid rgba(255,255,255,.06); color: rgba(255,255,255,.55);">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path><line x1="2" y1="2" x2="22" y2="22"></line></svg>
+          </span>
+        </div>
+
+        <!-- bottom nav -->
+        <div style="position: absolute; left: 50%; bottom: 34px; transform: translateX(-50%); display: flex; align-items: center; gap: 2px; background: rgba(10,10,14,.75); backdrop-filter: blur(28px); border: 1px solid rgba(255,255,255,.09); border-radius: 999px; padding: 5px;">
+          <span style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px; font-size: 12px; font-weight: 600; color: #fff; background: linear-gradient(135deg, rgba(10,127,255,.9), rgba(10,127,255,.6)); box-shadow: 0 0 16px rgba(10,127,255,.35);">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+            Agora
+          </span>
+          <span style="padding: 8px 12px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,.55);">Perto</span>
+          <span style="padding: 8px 12px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,.55);">Explorar</span>
+          <span style="padding: 8px 12px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,.55);">Perfil</span>
+        </div>
+      </div>
+    </x-import>
+  </div>
+
+  <!-- ══ 1b · Bandeja aberta ══ -->
+  <div id="1b" style="display: flex; flex-direction: column; gap: 12px;">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <a href="#1b" style="background: #0A7FFF; color: #fff; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px;">1b</a>
+      <span style="color: #9a9aa4; font-size: 13px; font-weight: 500;">Bandeja — grelha de temas</span>
+    </div>
+    <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="390px,844px">
+      <div data-screen-label="Mobile — Bandeja" style="position: relative; width: 100%; height: 100%; background: #07070c; overflow: hidden; font-family: 'Geist', sans-serif; color: #F7F7F7; padding: 62px 16px 0;">
+        <div style="display: flex; align-items: flex-end; justify-content: space-between; margin: 4px 0 18px;">
+          <div>
+            <p style="margin: 0 0 4px; font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #39FF14;">A tua bandeja</p>
+            <h2 style="margin: 0; font-size: 26px; font-weight: 900; letter-spacing: -0.03em;">O que queres ver agora?</h2>
+          </div>
+          <span style="display: flex; width: 36px; height: 36px; align-items: center; justify-content: center; border-radius: 999px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); color: #fff;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+          </span>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div style="grid-column: span 2; display: flex; flex-direction: column; gap: 24px; padding: 16px; border-radius: 18px; background: linear-gradient(150deg, rgba(10,127,255,.55), rgba(57,255,20,.3)), #0B0B0F; border: 1px solid #0A7FFF; box-shadow: 0 0 24px rgba(10,127,255,.35);">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path></svg>
+            <div><p style="margin: 0; font-size: 18px; font-weight: 800;">Para si</p><p style="margin: 3px 0 0; font-size: 12px; color: rgba(255,255,255,.7);">O teu feed pessoal</p></div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 22px; padding: 15px; border-radius: 18px; background: radial-gradient(130% 110% at 80% 0%, rgba(230,0,0,.32), transparent 55%), linear-gradient(160deg, #14141a, #0B0B0F); border: 1px solid rgba(255,255,255,.09);">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" x2="21" y1="22" y2="22"></line><line x1="6" x2="6" y1="18" y2="11"></line><line x1="10" x2="10" y1="18" y2="11"></line><line x1="14" x2="14" y1="18" y2="11"></line><line x1="18" x2="18" y1="18" y2="11"></line><polygon points="12 2 20 7 4 7"></polygon></svg>
+              <span style="font-size: 9px; font-weight: 700; letter-spacing: .08em; color: rgba(255,255,255,.8); background: rgba(255,255,255,.14); border-radius: 999px; padding: 3px 8px;">A SEGUIR</span>
+            </div>
+            <div><p style="margin: 0; font-size: 16px; font-weight: 800;">Moçambique</p><p style="margin: 3px 0 0; font-size: 11.5px; color: rgba(255,255,255,.65);">2 histórias hoje</p></div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 22px; padding: 15px; border-radius: 18px; background: radial-gradient(130% 110% at 80% 0%, rgba(124,58,237,.35), transparent 55%), linear-gradient(160deg, #14141a, #0B0B0F); border: 1px solid rgba(255,255,255,.09);">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1.1-.3 2.2.3 2.5 1.3Z"></path><path d="m6.2 5.3 3.1 3.9"></path><path d="m12.4 3.4 3.1 4"></path><path d="M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"></path></svg>
+              <span style="font-size: 9px; font-weight: 700; letter-spacing: .08em; color: rgba(255,255,255,.8); background: rgba(255,255,255,.14); border-radius: 999px; padding: 3px 8px;">A SEGUIR</span>
+            </div>
+            <div><p style="margin: 0; font-size: 16px; font-weight: 800;">Cinema & Séries</p><p style="margin: 3px 0 0; font-size: 11.5px; color: rgba(255,255,255,.65);">2 histórias hoje</p></div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 22px; padding: 15px; border-radius: 18px; background: radial-gradient(130% 110% at 80% 0%, rgba(57,255,20,.28), transparent 55%), linear-gradient(160deg, #14141a, #0B0B0F); border: 1px solid rgba(255,255,255,.09);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path><path d="M4 22h16"></path><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path></svg>
+            <div><p style="margin: 0; font-size: 16px; font-weight: 800;">Desporto</p><p style="margin: 3px 0 0; font-size: 11.5px; color: rgba(255,255,255,.65);">2 histórias hoje</p></div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 22px; padding: 15px; border-radius: 18px; background: radial-gradient(130% 110% at 80% 0%, rgba(0,212,255,.28), transparent 55%), linear-gradient(160deg, #14141a, #0B0B0F); border: 1px solid rgba(255,255,255,.09);">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="16" x="4" y="4" rx="2"></rect><rect width="6" height="6" x="9" y="9" rx="1"></rect><path d="M15 2v2"></path><path d="M15 20v2"></path><path d="M2 15h2"></path><path d="M2 9h2"></path><path d="M20 15h2"></path><path d="M20 9h2"></path><path d="M9 2v2"></path><path d="M9 20v2"></path></svg>
+              <span style="font-size: 9px; font-weight: 700; letter-spacing: .08em; color: rgba(255,255,255,.8); background: rgba(255,255,255,.14); border-radius: 999px; padding: 3px 8px;">A SEGUIR</span>
+            </div>
+            <div><p style="margin: 0; font-size: 16px; font-weight: 800;">Tecnologia</p><p style="margin: 3px 0 0; font-size: 11.5px; color: rgba(255,255,255,.65);">2 histórias hoje</p></div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 22px; padding: 15px; border-radius: 18px; background: radial-gradient(130% 110% at 80% 0%, rgba(255,210,63,.25), transparent 55%), linear-gradient(160deg, #14141a, #0B0B0F); border: 1px solid rgba(255,255,255,.09);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline><polyline points="16 7 22 7 22 13"></polyline></svg>
+            <div><p style="margin: 0; font-size: 16px; font-weight: 800;">Economia</p><p style="margin: 3px 0 0; font-size: 11.5px; color: rgba(255,255,255,.65);">1 história hoje</p></div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 22px; padding: 15px; border-radius: 18px; background: radial-gradient(130% 110% at 80% 0%, rgba(255,107,53,.25), transparent 55%), linear-gradient(160deg, #14141a, #0B0B0F); border: 1px solid rgba(255,255,255,.09);">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="#fff"></circle><circle cx="17.5" cy="10.5" r=".5" fill="#fff"></circle><circle cx="8.5" cy="7.5" r=".5" fill="#fff"></circle><circle cx="6.5" cy="12.5" r=".5" fill="#fff"></circle><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"></path></svg>
+            <div><p style="margin: 0; font-size: 16px; font-weight: 800;">Cultura</p><p style="margin: 3px 0 0; font-size: 11.5px; color: rgba(255,255,255,.65);">1 história hoje</p></div>
+          </div>
+        </div>
+        <p style="margin: 16px 0 0; font-size: 11px; color: rgba(255,255,255,.4); text-align: center;">Silenciados: <span style="color: rgba(255,255,255,.65);">Política · repor</span></p>
+      </div>
+    </x-import>
+  </div>
+
+  <!-- ══ 1c · Explorar mural ══ -->
+  <div id="1c" style="display: flex; flex-direction: column; gap: 12px;">
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <a href="#1c" style="background: #0A7FFF; color: #fff; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px;">1c</a>
+      <span style="color: #9a9aa4; font-size: 13px; font-weight: 500;">Explorar — mural do dia</span>
+    </div>
+    <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" dark="{{ true }}" hint-size="390px,844px">
+      <div data-screen-label="Mobile — Explorar" style="position: relative; width: 100%; height: 100%; background: radial-gradient(120% 90% at 50% 0%, #0a0e18 0%, #050508 60%); overflow: hidden; font-family: 'Geist', sans-serif; color: #F7F7F7; padding: 62px 14px 0;">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; margin: 2px 2px 4px;">
+          <h2 style="margin: 0; font-size: 22px; font-weight: 900; letter-spacing: -0.03em;">Explorar</h2>
+          <span style="font-size: 10px; font-weight: 700; color: #39FF14;">EDIÇÃO #142 · 05:00</span>
+        </div>
+        <p style="margin: 0 2px 12px; font-size: 11.5px; font-style: italic; color: rgba(255,255,255,.6); line-height: 1.45;">"Hoje o mundo acordou dividido entre um título, um máximo histórico e um ciclone."</p>
+
+        <div style="display: grid; grid-template-columns: repeat(6, 1fr); grid-auto-rows: 92px; gap: 8px;">
+          <div style="grid-column: span 6; grid-row: span 2; position: relative; overflow: hidden; border-radius: 11px; border: 1px solid rgba(57,255,20,.25); background: linear-gradient(to top, rgba(5,5,8,.85) 10%, rgba(5,5,8,.2) 60%), url('assets/benfica.png') center / cover; display: flex; flex-direction: column; justify-content: flex-end; padding: 14px; transform: rotate(-0.5deg);">
+            <span style="font-size: 10px; font-weight: 800; letter-spacing: .12em; color: #39FF14;">⚽ A BOLA · EM ALTA</span>
+            <span style="font-size: 34px; font-weight: 900; letter-spacing: -0.03em; line-height: 1;">BENFICA CAMPEÃO</span>
+          </div>
+          <div style="grid-column: span 3; position: relative; border-radius: 11px; border: 1px solid rgba(255,59,74,.35); background: radial-gradient(120% 100% at 80% 0%, rgba(255,59,74,.28), transparent 60%), linear-gradient(160deg, #180a0d, #0B0B0F); display: flex; flex-direction: column; justify-content: flex-end; padding: 12px; transform: rotate(0.6deg);">
+            <span style="font-size: 9px; font-weight: 800; letter-spacing: .1em; color: #FF3B4A;"><span style="display: inline-block; width: 6px; height: 6px; border-radius: 999px; background: #FF3B4A; margin-right: 4px; animation: livePulse 1.3s infinite;"></span>AO VIVO · BEIRA</span>
+            <span style="font-size: 19px; font-weight: 900; letter-spacing: -0.02em;">30.412 afectados</span>
+          </div>
+          <div style="grid-column: span 3; border-radius: 11px; border: 1px solid rgba(255,210,63,.3); background: radial-gradient(120% 100% at 80% 0%, rgba(255,210,63,.2), transparent 60%), linear-gradient(160deg, #12121a, #0B0B0F); display: flex; flex-direction: column; justify-content: flex-end; padding: 12px; transform: rotate(-0.7deg);">
+            <span style="font-size: 9px; font-weight: 800; letter-spacing: .1em; color: #FFD23F;">CRIPTO · ATH</span>
+            <span style="font-size: 21px; font-weight: 900; letter-spacing: -0.02em; font-variant-numeric: tabular-nums;">$150.214</span>
+            <span style="font-size: 10px; color: #39FF14; font-weight: 700;">▲ +2,3% · 20 min</span>
+          </div>
+          <div style="grid-column: span 4; position: relative; overflow: hidden; border-radius: 11px; border: 1px solid rgba(124,58,237,.3); background: linear-gradient(to top, rgba(5,5,8,.85) 10%, rgba(5,5,8,.25) 60%), url('assets/cinema.png') center / cover; display: flex; flex-direction: column; justify-content: flex-end; padding: 12px; transform: rotate(0.4deg);">
+            <span style="font-size: 9px; font-weight: 800; letter-spacing: .1em; color: #a78bfa;">🎬 ARTISTAS & FOFOCA</span>
+            <span style="font-size: 15px; font-weight: 900; letter-spacing: -0.02em;">Palma de Ouro fala português</span>
+          </div>
+          <div style="grid-column: span 2; border-radius: 11px; border: 1px solid rgba(57,255,20,.35); background: repeating-linear-gradient(0deg, rgba(57,255,20,.08) 0 1px, transparent 1px 16px), repeating-linear-gradient(90deg, rgba(57,255,20,.08) 0 1px, transparent 1px 16px), #0a0f0a; display: flex; flex-direction: column; justify-content: flex-end; padding: 12px; transform: rotate(-0.8deg);">
+            <span style="font-size: 9px; font-weight: 800; letter-spacing: .1em; color: #39FF14;">3D · BEIRA</span>
+            <span style="font-size: 13px; font-weight: 900;">ENTRAR NA CENA</span>
+          </div>
+          <div style="grid-column: span 3; border-radius: 11px; border: 1px solid rgba(0,212,255,.3); background: radial-gradient(120% 100% at 80% 0%, rgba(0,212,255,.2), transparent 60%), linear-gradient(160deg, #12121a, #0B0B0F); display: flex; flex-direction: column; justify-content: flex-end; padding: 12px; transform: rotate(0.7deg);">
+            <span style="font-size: 9px; font-weight: 800; letter-spacing: .1em; color: #00D4FF;">TECH</span>
+            <span style="font-size: 14px; font-weight: 900;">Gemini 3 chegou</span>
+          </div>
+          <div style="grid-column: span 3; border-radius: 11px; border: 1px solid rgba(230,0,0,.3); background: linear-gradient(103deg, #1a2b1e 0%, #1a2b1e 48.5%, rgba(255,255,255,.25) 49.5%, rgba(255,255,255,.25) 50.5%, #0e2036 51.5%, #0e2036 100%); display: flex; flex-direction: column; justify-content: flex-end; padding: 12px; transform: rotate(-0.4deg);">
+            <span style="font-size: 9px; font-weight: 800; letter-spacing: .1em; color: #E88;">ANTES ⟶ DEPOIS</span>
+            <span style="font-size: 14px; font-weight: 900;">A costa da Beira</span>
+          </div>
+        </div>
+
+        <div style="position: absolute; left: 50%; bottom: 34px; transform: translateX(-50%); display: flex; align-items: center; gap: 2px; background: rgba(10,10,14,.78); backdrop-filter: blur(28px); border: 1px solid rgba(255,255,255,.09); border-radius: 999px; padding: 5px; white-space: nowrap;">
+          <span style="padding: 8px 12px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,.55);">Agora</span>
+          <span style="padding: 8px 12px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,.55);">Perto</span>
+          <span style="display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border-radius: 999px; font-size: 12px; font-weight: 600; color: #fff; background: linear-gradient(135deg, rgba(10,127,255,.9), rgba(10,127,255,.6)); box-shadow: 0 0 16px rgba(10,127,255,.35);">Explorar</span>
+          <span style="padding: 8px 12px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,.55);">Perfil</span>
+        </div>
+      </div>
+    </x-import>
+  </div>
+
+</section>
+</x-dc>
+</body>
+</html>
