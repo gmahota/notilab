@@ -13,18 +13,13 @@ interface Message {
   timestamp: Date
 }
 
-// ─── Mock responses ───────────────────────────────────────────────────────────
-
-const MOCK_REPLIES = [
-  "Today's theme? Rapid change across tech, politics, and climate. Ask me to dig into any of it.",
-  "Key takeaway: AI regulation is accelerating. EU's leading the charge — others are scrambling to keep up.",
-  "Top 3 right now: AI policy, energy transition, sports upset. Want the 30s version of any?",
-  "30 seconds: tech disruption meets geopolitical shifts. Pick a topic and I'll break it down.",
-  "No noise — that story is one decision affecting millions over the next decade. Scary? A bit.",
-]
-
-let mockIdx = 0
-const getMockReply = () => MOCK_REPLIES[mockIdx++ % MOCK_REPLIES.length]
+/**
+ * Shown when the request fails. There used to be five canned replies rotated on
+ * a counter and used as the fallback — so a failed request produced confident
+ * claims ("AI regulation is accelerating. EU's leading the charge") unrelated
+ * to what was asked, and indistinguishable from a real answer.
+ */
+const ERROR_REPLY = "Não consegui responder agora. Tenta outra vez dentro de um momento."
 
 // ─── Typing dots ─────────────────────────────────────────────────────────────
 
@@ -103,7 +98,6 @@ function ChatPanel({ onClose }: { onClose: () => void }) {
       ])
       setLoading(true)
 
-      // Try real API, fall back to mock
       try {
         const res = await fetch("/api/chat", {
           method: "POST",
@@ -111,7 +105,8 @@ function ChatPanel({ onClose }: { onClose: () => void }) {
           body: JSON.stringify({ message: trimmed }),
         })
         const data = res.ok ? await res.json() : null
-        const reply = data?.message ?? getMockReply()
+        // Only ever render what the API returned. A failure says so.
+        const reply = typeof data?.message === "string" ? data.message : ERROR_REPLY
         setMessages((prev) => [
           ...prev,
           { id: (Date.now() + 1).toString(), role: "bot", text: reply, timestamp: new Date() },
@@ -119,7 +114,7 @@ function ChatPanel({ onClose }: { onClose: () => void }) {
       } catch {
         setMessages((prev) => [
           ...prev,
-          { id: (Date.now() + 1).toString(), role: "bot", text: getMockReply(), timestamp: new Date() },
+          { id: (Date.now() + 1).toString(), role: "bot", text: ERROR_REPLY, timestamp: new Date() },
         ])
       } finally {
         setLoading(false)

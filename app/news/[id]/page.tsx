@@ -20,11 +20,11 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
-import { getNewsById } from "@/lib/news-data"
+import { getArticleDetail } from "@/lib/article-service"
 
 export default async function NewsDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const news = await getNewsById(id)
+  const news = await getArticleDetail(id)
 
   if (!news) {
     notFound()

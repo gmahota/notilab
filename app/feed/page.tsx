@@ -1,3 +1,5 @@
+import { Suspense } from "react"
+
 import { Navigation } from "@/components/navigation"
 import { NewsFeed } from "@/components/news-feed"
 import { FilterBar } from "@/components/filter-bar"
@@ -22,8 +24,13 @@ export default function FeedPage() {
           {/* Main Content */}
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
             {/* News Feed */}
+            {/* NewsFeed reads `search`/`category` from the URL via
+                useSearchParams, which needs a Suspense boundary on a
+                statically rendered page. */}
             <div className="lg:col-span-3">
-              <NewsFeed />
+              <Suspense fallback={<div className="h-96 rounded-2xl bg-muted/10 animate-pulse" />}>
+                <NewsFeed />
+              </Suspense>
             </div>
 
             {/* Sidebar */}

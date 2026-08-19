@@ -74,25 +74,36 @@ export class AIService {
     }
   }
 
-  async explainTopic(topic: string, complexity: "simple" | "detailed" = "simple"): Promise<string> {
+  /**
+   * Returns the stored explainer for an article at the requested level.
+   *
+   * Takes an article id, not a free-text topic: the endpoint now serves text the
+   * enrichment pipeline already produced for a specific article, so there is
+   * nothing to explain about a topic we hold no article on.
+   */
+  async explainArticle(
+    articleId: string,
+    complexity: "simple" | "child" | "expert" = "simple",
+  ): Promise<string> {
     try {
       const response = await fetch("/api/ai/explain", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ topic, complexity }),
+        body: JSON.stringify({ articleId, complexity }),
       })
 
-      if (!response.ok) {
-        throw new Error("Failed to explain topic")
+      const payload = await response.json()
+
+      if (!response.ok || !payload.success) {
+        throw new Error(payload?.error || "Failed to explain article")
       }
 
-      const data = await response.json()
-      return data.explanation
+      return payload.data.explanation
     } catch (error) {
-      console.error("Error explaining topic:", error)
-      throw new Error("Failed to explain topic")
+      console.error("Error explaining article:", error)
+      throw error instanceof Error ? error : new Error("Failed to explain article")
     }
   }
 

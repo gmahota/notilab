@@ -1,9 +1,16 @@
 "use client"
 
+import Link from "next/link"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { Copy, ThumbsUp, ThumbsDown, Share, Sparkles, User } from "lucide-react"
+import { Copy, ExternalLink, ThumbsUp, ThumbsDown, Share, Sparkles, User } from "lucide-react"
 import { useState } from "react"
+
+interface ArticleSource {
+  id: string
+  title: string
+  sourceName: string
+}
 
 interface Message {
   id: string
@@ -12,6 +19,8 @@ interface Message {
   timestamp: Date
   isTyping?: boolean
   suggestions?: string[]
+  /** Articles the answer was drawn from — absent when it wasn't grounded. */
+  sources?: ArticleSource[]
 }
 
 interface MessageBubbleProps {
@@ -78,6 +87,30 @@ export function MessageBubble({ message }: MessageBubbleProps) {
         >
           <div className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</div>
         </div>
+
+        {/* Sources — lets the reader check the answer against the article it
+            came from. An answer with no sources was not grounded in our
+            coverage, and shows nothing here rather than a vague citation. */}
+        {isAssistant && message.sources && message.sources.length > 0 && (
+          <div className="mt-2 space-y-1">
+            <p className="text-[11px] uppercase tracking-wider text-muted-foreground/60">
+              {message.sources.length === 1 ? "Fonte" : "Fontes"}
+            </p>
+            {message.sources.map((source) => (
+              <Link
+                key={source.id}
+                href={`/news/${source.id}`}
+                className="flex items-start gap-1.5 text-xs text-muted-foreground hover:text-primary transition-colors group"
+              >
+                <ExternalLink className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                <span className="line-clamp-1 group-hover:underline">
+                  {source.title}
+                  <span className="text-muted-foreground/50"> · {source.sourceName}</span>
+                </span>
+              </Link>
+            ))}
+          </div>
+        )}
 
         {/* Message Meta */}
         <div className={`flex items-center mt-2 space-x-2 ${isUser ? "justify-end" : "justify-start"}`}>

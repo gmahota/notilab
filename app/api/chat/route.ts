@@ -1,97 +1,161 @@
 import { type NextRequest, NextResponse } from "next/server"
 
-interface ChatMessage {
-  id: string
-  content: string
-  type: "user" | "assistant"
-  timestamp: Date
+import { callAI, hasAIProvider } from "@/lib/ai-processing/call-ai"
+import {
+  buildGroundedPrompt,
+  parseGroundedAnswer,
+  retrieveContext,
+  type ContextArticle,
+} from "@/lib/chat-service"
+
+export const dynamic = "force-dynamic"
+
+/**
+ * POST /api/chat — NotiBot.
+ *
+ * Answers only from articles we hold. See lib/chat-service.ts for why: this
+ * replaced a keyword lookup table that asserted match results, financial
+ * figures and legal provisions that no source backed, behind a randomised
+ * 1–3s delay that made the canned text look computed.
+ *
+ * Body: { message: string, history?: Array<{ type, content }> }
+ * Returns: { message, suggestions, sources[], grounded }
+ */
+
+/** Token budget: enough for a ~120-word answer plus citations and follow-ups. */
+const MAX_TOKENS = 700
+
+interface ChatBody {
+  message?: unknown
+  history?: unknown
 }
 
-interface ChatRequest {
-  message: string
-  history: ChatMessage[]
+function toSources(articles: ContextArticle[], ids: string[]) {
+  const byId = new Map(articles.map((a) => [a.id, a]))
+  return ids
+    .map((id) => byId.get(id))
+    .filter((a): a is ContextArticle => Boolean(a))
+    .map((a) => ({ id: a.id, title: a.title, sourceName: a.sourceName }))
 }
 
-// Mock AI responses - replace with actual AI service
-const mockResponses = {
-  "resumir as notícias de hoje": {
-    message:
-      "Aqui estão os principais destaques de hoje:\n\n🏛️ **Política**: Nova regulamentação de IA aprovada na Europa\n⚽ **Desporto**: Benfica vence na Champions League\n🎬 **Cultura**: Festival de Cinema de Lisboa anuncia programação\n💼 **Economia**: Mercados sobem após anúncios do BCE\n\nGostaria que eu detalhe algum destes tópicos?",
-    suggestions: ["Detalhar lei de IA", "Mais sobre o Benfica", "Programação do festival", "Análise dos mercados"],
-  },
-  "explicar a nova lei de IA": {
-    message:
-      "A nova regulamentação europeia de IA é histórica! 🚀\n\n**Principais pontos:**\n• Classificação de sistemas de IA por risco\n• Proibição de IA para manipulação e vigilância em massa\n• Transparência obrigatória para modelos de grande escala\n• Multas até 7% do faturamento global\n\n**Impacto:** Empresas como OpenAI, Google e Meta terão que adaptar seus produtos para o mercado europeu.\n\nQuer saber mais sobre algum aspecto específico?",
-    suggestions: [
-      "Impacto nas empresas",
-      "Cronograma de implementação",
-      "Comparação com outras regiões",
-      "Exceções da lei",
-    ],
-  },
-  "notícias sobre futebol": {
-    message:
-      "⚽ **Últimas do Futebol:**\n\n🔴 **Benfica** venceu 3-1 na Champions, classificação garantida!\n🔵 **Porto** empata em casa, situação complicada\n🟢 **Sporting** lidera o campeonato nacional\n🏆 **Seleção** convocada para os próximos jogos\n\nDestaque para a performance histórica do Benfica na Europa após 10 anos!\n\nQue equipa te interessa mais?",
-    suggestions: ["Análise do Benfica", "Situação do Porto", "Liderança do Sporting", "Convocatória da seleção"],
-  },
-  "tendências em tecnologia": {
-    message:
-      "🚀 **Tendências Tech em Alta:**\n\n🤖 **IA Generativa**: Novos modelos multimodais\n🔐 **Cibersegurança**: Aumento de 40% em ataques\n💚 **Tech Verde**: Investimentos em sustentabilidade\n🥽 **Realidade Mista**: Apple Vision Pro ganha tração\n📱 **5G**: Expansão para cidades menores\n\nA regulamentação de IA na Europa está a moldar o futuro da tecnologia global!\n\nQual área te interessa explorar?",
-    suggestions: ["Novos modelos de IA", "Ameaças cibernéticas", "Tecnologia sustentável", "Realidade aumentada"],
-  },
+/** Real headlines, used as follow-up prompts when we cannot compose an answer. */
+function headlineSuggestions(articles: ContextArticle[]): string[] {
+  return articles.slice(0, 3).map((a) => a.title.slice(0, 70))
 }
 
-function generateAIResponse(message: string, history: ChatMessage[]) {
-  const lowerMessage = message.toLowerCase()
+/**
+ * Degraded answer for when the model is unavailable — no key, exhausted quota,
+ * provider outage. The retrieved headlines are real data, so listing them is
+ * factual and still useful; returning 502 would throw away information we
+ * already have, and inventing prose would be worse.
+ *
+ * Dates are included because the corpus can lag: "the latest we have is from
+ * 14 July" is a materially different answer from "here's today's news".
+ */
+function degradedResponse(articles: ContextArticle[], reason: string) {
+  const list = articles
+    .slice(0, 5)
+    .map((a) => `• ${a.title} — ${a.sourceName}, ${a.publishedAt.toISOString().slice(0, 10)}`)
+    .join("\n")
 
-  // Check for exact matches first
-  for (const [key, response] of Object.entries(mockResponses)) {
-    if (lowerMessage.includes(key.toLowerCase())) {
-      return response
-    }
-  }
-
-  // Keyword-based responses
-  if (lowerMessage.includes("resumo") || lowerMessage.includes("hoje")) {
-    return mockResponses["resumir as notícias de hoje"]
-  }
-
-  if (lowerMessage.includes("ia") || lowerMessage.includes("inteligência artificial")) {
-    return mockResponses["explicar a nova lei de IA"]
-  }
-
-  if (lowerMessage.includes("futebol") || lowerMessage.includes("benfica") || lowerMessage.includes("porto")) {
-    return mockResponses["notícias sobre futebol"]
-  }
-
-  if (lowerMessage.includes("tecnologia") || lowerMessage.includes("tech")) {
-    return mockResponses["tendências em tecnologia"]
-  }
-
-  // Default response
-  return {
-    message:
-      "Interessante pergunta! 🤔\n\nPosso ajudar-te com:\n• Resumos de notícias atuais\n• Explicações detalhadas de tópicos\n• Análises de tendências\n• Contexto histórico de eventos\n\nSobre que tema gostarias de saber mais?",
-    suggestions: ["Notícias de hoje", "Política europeia", "Desporto nacional", "Tecnologia e inovação"],
-  }
+  return NextResponse.json({
+    message: `${reason}\n\nEncontrei estes artigos relacionados:\n\n${list}`,
+    suggestions: headlineSuggestions(articles),
+    sources: articles.slice(0, 5).map((a) => ({
+      id: a.id,
+      title: a.title,
+      sourceName: a.sourceName,
+    })),
+    grounded: true,
+    composed: false,
+  })
 }
 
 export async function POST(request: NextRequest) {
+  let body: ChatBody
   try {
-    const { message, history }: ChatRequest = await request.json()
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 })
+  }
 
-    if (!message?.trim()) {
-      return NextResponse.json({ error: "Message is required" }, { status: 400 })
+  const message = typeof body.message === "string" ? body.message.trim() : ""
+  if (!message) {
+    return NextResponse.json({ error: "Message is required" }, { status: 400 })
+  }
+
+  const history = Array.isArray(body.history)
+    ? (body.history as Array<Record<string, unknown>>)
+        .filter((m) => typeof m.content === "string")
+        .map((m) => ({ type: String(m.type ?? "user"), content: String(m.content) }))
+    : []
+
+  try {
+    const { mode, articles } = await retrieveContext(message)
+
+    // Nothing to ground an answer in. Answer honestly and skip the model —
+    // with no articles it could only invent one.
+    if (mode === "none") {
+      return NextResponse.json({
+        message:
+          "Não encontrei nada na nossa cobertura sobre isso. Só respondo a partir dos artigos que temos em base, por isso prefiro dizer que não sei do que arriscar uma resposta errada.",
+        suggestions: ["Resumir as notícias de hoje"],
+        sources: [],
+        grounded: false,
+      })
     }
 
-    // Simulate AI processing delay
-    await new Promise((resolve) => setTimeout(resolve, 1000 + Math.random() * 2000))
+    if (!hasAIProvider()) {
+      return degradedResponse(
+        articles,
+        "Ainda não tenho um modelo de IA configurado, por isso não consigo compor uma resposta.",
+      )
+    }
 
-    const response = generateAIResponse(message, history)
+    const prompt = buildGroundedPrompt(message, articles, history)
 
-    return NextResponse.json(response)
+    let raw: string
+    try {
+      raw = await callAI(prompt, MAX_TOKENS)
+    } catch (err) {
+      // Quota, rate limit or outage. Degrade to the headlines rather than 502 —
+      // this is a routine production condition, not an exceptional one.
+      console.error("[api/chat] provider unavailable:", err)
+      return degradedResponse(
+        articles,
+        "O serviço de IA está indisponível neste momento, por isso não consigo compor uma resposta.",
+      )
+    }
+
+    const parsed = parseGroundedAnswer(
+      raw,
+      articles.map((a) => a.id),
+    )
+
+    if (!parsed) {
+      console.error("[api/chat] unparseable model output:", raw.slice(0, 300))
+      return NextResponse.json({
+        message:
+          "Não consegui processar a resposta do modelo desta vez. Tenta reformular a pergunta.",
+        suggestions: headlineSuggestions(articles),
+        sources: [],
+        grounded: false,
+      })
+    }
+
+    return NextResponse.json({
+      message: parsed.answer,
+      suggestions: parsed.suggestions.length > 0 ? parsed.suggestions : headlineSuggestions(articles),
+      // An unanswered question cites nothing, even if the model listed ids.
+      sources: parsed.answered ? toSources(articles, parsed.usedArticleIds) : [],
+      grounded: parsed.answered,
+      retrieval: mode,
+    })
   } catch (error) {
-    console.error("Error in chat API:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    console.error("[api/chat]", error)
+    return NextResponse.json(
+      { error: "Failed to answer right now. Please try again." },
+      { status: 502 },
+    )
   }
 }

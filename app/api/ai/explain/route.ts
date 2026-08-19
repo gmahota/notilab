@@ -1,36 +1,112 @@
 import { NextResponse } from "next/server"
+import { prisma } from "@/lib/prisma"
 
-export async function POST(request: Request) {
+export const dynamic = "force-dynamic"
+
+/**
+ * POST /api/ai/explain
+ *
+ * Serves the explainer text the AI enrichment pipeline already produced and
+ * stored on `ArticleAI` — it does not call a model. The enrichment cron
+ * (`/api/cron/process-ai-news`) writes these fields once per article, so
+ * reading them here is instant, costs nothing per request, and returns exactly
+ * the text a human can audit against the source.
+ *
+ * This replaced three canned paragraphs returned for *any* topic, behind an
+ * artificial 1.5s delay that made it look like real processing. Asking it to
+ * explain a football transfer returned EU AI-regulation analysis, asserting a
+ * "risk-based classification system" and a "24-36 month" timeline that had
+ * nothing to do with the request.
+ *
+ * Body: { articleId: string, complexity?: "simple" | "child" | "expert" }
+ */
+
+type Complexity = "simple" | "child" | "expert"
+
+function pickExplanation(
+  complexity: Complexity,
+  ai: { tldr: string | null; whyItMatters: string | null; explainLikeIm10: string | null },
+): string | null {
+  switch (complexity) {
+    case "child":
+      return ai.explainLikeIm10
+    case "expert":
+      return ai.whyItMatters
+    default:
+      return ai.tldr
+  }
+}
+
+export async function POST(request: Request): Promise<Response> {
+  let body: unknown
   try {
-    const { topic, complexity } = await request.json()
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ success: false, error: "Invalid JSON body" }, { status: 400 })
+  }
 
-    if (!topic || !complexity) {
-      return NextResponse.json({ error: "Missing topic or complexity" }, { status: 400 })
+  const { articleId, complexity } = (body ?? {}) as Record<string, unknown>
+
+  if (typeof articleId !== "string" || !articleId.trim()) {
+    return NextResponse.json(
+      { success: false, error: "`articleId` is required." },
+      { status: 400 },
+    )
+  }
+
+  const level: Complexity =
+    complexity === "child" || complexity === "expert" ? complexity : "simple"
+
+  try {
+    const article = await prisma.news.findUnique({
+      where: { id: articleId },
+      select: {
+        title: true,
+        articleAI: {
+          select: { tldr: true, whyItMatters: true, explainLikeIm10: true },
+        },
+      },
+    })
+
+    if (!article) {
+      return NextResponse.json({ success: false, error: "Article not found" }, { status: 404 })
     }
 
-    // Simulate processing delay
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-
-    const explanations: Record<string, Record<string, string>> = {
-      simple: {
-        default: `Here's a quick breakdown of "${topic}":\n\nThis is a significant development that impacts multiple sectors. The key takeaway is that regulatory frameworks are evolving to keep pace with technological innovation, with implications for businesses and consumers worldwide. Experts suggest this will lead to more transparency and accountability in the industry.`,
-      },
-      child: {
-        default: `Let me explain "${topic}" in a super simple way! 🎯\n\nImagine the world is like a big playground. Sometimes new toys come along that are really powerful, and the grown-ups need to make rules so everyone plays fair and nobody gets hurt. That's basically what's happening here — the people in charge are making rules for a really cool but powerful new "toy" so it helps everyone! 🌟`,
-      },
-      expert: {
-        default: `Technical analysis of "${topic}":\n\nFrom a macro perspective, this development signals a paradigm shift in regulatory approaches toward emerging technologies. The framework introduces a risk-based classification system, mandatory impact assessments, and compliance mechanisms with enforcement teeth. Cross-jurisdictional implications suggest a Brussels Effect scenario with global regulatory convergence likely within 24-36 months.`,
-      },
+    if (!article.articleAI) {
+      // Enrichment has not run for this article yet. Saying so is the honest
+      // answer — the previous implementation would have invented a paragraph.
+      return NextResponse.json(
+        {
+          success: false,
+          error: "This article has not been through AI enrichment yet.",
+          code: "NOT_ENRICHED",
+        },
+        { status: 409 },
+      )
     }
 
-    const complexityLevel = explanations[complexity] ? complexity : "simple"
-    const explanation = explanations[complexityLevel].default
+    const explanation = pickExplanation(level, article.articleAI)
+
+    if (!explanation) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "No explanation is stored for this article at that level.",
+          code: "NOT_AVAILABLE",
+        },
+        { status: 409 },
+      )
+    }
 
     return NextResponse.json({
-      explanation,
-      readTime: complexity === "child" ? "30s" : complexity === "simple" ? "1 min" : "3 min",
+      success: true,
+      data: { articleId, complexity: level, explanation, title: article.title },
     })
-  } catch {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  } catch (error) {
+    console.error("[ai/explain]", error)
+    return NextResponse.json(
+      { success: false, error: "Failed to load explanation" },
+      { status: 500 },
+    )
   }
 }

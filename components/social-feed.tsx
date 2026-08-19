@@ -1,13 +1,23 @@
 "use client"
 
 import { useState, useCallback, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import Image from "next/image"
-import { Sparkles, Bookmark, Share2, Loader2, BookmarkCheck } from "lucide-react"
+import { Newspaper, Sparkles, Bookmark, Share2, Loader2, BookmarkCheck } from "lucide-react"
 import { motion } from "framer-motion"
 
-interface FeedArticle {
+import {
+  fetchFeedPage,
+  formatTimeAgo,
+  type FeedArticle as ApiFeedArticle,
+} from "@/lib/news-client"
+
+const PAGE_SIZE = 6
+
+/** View model for one card — flattened from the API's FeedArticle. */
+interface FeedCard {
   id: string
   title: string
   summary: string
@@ -17,66 +27,25 @@ interface FeedArticle {
   timeAgo: string
 }
 
-const mockArticles: FeedArticle[] = [
-  {
-    id: "1",
-    title: "Google Launches Gemini 3: The Most Capable AI Model Yet",
-    summary: "Google reveals its most advanced AI system that can reason across text, images, audio, and video simultaneously with unprecedented accuracy.",
-    image: "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=600&q=80",
-    category: "Tech",
-    source: "The Verge",
-    timeAgo: "2h ago",
-  },
-  {
-    id: "2",
-    title: "Global Markets Rally After Central Banks Signal Rate Cuts",
-    summary: "Stock markets worldwide surge as Federal Reserve and ECB hint at coordinated interest rate reductions in the coming months.",
-    image: "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=600&q=80",
-    category: "Economy",
-    source: "Bloomberg",
-    timeAgo: "4h ago",
-  },
-  {
-    id: "3",
-    title: "SpaceX Successfully Tests Starship for Mars Colony Mission",
-    summary: "The fully reusable rocket completes its most ambitious test flight, bringing human Mars colonization one step closer to reality.",
-    image: "https://images.unsplash.com/photo-1541185933-ef5d8ed016c2?w=600&q=80",
-    category: "Science",
-    source: "NASA",
-    timeAgo: "5h ago",
-  },
-  {
-    id: "4",
-    title: "Champions League: Unexpected Quarter-Final Results Shake Europe",
-    summary: "Underdogs advance as traditional powerhouses stumble in thrilling Champions League quarter-final matches across the continent.",
-    image: "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=600&q=80",
-    category: "Sports",
-    source: "ESPN",
-    timeAgo: "6h ago",
-  },
-  {
-    id: "5",
-    title: "Breakthrough in Renewable Energy: Solar Efficiency Hits 50%",
-    summary: "MIT researchers achieve record-breaking solar panel efficiency that could revolutionize clean energy adoption worldwide.",
-    image: "https://images.unsplash.com/photo-1509391366360-2e959784a276?w=600&q=80",
-    category: "Science",
-    source: "Nature",
-    timeAgo: "8h ago",
-  },
-  {
-    id: "6",
-    title: "New Study Reveals Surprising Benefits of Intermittent Fasting",
-    summary: "Large-scale clinical trial shows significant cognitive improvements and cellular regeneration from structured eating patterns.",
-    image: "https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=600&q=80",
-    category: "Health",
-    source: "The Lancet",
-    timeAgo: "10h ago",
-  },
-]
+function toCard(article: ApiFeedArticle): FeedCard {
+  return {
+    id: article.id,
+    title: article.title,
+    summary: article.tldr || article.summary,
+    image: article.imageUrl || "/placeholder.svg",
+    category: article.category?.name || "News",
+    source: article.sourceName,
+    timeAgo: formatTimeAgo(article.publishedAt),
+  }
+}
 
 export function SocialFeed() {
-  const [articles, setArticles] = useState<FeedArticle[]>(mockArticles)
+  const router = useRouter()
+  const [articles, setArticles] = useState<FeedCard[]>([])
   const [loading, setLoading] = useState(false)
+  const [initialLoading, setInitialLoading] = useState(true)
+  const [failed, setFailed] = useState(false)
+  const [hasMore, setHasMore] = useState(false)
   const [saved, setSaved] = useState<Set<string>>(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("notilab-saved")
@@ -100,21 +69,43 @@ export function SocialFeed() {
     })
   }, [])
 
-  const loadMore = async () => {
+  // First page
+  useEffect(() => {
+    const controller = new AbortController()
+
+    fetchFeedPage({ limit: PAGE_SIZE, signal: controller.signal })
+      .then((page) => {
+        setArticles(page.articles.map(toCard))
+        setHasMore(page.hasMore)
+      })
+      .catch((err) => {
+        if (err instanceof Error && err.name === "AbortError") return
+        setFailed(true)
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setInitialLoading(false)
+      })
+
+    return () => controller.abort()
+  }, [])
+
+  const loadMore = useCallback(async () => {
     setLoading(true)
-    // simulate API load
-    setTimeout(() => {
-      setArticles((prev) => [
-        ...prev,
-        ...mockArticles.map((a, i) => ({
-          ...a,
-          id: `${prev.length + i + 1}`,
-          timeAgo: `${12 + i * 2}h ago`,
-        })),
-      ])
+    try {
+      const page = await fetchFeedPage({ limit: PAGE_SIZE, offset: articles.length })
+      // Guard against the same article arriving twice — the ranked feed can
+      // reorder between requests, which would otherwise duplicate React keys.
+      setArticles((prev) => {
+        const seen = new Set(prev.map((a) => a.id))
+        return [...prev, ...page.articles.map(toCard).filter((a) => !seen.has(a.id))]
+      })
+      setHasMore(page.hasMore)
+    } catch {
+      setHasMore(false)
+    } finally {
       setLoading(false)
-    }, 1000)
-  }
+    }
+  }, [articles.length])
 
   return (
     <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-3xl mx-auto">
@@ -128,11 +119,44 @@ export function SocialFeed() {
         <h2 className="text-2xl sm:text-3xl font-bold text-foreground">Feed</h2>
       </motion.div>
 
+      {/* Loading skeletons */}
+      {initialLoading && (
+        <div className="space-y-6">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div
+              key={`skeleton-${i}`}
+              className="glass rounded-2xl overflow-hidden border border-border/50"
+            >
+              <div className="h-48 sm:h-56 bg-muted/20 animate-pulse" />
+              <div className="p-5 space-y-3">
+                <div className="h-5 w-4/5 rounded-lg bg-muted/25 animate-pulse" />
+                <div className="h-3.5 w-full rounded bg-muted/15 animate-pulse" />
+                <div className="h-3.5 w-3/5 rounded bg-muted/15 animate-pulse" />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Empty / error */}
+      {!initialLoading && articles.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-20 text-center gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-muted/10 border border-border/50 flex items-center justify-center">
+            <Newspaper className="h-7 w-7 text-muted-foreground/50" />
+          </div>
+          <p className="text-sm text-muted-foreground">
+            {failed
+              ? "Couldn't load the feed. Please try again in a moment."
+              : "No stories yet. New articles arrive as sources are synced."}
+          </p>
+        </div>
+      )}
+
       {/* Cards */}
       <div className="space-y-6">
         {articles.map((article, index) => (
           <motion.article
-            key={article.id + "-" + index}
+            key={article.id}
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -173,6 +197,7 @@ export function SocialFeed() {
                 <Button
                   variant="ghost"
                   size="sm"
+                  onClick={() => router.push(`/explain/${article.id}`)}
                   className="text-primary hover:bg-primary/10 hover:text-primary"
                 >
                   <Sparkles className="h-4 w-4 mr-2" />
@@ -215,23 +240,25 @@ export function SocialFeed() {
       </div>
 
       {/* Load More */}
-      <div className="flex justify-center mt-10">
-        <Button
-          onClick={loadMore}
-          disabled={loading}
-          variant="outline"
-          className="rounded-full glass border-border/50 hover:border-primary/30 px-8"
-        >
-          {loading ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Loading...
-            </>
-          ) : (
-            "Load More"
-          )}
-        </Button>
-      </div>
+      {hasMore && (
+        <div className="flex justify-center mt-10">
+          <Button
+            onClick={loadMore}
+            disabled={loading}
+            variant="outline"
+            className="rounded-full glass border-border/50 hover:border-primary/30 px-8"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Loading...
+              </>
+            ) : (
+              "Load More"
+            )}
+          </Button>
+        </div>
+      )}
     </section>
   )
 }
