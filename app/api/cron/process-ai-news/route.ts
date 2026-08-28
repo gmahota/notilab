@@ -3,6 +3,9 @@ import { runAiBatch } from "@/lib/ai-processing/processor"
 
 export const dynamic = "force-dynamic"
 
+// BATCH_SIZE model calls in a single invocation, seconds each.
+export const maxDuration = 60
+
 const BATCH_SIZE = 15
 
 export async function GET(request: Request) {

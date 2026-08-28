@@ -13,6 +13,7 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { getLandingData } from "@/lib/growth/referral"
 import { ShareLandingClient } from "./client"
+import { BASE_URL } from "@/lib/base-url"
 
 interface PageProps {
   params: Promise<{ code: string }>
@@ -59,7 +60,6 @@ export default async function ShareLandingPage({ params }: PageProps) {
   const whyItMatters = ai?.whyItMatters ?? ""
   const explain = ai?.explainLikeIm10 ?? ""
 
-  const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "https://notilab.app"
   const articleUrl = article.slug
     ? `${BASE_URL}/article/${article.slug}`
     : `${BASE_URL}/news/${article.id}`

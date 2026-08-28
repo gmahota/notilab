@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { BASE_URL } from "@/lib/base-url"
 import {
   TelegramUpdate,
   parseCommand,
@@ -16,8 +17,6 @@ import {
 } from "@/lib/messaging/format"
 
 export const dynamic = "force-dynamic"
-
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "https://notilab.app"
 
 // ---------------------------------------------------------------------------
 // Prisma cast

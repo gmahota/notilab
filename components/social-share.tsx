@@ -1,14 +1,13 @@
 "use client"
 
 import { MessageCircle, Send, X } from "lucide-react"
+import { BASE_URL } from "@/lib/base-url"
 
 interface SocialShareProps {
   title: string
   /** Relative path, e.g. /news/123 */
   url: string
 }
-
-const BASE_URL = "https://notilab.app"
 
 const PLATFORMS = [
   {

@@ -15,8 +15,7 @@
 
 import { createHash, randomBytes } from "crypto"
 import { prisma } from "../prisma"
-
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "https://notilab.app"
+import { BASE_URL } from "../base-url"
 
 // ---------------------------------------------------------------------------
 // PrismaExt — only the tables we need here

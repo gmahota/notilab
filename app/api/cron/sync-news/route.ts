@@ -1,11 +1,12 @@
 /**
  * GET /api/cron/sync-news
  *
- * Triggered automatically by Vercel Cron (vercel.json) every 30 minutes.
+ * Triggered automatically by Vercel Cron (vercel.json) once a day at 20:00 UTC
+ * (see DEPLOYMENT.md, "Cadencias e o limite do plano Hobby").
  * Can also be called manually for testing:
  *
  *   curl -H "Authorization: Bearer <CRON_SECRET>" \
- *        https://your-app.vercel.app/api/cron/sync-news
+ *        https://notilab.vercel.app/api/cron/sync-news
  *
  * Security: validates the Authorization header against CRON_SECRET env var.
  * Vercel automatically injects this header when CRON_SECRET is set in the
@@ -16,6 +17,11 @@ import { type NextRequest, NextResponse } from "next/server"
 import { runIngestionPipeline } from "@/lib/ingestion/pipeline"
 
 export const dynamic = "force-dynamic"
+
+// The ten provider queries are spaced by QUERY_DELAY_MS, so the run spends ~11s
+// sleeping before the first save. The default function limit kills it mid-pipeline
+// and nothing is persisted. 60s is the ceiling on the Hobby plan.
+export const maxDuration = 60
 
 export async function GET(request: NextRequest) {
   // ── Auth ───────────────────────────────────────────────────────────────────
