@@ -19,7 +19,8 @@
     "setup": "chmod +x scripts/setup.sh && ./scripts/setup.sh",
     "check": "tsx scripts/health-check.ts",
     "postinstall": "prisma generate",
-    "ingest:dry-run": "tsx scripts/ingestion-dry-run.ts"
+    "ingest:dry-run": "tsx scripts/ingestion-dry-run.ts",
+    "stories:backfill": "tsx scripts/backfill-stories.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
