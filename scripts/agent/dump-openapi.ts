@@ -10,6 +10,10 @@
  * is required instead — an agent platform that wants an upload, or a review that
  * wants the spec in a diff.
  *
+ * The output is gitignored on purpose. A checked-in spec goes stale the moment
+ * a tool changes, and a stale spec is worse than no file at all: an agent that
+ * imported it sends requests that cannot succeed. Generate it when you need it.
+ *
  * The output is the full document, not one narrowed to a credential's
  * permissions. Treat it as the catalogue of everything the API can do, and the
  * live endpoint as the answer to what a particular agent may do.

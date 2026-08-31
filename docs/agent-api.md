@@ -7,7 +7,12 @@ infrastructure, users, settings, secrets or the database.
 
 - **Version**: `1.0` (`meta.apiVersion` on every response)
 - **Base path**: `/api/agent`
-- **Machine-readable spec**: `GET /api/agent/openapi`, or `pnpm agent:openapi`
+- **Machine-readable spec**: `GET /api/agent/openapi` — generated from the tool
+  registry per request, so it cannot drift from the code. `pnpm agent:openapi`
+  writes the same document to a file when a platform needs an upload; that file
+  is gitignored, because a checked-in spec goes stale the moment a tool changes
+  and a stale spec is worse than none — an agent that imported it sends requests
+  that cannot succeed.
 - **Discovery**: `GET /api/agent/capabilities`
 
 ## The guarantee
