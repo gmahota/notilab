@@ -8,9 +8,10 @@
  * Mirrors exactly what GET /api/news/feed and GET /api/news/trending return —
  * do not add fields here that the backend doesn't send.
  *
- * Note: components/immersive/types.ts declares the same /api/news/feed shape
- * for the /now redesign. Worth consolidating onto this module once that work
- * lands, rather than maintaining two copies of the contract.
+ * `/now` no longer shares this contract: it is story-shaped, not article-shaped,
+ * and reads `/api/now/feed` through `lib/story-view.ts`. The duplicate copy of
+ * this shape that used to live in `components/immersive/types.ts` is gone with
+ * it, so this module is once again the single article-shaped client contract.
  */
 
 export interface FeedCategory {

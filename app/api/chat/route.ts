@@ -5,6 +5,7 @@ import {
   buildGroundedPrompt,
   parseGroundedAnswer,
   retrieveContext,
+  retrieveStoryContext,
   type ContextArticle,
 } from "@/lib/chat-service"
 
@@ -18,8 +19,12 @@ export const dynamic = "force-dynamic"
  * figures and legal provisions that no source backed, behind a randomised
  * 1–3s delay that made the canned text look computed.
  *
- * Body: { message: string, history?: Array<{ type, content }> }
+ * Body: { message: string, history?: Array<{ type, content }>, storyId?: string }
  * Returns: { message, suggestions, sources[], grounded }
+ *
+ * `storyId` pins retrieval to one story's own sources (spec § 23), so the user
+ * does not have to say which story they mean, and adds the § 24 instruction to
+ * keep fact, context, analysis and unknown apart.
  */
 
 /** Token budget: enough for a ~120-word answer plus citations and follow-ups. */
@@ -28,6 +33,7 @@ const MAX_TOKENS = 700
 interface ChatBody {
   message?: unknown
   history?: unknown
+  storyId?: unknown
 }
 
 function toSources(articles: ContextArticle[], ids: string[]) {
@@ -90,16 +96,22 @@ export async function POST(request: NextRequest) {
         .map((m) => ({ type: String(m.type ?? "user"), content: String(m.content) }))
     : []
 
+  const storyId =
+    typeof body.storyId === "string" && body.storyId.trim() ? body.storyId.trim() : null
+
   try {
-    const { mode, articles } = await retrieveContext(message)
+    const { mode, articles } = storyId
+      ? await retrieveStoryContext(storyId)
+      : await retrieveContext(message)
 
     // Nothing to ground an answer in. Answer honestly and skip the model —
     // with no articles it could only invent one.
     if (mode === "none") {
       return NextResponse.json({
-        message:
-          "Não encontrei nada na nossa cobertura sobre isso. Só respondo a partir dos artigos que temos em base, por isso prefiro dizer que não sei do que arriscar uma resposta errada.",
-        suggestions: ["Resumir as notícias de hoje"],
+        message: storyId
+          ? "I do not hold the text of this story's sources, so I cannot answer from them. I only answer from the articles we have, rather than risk inventing one."
+          : "Não encontrei nada na nossa cobertura sobre isso. Só respondo a partir dos artigos que temos em base, por isso prefiro dizer que não sei do que arriscar uma resposta errada.",
+        suggestions: storyId ? [] : ["Resumir as notícias de hoje"],
         sources: [],
         grounded: false,
       })
@@ -112,7 +124,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const prompt = buildGroundedPrompt(message, articles, history)
+    const prompt = buildGroundedPrompt(message, articles, history, {
+      storyScoped: Boolean(storyId),
+    })
 
     let raw: string
     try {

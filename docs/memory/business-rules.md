@@ -39,3 +39,18 @@ Durable product invariants. This is `02-editorial-content`'s primary reference �
 
 - `ShareVisit.ipHash` is a SHA-256 hash — the raw IP must never be stored. Follow the same pattern (hash, don't store raw) for any future need to dedupe by IP.
 - `UserEvent.userId` is nullable to support anonymous analytics — don't force a user association where one doesn't exist.
+
+## NOW V2 Story rules (spec "NotiLab NOW V2")
+
+Structural facts live in `docs/memory/database.md` § Story layer. These are the rules that decide what a Story is allowed to *say*.
+
+- **A Story is an event, not an article.** Several outlets covering one happening are one `Story` with many `StorySource` rows. If a change would produce two cards for one event, it is wrong regardless of how the data arrived.
+- **A missing field is omitted, never filled.** `whyItMatters`, `keyFacts`, `context`, `whatsNext`, `location` and `timeline` each disappear from the card and the Brief when we hold nothing real. Filling them with plausible text — a restated headline as "why it matters", a guessed location, an invented number — is the one failure mode this product cannot recover from, because the whole proposition is that the explanation is trustworthy.
+- **"Why it matters" states a consequence.** It must not restate the headline (spec § 4). A generator that paraphrases the headline into this field has failed even though the field is populated.
+- **No status claim without a basis** (§ 17/§ 18). A single-source story that has never been revised carries no status badge — see `statusOrNull` in `lib/story-service.ts`. `confidenceScore` is internal: it decides whether to publish, hold, or seek another source, and is never shown to a user as a percentage.
+- **Breaking is rare by design** (§ 32). Flagged urgent *and* fresh (≤6h). NotiLab should read as confident, not anxious — plain "Breaking", never sirens.
+- **NotiBot keeps four registers apart** (§ 24): FACT (in the sources), CONTEXT (related background, not from these sources), ANALYSIS (its reading of the facts), UNKNOWN (the sources do not settle it). They carry different warranties, and blending them is how an interpretation gets read as reporting. UNKNOWN is the correct answer to most "what happens next?" questions. Enforced by `STORY_SCOPE_ADDENDUM` in `lib/chat-service.ts`, and only when a `storyId` scopes the question.
+- **Sources are a feature, not a footnote** (§ 12). Every source is openable, and the Brief states plainly that NotiLab explains the event *based on* these sources and does not replace them. A single source is named on its own — never dressed up as "1 source", which would imply corroboration that does not exist.
+- **The feed must not stack one subject** (§ 34), even when it is genuinely trending. Diversity is a weighted dimension of the ranking, not a post-hoc filter — see `lib/story-ranking.ts`.
+- **An empty feed is good news** (§ 31). "You're caught up.", never "No news found."
+- **Optimise for understanding per minute, not session time** (§ 35/§ 36). The north-star is Stories Understood — view duration combined with Brief, source and AI interaction. A change that raises time-on-feed while lowering source and Brief opens is a regression.

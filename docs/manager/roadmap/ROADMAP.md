@@ -41,4 +41,21 @@ Scope narrowed from general Portugal/EU news to: world football, Real Madrid, PT
 | 19 | done | Add Film & Series Criticism vertical (Netflix/Prime Video/Marvel, action/comedy/doramas) — `filmes` category, `SYNC_QUERIES`/`CATEGORY_RULES` updated (Addendum v1.1) | integrations-social, database | 17 | 20 |
 | 20 | planned | Fix `sync-news` cron rate-limit overrun (576 GNews req/day vs ~100/day free tier) — drop cadence to every 3h or move to a paid plan | backend-api, cto | 19 | — |
 
+
+## NOW V2 — 2026-08-19 ("NotiLab NOW V2" product spec)
+
+`/now` becomes a feed of **events** (Story) rather than articles. Three depth levels: NOW (5–15s) → BRIEF (30–60s) → DEEP (3–5min). Sprints below follow the spec's own § 39 sequencing.
+
+| # | Status | Task | Area | Depends on | Blocks |
+|---|---|---|---|---|---|
+| 21 | done | Sprint 1 — `/now` V2 UX: vertical story feed, `/story/[slug]` Brief, `/now/[slug]` deep links + OpenGraph, `/saved`, lane header, NOW/EXPLORE/ASK/SAVED nav, keyboard shortcuts, `story_*` analytics | frontend, backend-api | — | 22 |
+| 22 | done | Sprint 2 (schema) — `Story`/`StorySource`/`StoryEntity`/`KeyFact`/`TimelineItem` models + `story_model` migration (additive) + `News→Story` backfill script | database | 21 | 23 |
+| 23 | blocked | Sprint 2 (deploy) — apply `story_model` migration and run `pnpm stories:backfill --apply`. **Blocked on a human decision**: local `.env` and the deployment share one Neon database, so this is a production write | database, cto | 22 | 24, 25 |
+| 24 | planned | Sprint 3 — clustering: attach incoming articles to an existing Story (entity/location/time/topic + semantic similarity) instead of creating one per article. Until this lands every Story has exactly one source, so no card can say "Reuters + 4 sources" | ai-pipeline, integrations-social | 23 | — |
+| 25 | planned | Sprint 4 — intelligence: extract `keyFacts`, `whyItMatters`, `context`, `whatsNext`; set `confidenceScore` and drive `status` (developing/confirmed/updated/closed) from it. The Brief hides each of these sections until it has real data | ai-pipeline | 23 | 26 |
+| 26 | planned | Sprint 4b — story `timeline` + DEEP view (§ 22). Model and migration already exist; nothing writes or reads them yet | ai-pipeline, frontend | 25 | — |
+| 27 | planned | Sprint 5 — personalisation: real `Following` lane, and calibrate the § 33 feed weights against behavioural data. `interestScore` currently needs a `userId`, which this surface has no way to obtain (no sign-in) | backend-api, frontend | 23 | — |
+| 28 | planned | Move NOW saves off `localStorage` onto `SavedArticle` once accounts exist — saves currently do not follow a visitor between devices | frontend, backend-api | 27 | — |
+| 29 | planned | Retire the `News`-derived fallback in `lib/story-service.ts` (and `lib/story-tables.ts`) once clustering populates `Story` for every published article | backend-api | 24 | — |
+
 Add new entries at the bottom of the relevant section, or start a new section for a new initiative. Use `/task-spec` to produce the Task Spec that backs each entry (see `TASK_TEMPLATE.md`).

@@ -8,31 +8,31 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
+  id        String       @id @default(cuid())
+  email     String       @unique
   name      String?
   avatar    String?
   profile   UserProfile?
-  role      UserRole @default(USER)
-  isActive  Boolean  @default(true)
+  role      UserRole     @default(USER)
+  isActive  Boolean      @default(true)
   lastLogin DateTime?
-  password  String?  // For admin authentication
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
+  password  String? // For admin authentication
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
   // Relacionamentos
-  preferences UserPreferences?
-  readHistory ReadHistory[]
-  reactions   NewsReaction[]
-  savedArticles SavedArticle[]
-  digestSubscriptions DigestSubscription[]
+  preferences            UserPreferences?
+  readHistory            ReadHistory[]
+  reactions              NewsReaction[]
+  savedArticles          SavedArticle[]
+  digestSubscriptions    DigestSubscription[]
   messagingSubscriptions MessagingSubscription[]
-  points      Int @default(0)
-  level       String @default("Iniciante")
-  createdNews News[] @relation("NewsAuthor")
-  reviewedNews News[] @relation("NewsReviewer")
-  streak       UserStreak?
-  
+  points                 Int                     @default(0)
+  level                  String                  @default("Iniciante")
+  createdNews            News[]                  @relation("NewsAuthor")
+  reviewedNews           News[]                  @relation("NewsReviewer")
+  streak                 UserStreak?
+
   @@map("users")
 }
 
@@ -40,12 +40,12 @@ model UserProfile {
   id     String @id @default(cuid())
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  type        ProfileType @default(JOVEM)
-  interests   String[]    // Array de categorias de interesse
-  language    String      @default("pt")
-  timezone    String      @default("Europe/Lisbon")
-  
+
+  type      ProfileType @default(JOVEM)
+  interests String[] // Array de categorias de interesse
+  language  String      @default("pt")
+  timezone  String      @default("Europe/Lisbon")
+
   @@map("user_profiles")
 }
 
@@ -53,26 +53,27 @@ model UserPreferences {
   id     String @id @default(cuid())
   userId String @unique
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  dailyDigest     Boolean @default(true)
-  pushNotifications Boolean @default(true)
-  emailAlerts     Boolean @default(false)
-  categories      String[] // Categorias preferidas
-  
+
+  dailyDigest       Boolean  @default(true)
+  pushNotifications Boolean  @default(true)
+  emailAlerts       Boolean  @default(false)
+  categories        String[] // Categorias preferidas
+
   @@map("user_preferences")
 }
 
 model Category {
-  id          String @id @default(cuid())
-  name        String @unique
-  slug        String @unique
+  id          String  @id @default(cuid())
+  name        String  @unique
+  slug        String  @unique
   description String?
-  color       String @default("#007BFF")
+  color       String  @default("#007BFF")
   icon        String?
-  
+
   // Relacionamentos
-  news        News[]
-  
+  news    News[]
+  stories Story[]
+
   @@map("categories")
 }
 
@@ -88,27 +89,27 @@ model News {
   publishedAt DateTime
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
+
   // Classificação
-  categoryId  String
-  category    Category @relation(fields: [categoryId], references: [id])
-  tags        String[]
-  trending    Boolean  @default(false)
-  priority    Priority @default(NORMAL)
-  
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+  tags       String[]
+  trending   Boolean  @default(false)
+  priority   Priority @default(NORMAL)
+
   // IA e Personalização
-  aiSummary   String?
-  aiAnalysis  Json?    // AI analysis results
-  sentiment   String?
-  readTime    Int?     // em minutos
-  
+  aiSummary  String?
+  aiAnalysis Json? // AI analysis results
+  sentiment  String?
+  readTime   Int? // em minutos
+
   // AI-generated content
-  articleAI   ArticleAI?
-  
+  articleAI ArticleAI?
+
   // Source tracking
-  sourceId    String?
-  source      NewsSource? @relation(fields: [sourceId], references: [id])
-  
+  sourceId String?
+  source   NewsSource? @relation(fields: [sourceId], references: [id])
+
   // Ranking
   importanceScore Float @default(0)
   rankingScore    Float @default(0) // composite ranking score (0-100), recalculated by cron
@@ -117,54 +118,60 @@ model News {
   reactions   NewsReaction[]
   readHistory ReadHistory[]
   savedBy     SavedArticle[]
-  status      NewsStatus @default(DRAFT)
-  authorId    String?
-  reviewerId  String?
-  author      User? @relation("NewsAuthor", fields: [authorId], references: [id])
-  reviewer    User? @relation("NewsReviewer", fields: [reviewerId], references: [id])
-  
+
+  // Story clustering (NOW V2). Null until this article is attached to a Story.
+  storyId      String?
+  story        Story?        @relation(fields: [storyId], references: [id], onDelete: SetNull)
+  storySources StorySource[] @relation("NewsAsStorySource")
+  status       NewsStatus    @default(DRAFT)
+  authorId     String?
+  reviewerId   String?
+  author       User?         @relation("NewsAuthor", fields: [authorId], references: [id])
+  reviewer     User?         @relation("NewsReviewer", fields: [reviewerId], references: [id])
+
+  @@index([storyId])
   @@map("news")
 }
 
 // AI-generated article content (PRD: ArticleAI model)
 model ArticleAI {
-  id               String @id @default(cuid())
-  articleId        String @unique
-  article          News   @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  
-  summary          String?  // Short summary
-  tldr             String?  // One-line TL;DR
-  whyItMatters     String?  // Why this story matters
-  explainLikeIm10  String?  // Kid-friendly explanation
-  shareText        String?  // Cached AI-generated punchy share copy
-  importanceScore  Float    @default(0) // 0-100 AI importance score
+  id        String @id @default(cuid())
+  articleId String @unique
+  article   News   @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  summary         String? // Short summary
+  tldr            String? // One-line TL;DR
+  whyItMatters    String? // Why this story matters
+  explainLikeIm10 String? // Kid-friendly explanation
+  shareText       String? // Cached AI-generated punchy share copy
+  importanceScore Float   @default(0) // 0-100 AI importance score
 
   // Processing state
-  attempts         Int      @default(0)  // retry counter
-  lastError        String?  // last failure reason
-  processedAt      DateTime? // set on successful AI enrichment
+  attempts    Int       @default(0) // retry counter
+  lastError   String? // last failure reason
+  processedAt DateTime? // set on successful AI enrichment
 
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
-  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@map("article_ai")
 }
 
 // News sources (GNews, NewsAPI, RSS, etc.)
 model NewsSource {
-  id        String  @id @default(cuid())
-  name      String  @unique
-  type      String  // "gnews" | "newsapi" | "rss" | "manual"
-  url       String?
-  apiKey    String? // encrypted in production
-  isActive  Boolean @default(true)
-  priority  Int     @default(50) // source reliability score 0-100
-  
-  articles  News[]
-  
+  id       String  @id @default(cuid())
+  name     String  @unique
+  type     String // "gnews" | "newsapi" | "rss" | "manual"
+  url      String?
+  apiKey   String? // encrypted in production
+  isActive Boolean @default(true)
+  priority Int     @default(50) // source reliability score 0-100
+
+  articles News[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   @@map("news_sources")
 }
 
@@ -176,7 +183,7 @@ model SavedArticle {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   news      News     @relation(fields: [newsId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
-  
+
   @@unique([userId, newsId])
   @@map("saved_articles")
 }
@@ -192,38 +199,38 @@ model DigestSubscription {
   isActive   Boolean  @default(true)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
-  
+
   @@unique([email])
   @@map("digest_subscriptions")
 }
 
 // A single generated digest issue (one per frequency per run)
 model DigestIssue {
-  id           String   @id @default(cuid())
-  frequency    String   // "daily" | "weekly"
-  periodStart  DateTime // content window start
-  periodEnd    DateTime // content window end (= generatedAt)
-  subject      String
-  htmlContent  String   // rendered HTML snapshot
-  articleIds   String[] // article IDs included in this issue
-  generatedAt  DateTime @default(now())
+  id          String   @id @default(cuid())
+  frequency   String // "daily" | "weekly"
+  periodStart DateTime // content window start
+  periodEnd   DateTime // content window end (= generatedAt)
+  subject     String
+  htmlContent String // rendered HTML snapshot
+  articleIds  String[] // article IDs included in this issue
+  generatedAt DateTime @default(now())
 
-  deliveries   DigestDelivery[]
+  deliveries DigestDelivery[]
 
   @@map("digest_issues")
 }
 
 // Per-subscriber delivery record — tracks status for retries and logs
 model DigestDelivery {
-  id        String   @id @default(cuid())
+  id        String      @id @default(cuid())
   issueId   String
   issue     DigestIssue @relation(fields: [issueId], references: [id], onDelete: Cascade)
   email     String
-  status    String   @default("pending") // "pending" | "sent" | "failed"
+  status    String      @default("pending") // "pending" | "sent" | "failed"
   sentAt    DateTime?
   error     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
 
   @@unique([issueId, email])
   @@map("digest_deliveries")
@@ -231,19 +238,19 @@ model DigestDelivery {
 
 // Messaging channel subscriptions (Telegram, WhatsApp)
 model MessagingSubscription {
-  id           String   @id @default(cuid())
-  channel      String   // "telegram" | "whatsapp"
-  channelId    String   // Telegram chat_id or WhatsApp phone (E.164)
-  userId       String?
-  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  isActive     Boolean  @default(true)
-  categories   String[] // preferred category slugs; empty = all
-  frequency    String   @default("daily") // "realtime" | "daily" | "weekly"
-  language     String   @default("en")
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id         String   @id @default(cuid())
+  channel    String // "telegram" | "whatsapp"
+  channelId  String // Telegram chat_id or WhatsApp phone (E.164)
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  isActive   Boolean  @default(true)
+  categories String[] // preferred category slugs; empty = all
+  frequency  String   @default("daily") // "realtime" | "daily" | "weekly"
+  language   String   @default("en")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  deliveries   MessagingDelivery[]
+  deliveries MessagingDelivery[]
 
   @@unique([channel, channelId])
   @@map("messaging_subscriptions")
@@ -251,32 +258,32 @@ model MessagingSubscription {
 
 // Log of every message sent through a messaging channel
 model MessagingDelivery {
-  id             String   @id @default(cuid())
+  id             String                @id @default(cuid())
   subscriptionId String
   subscription   MessagingSubscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
-  channel        String   // "telegram" | "whatsapp"
-  messageType    String   // "daily_digest" | "trending_alert" | "command_response"
-  status         String   @default("pending") // "pending" | "sent" | "failed"
+  channel        String // "telegram" | "whatsapp"
+  messageType    String // "daily_digest" | "trending_alert" | "command_response"
+  status         String                @default("pending") // "pending" | "sent" | "failed"
   articleIds     String[] // articles included in this message
   sentAt         DateTime?
   error          String?
-  telegramMsgId  Int?     // Telegram message_id (for future edits/replies)
-  createdAt      DateTime @default(now())
+  telegramMsgId  Int? // Telegram message_id (for future edits/replies)
+  createdAt      DateTime              @default(now())
 
   @@map("messaging_deliveries")
 }
 
 model NewsReaction {
-  id     String      @id @default(cuid())
+  id     String       @id @default(cuid())
   userId String
   newsId String
   type   ReactionType
-  
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  news   News @relation(fields: [newsId], references: [id], onDelete: Cascade)
-  
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  news News @relation(fields: [newsId], references: [id], onDelete: Cascade)
+
   createdAt DateTime @default(now())
-  
+
   @@unique([userId, newsId])
   @@map("news_reactions")
 }
@@ -286,59 +293,59 @@ model ReadHistory {
   userId    String
   newsId    String
   readAt    DateTime @default(now())
-  timeSpent Int?     // em segundos
-  
+  timeSpent Int? // em segundos
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   news News @relation(fields: [newsId], references: [id], onDelete: Cascade)
-  
+
   @@unique([userId, newsId])
   @@map("read_history")
 }
 
 model TrendingTopic {
-  id          String   @id @default(cuid())
-  keyword     String   @unique
+  id           String   @id @default(cuid())
+  keyword      String   @unique
   searchVolume Int
-  category    String?
-  region      String   @default("PT")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+  category     String?
+  region       String   @default("PT")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
   @@map("trending_topics")
 }
 
 model ChatSession {
   id        String   @id @default(cuid())
   userId    String?
-  messages  Json[]   // Array de mensagens do chat
-  context   String?  // Contexto da conversa
+  messages  Json[] // Array de mensagens do chat
+  context   String? // Contexto da conversa
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   @@map("chat_sessions")
 }
 
 model AdminAction {
-  id        String   @id @default(cuid())
-  userId    String
-  action    String   // CREATE, UPDATE, DELETE, APPROVE, REJECT
-  resource  String   // NEWS, USER, CATEGORY
+  id         String   @id @default(cuid())
+  userId     String
+  action     String // CREATE, UPDATE, DELETE, APPROVE, REJECT
+  resource   String // NEWS, USER, CATEGORY
   resourceId String
-  details   Json?
-  createdAt DateTime @default(now())
-  
+  details    Json?
+  createdAt  DateTime @default(now())
+
   @@map("admin_actions")
 }
 
 model ContentWorkflow {
-  id        String   @id @default(cuid())
-  newsId    String   @unique
-  stage     WorkflowStage @default(DRAFT)
+  id         String        @id @default(cuid())
+  newsId     String        @unique
+  stage      WorkflowStage @default(DRAFT)
   assignedTo String?
-  notes     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
+  notes      String?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
   @@map("content_workflow")
 }
 
@@ -348,16 +355,16 @@ model ContentWorkflow {
 
 // Tracks daily reading streak per user
 model UserStreak {
-  id               String    @id @default(cuid())
-  userId           String    @unique
-  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  currentStreak    Int       @default(0)
-  longestStreak    Int       @default(0)
-  lastActiveDate   DateTime? // date-only (stored as midnight UTC)
+  id                String    @id @default(cuid())
+  userId            String    @unique
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentStreak     Int       @default(0)
+  longestStreak     Int       @default(0)
+  lastActiveDate    DateTime? // date-only (stored as midnight UTC)
   streakFrozenUntil DateTime? // grace period to avoid breaking streak
-  totalDaysActive  Int       @default(0)
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  totalDaysActive   Int       @default(0)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   @@map("user_streaks")
 }
@@ -366,25 +373,27 @@ model UserStreak {
 // userId is optional to support anonymous events
 model UserEvent {
   id        String   @id @default(cuid())
-  userId    String?  // null = anonymous
-  sessionId String?  // browser session ID
-  event     String   // article_viewed | article_shared | article_saved | streak_completed | etc.
-  articleId String?  // optional article context
-  meta      Json?    // additional context: channel, source, experiment variant, etc.
+  userId    String? // null = anonymous
+  sessionId String? // browser session ID
+  event     String // article_viewed | article_shared | article_saved | streak_completed | etc.
+  articleId String? // optional article context
+  storyId   String? // optional Story context (NOW V2 story_* events)
+  meta      Json? // additional context: channel, source, experiment variant, etc.
   createdAt DateTime @default(now())
 
   @@index([userId, event])
   @@index([event, createdAt])
+  @@index([storyId, event])
   @@map("user_events")
 }
 
 // Records every share action for virality analytics
 model ShareHistory {
   id        String   @id @default(cuid())
-  userId    String?  // null = anonymous
+  userId    String? // null = anonymous
   articleId String
-  channel   String   // whatsapp | telegram | twitter | copy
-  snippet   String?  // the text that was shared (for A/B analysis)
+  channel   String // whatsapp | telegram | twitter | copy
+  snippet   String? // the text that was shared (for A/B analysis)
   createdAt DateTime @default(now())
 
   @@index([articleId])
@@ -395,16 +404,16 @@ model ShareHistory {
 // One row per share action — carries a unique referral code for attribution
 model ArticleShare {
   id             String   @id @default(cuid())
-  code           String   @unique  // 8-char nanoid used in /s/[code] URL
+  code           String   @unique // 8-char nanoid used in /s/[code] URL
   articleId      String
-  sharedByUserId String?  // null = anonymous
-  channel        String   // whatsapp | telegram | twitter | copy
-  snippet        String?  // the text included in the share message
+  sharedByUserId String? // null = anonymous
+  channel        String // whatsapp | telegram | twitter | copy
+  snippet        String? // the text included in the share message
   visitCount     Int      @default(0)
   newUserCount   Int      @default(0)
   createdAt      DateTime @default(now())
 
-  visits         ShareVisit[]
+  visits ShareVisit[]
 
   @@index([articleId])
   @@index([sharedByUserId])
@@ -413,14 +422,14 @@ model ArticleShare {
 
 // One row per landing page visit from a share link (/s/[code])
 model ShareVisit {
-  id            String   @id @default(cuid())
+  id            String       @id @default(cuid())
   shareId       String
   share         ArticleShare @relation(fields: [shareId], references: [id], onDelete: Cascade)
-  visitorUserId String?  // populated if visitor is a logged-in user
-  isNewUser     Boolean  @default(false) // true = first visit ever to platform
-  converted     Boolean  @default(false) // true = liked / saved / opened chat
-  ipHash        String?  // SHA-256 of IP for dedup only — never stored raw
-  createdAt     DateTime @default(now())
+  visitorUserId String? // populated if visitor is a logged-in user
+  isNewUser     Boolean      @default(false) // true = first visit ever to platform
+  converted     Boolean      @default(false) // true = liked / saved / opened chat
+  ipHash        String? // SHA-256 of IP for dedup only — never stored raw
+  createdAt     DateTime     @default(now())
 
   @@index([shareId])
   @@index([visitorUserId])
@@ -430,13 +439,13 @@ model ShareVisit {
 // Tracks every outbound notification for open/click analytics
 model NotificationLog {
   id         String    @id @default(cuid())
-  userId     String?   // null = anonymous email subscriber
-  email      String?   // for email channel
-  channelId  String?   // for Telegram/WhatsApp
-  type       String    // digest | trending_alert | reactivation | streak_reminder
-  channel    String    // email | telegram | whatsapp
+  userId     String? // null = anonymous email subscriber
+  email      String? // for email channel
+  channelId  String? // for Telegram/WhatsApp
+  type       String // digest | trending_alert | reactivation | streak_reminder
+  channel    String // email | telegram | whatsapp
   status     String    @default("sent") // sent | failed | opened | clicked
-  articleIds String[]  // articles included
+  articleIds String[] // articles included
   sentAt     DateTime  @default(now())
   openedAt   DateTime?
   clickedAt  DateTime?
@@ -449,9 +458,9 @@ model NotificationLog {
 // A/B experiment definitions
 model GrowthExperiment {
   id          String    @id @default(cuid())
-  name        String    @unique  // e.g. "share_snippet_v2"
+  name        String    @unique // e.g. "share_snippet_v2"
   description String?
-  variants    Json      // { "control": {}, "treatment": { "snippetStyle": "punchy" } }
+  variants    Json // { "control": {}, "treatment": { "snippetStyle": "punchy" } }
   isActive    Boolean   @default(true)
   startedAt   DateTime  @default(now())
   endedAt     DateTime?
@@ -464,12 +473,12 @@ model GrowthExperiment {
 
 // Maps a user to an experiment variant (sticky assignment)
 model ExperimentAssignment {
-  id           String   @id @default(cuid())
+  id           String           @id @default(cuid())
   userId       String
   experimentId String
   experiment   GrowthExperiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
-  variant      String   // "control" | "treatment"
-  assignedAt   DateTime @default(now())
+  variant      String // "control" | "treatment"
+  assignedAt   DateTime         @default(now())
 
   @@unique([userId, experimentId])
   @@index([userId])
@@ -527,4 +536,172 @@ enum WorkflowStage {
   APPROVAL
   PUBLISHED
   REJECTED
+}
+
+// ---------------------------------------------------------------------------
+// Story layer (NOW V2)
+//
+// A Story is an *event*, not an article. Several syndicated articles about the
+// same happening (Reuters, AP, BBC…) collapse into one Story with many
+// StorySource rows, so /now shows one card per event instead of five cards for
+// the same event.
+//
+// Clustering itself is not implemented yet — nothing writes `News.storyId`
+// automatically. Until it does, `lib/story-service.ts` derives Story shapes
+// from News + ArticleAI, and `scripts/backfill-stories.ts` can populate these
+// tables one-Story-per-News. Both paths produce the same read model, so the UI
+// does not change when real clustering lands.
+// ---------------------------------------------------------------------------
+
+model Story {
+  id   String @id @default(cuid())
+  slug String @unique
+
+  /// Describes the event. Deliberately not required to match any source's
+  /// headline — see spec § 4.
+  headline     String
+  /// One-sentence "what happened". Kept short on purpose (~180 chars).
+  summary      String
+  /// Consequence, not a restatement of the headline. Null until enriched.
+  whyItMatters String?
+  /// The Brief's "what happened": 2–3 short paragraphs (spec § 10). The card
+  /// uses `summary`; this is only read once the user opens the Brief.
+  narrative    String?
+  /// Background: what came before this.
+  context      String?
+  /// What to watch next.
+  whatsNext    String?
+
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+  /// Human-readable place, e.g. "USA", "Maputo". Null when the event has no
+  /// meaningful location — the UI omits the field rather than guessing.
+  location   String?
+  topics     String[]
+
+  status StoryStatus @default(DEVELOPING)
+
+  /// 0–100, how much this matters. Feeds the NOW ranking.
+  importanceScore Float @default(0)
+  /// 0–100, how well the sources support the claims. Internal only: never
+  /// rendered to users as a number (spec § 18). Drives publish/hold decisions.
+  confidenceScore Int   @default(0)
+
+  heroImageUrl  String?
+  /// "image" | "video" | "map" | "chart" — free text while the set is evolving.
+  heroMediaType String?
+  /// Where the hero media came from, for attribution.
+  heroCredit    String?
+
+  publishedAt DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  keyFacts KeyFact[]
+  sources  StorySource[]
+  entities StoryEntity[]
+  timeline TimelineItem[]
+  /// Articles clustered into this Story.
+  articles News[]
+
+  @@index([status, publishedAt])
+  @@index([categoryId, publishedAt])
+  @@index([importanceScore])
+  @@map("stories")
+}
+
+/// One outlet's account of the Story. `newsId` is set when the source is an
+/// article we ingested; it stays null for official statements or documents
+/// added by hand.
+model StorySource {
+  id      String @id @default(cuid())
+  storyId String
+  story   Story  @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  newsId String?
+  news   News?   @relation("NewsAsStorySource", fields: [newsId], references: [id], onDelete: SetNull)
+
+  publisher   String
+  url         String
+  headline    String
+  publishedAt DateTime
+
+  sourceType       StorySourceType @default(NEWS)
+  /// 0–100. Mirrors NewsSource.priority when the source is a known outlet.
+  reliabilityScore Int?
+
+  createdAt DateTime @default(now())
+
+  @@unique([storyId, url])
+  @@index([storyId])
+  @@map("story_sources")
+}
+
+/// A short, visually scannable number or date (spec § 11/§ 16).
+model KeyFact {
+  id      String @id @default(cuid())
+  storyId String
+  story   Story  @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  /// The big number, e.g. "58.5M".
+  value    String
+  /// What it counts, e.g. "acres".
+  label    String
+  /// Qualifier, e.g. "potentially affected".
+  context  String?
+  /// Display order, lowest first.
+  position Int     @default(0)
+
+  @@index([storyId, position])
+  @@map("story_key_facts")
+}
+
+/// A person, organisation, place or thing the Story is about. Used for
+/// clustering (§ 20) and feed diversity capping (§ 34).
+model StoryEntity {
+  id      String @id @default(cuid())
+  storyId String
+  story   Story  @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  name       String
+  /// "person" | "organization" | "location" | "product" | "other" — free text
+  /// while the taxonomy is still settling.
+  type       String
+  /// Lowercased, punctuation-stripped `name`, for matching across stories.
+  normalized String
+
+  @@unique([storyId, normalized])
+  @@index([normalized])
+  @@map("story_entities")
+}
+
+/// One dated step in the Story's history. Shown only in DEEP (spec § 22).
+model TimelineItem {
+  id      String @id @default(cuid())
+  storyId String
+  story   Story  @relation(fields: [storyId], references: [id], onDelete: Cascade)
+
+  /// When the step happened. Precision varies (a year, a day) — `label`
+  /// carries the human form so we never render a fake day for a year-only fact.
+  occurredAt  DateTime
+  label       String
+  title       String
+  description String?
+
+  @@index([storyId, occurredAt])
+  @@map("story_timeline_items")
+}
+
+enum StoryStatus {
+  DEVELOPING
+  CONFIRMED
+  UPDATED
+  CLOSED
+}
+
+enum StorySourceType {
+  NEWS
+  OFFICIAL
+  DOCUMENT
+  SOCIAL
 }
