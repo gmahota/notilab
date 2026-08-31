@@ -83,6 +83,39 @@ describe("authenticateAgent", () => {
     }
   })
 
+  it("rejects a wrong key of the same length as the real one", () => {
+    // The case the comparison exists for. Both operands are keyed-hashed to a
+    // fixed 32 bytes before timingSafeEqual, so a same-length guess and a
+    // wildly-wrong-length one take the same path — no throw, no length signal.
+    env.NOTILAB_AGENT_API_KEY = VALID_KEY
+
+    expect(() => authenticateAgent(headers({ authorization: `Bearer ${OTHER_KEY}` }))).toThrow(
+      expect.objectContaining({ code: "INVALID_API_KEY" }),
+    )
+    expect(() => authenticateAgent(headers({ authorization: "Bearer x" }))).toThrow(
+      expect.objectContaining({ code: "INVALID_API_KEY" }),
+    )
+    expect(() =>
+      authenticateAgent(headers({ authorization: `Bearer ${"a".repeat(4000)}` })),
+    ).toThrow(expect.objectContaining({ code: "INVALID_API_KEY" }))
+  })
+
+  it("accepts a key differing from another agent's only in the last character", () => {
+    // Guards against any comparison that stops early: two keys sharing a long
+    // prefix must still resolve to their own identities.
+    const shared = "c".repeat(39)
+    env.NOTILAB_AGENT_API_KEYS = JSON.stringify([
+      { id: "first", key: `${shared}1`, permissions: "readonly" },
+      { id: "second", key: `${shared}2`, permissions: "readonly" },
+    ])
+
+    expect(authenticateAgent(headers({ authorization: `Bearer ${shared}1` })).id).toBe("first")
+    expect(authenticateAgent(headers({ authorization: `Bearer ${shared}2` })).id).toBe("second")
+    expect(() => authenticateAgent(headers({ authorization: `Bearer ${shared}3` }))).toThrow(
+      expect.objectContaining({ code: "INVALID_API_KEY" }),
+    )
+  })
+
   it("accepts a valid key over Authorization or X-Agent-Api-Key", () => {
     env.NOTILAB_AGENT_API_KEY = VALID_KEY
     env.NOTILAB_AGENT_ID = "abacus"
