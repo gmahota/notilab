@@ -20,6 +20,17 @@ const VALID_EVENTS = new Set<GrowthEvent>([
   "share_snippet_copied",
   "experiment_exposed",
   "experiment_converted",
+  // NOW V2 story feed (spec § 35)
+  "story_impression",
+  "story_open",
+  "story_skip",
+  "story_read_30s",
+  "story_source_open",
+  "story_save",
+  "story_share",
+  "story_ask_ai",
+  "story_next",
+  "story_previous",
 ])
 
 export async function POST(request: Request): Promise<Response> {
@@ -34,7 +45,7 @@ export async function POST(request: Request): Promise<Response> {
     return NextResponse.json({ error: "Invalid body" }, { status: 400 })
   }
 
-  const { event, userId, sessionId, articleId, meta } = body as Record<string, unknown>
+  const { event, userId, sessionId, articleId, storyId, meta } = body as Record<string, unknown>
 
   if (typeof event !== "string" || !VALID_EVENTS.has(event as GrowthEvent)) {
     return NextResponse.json({ error: "Invalid event" }, { status: 400 })
@@ -46,6 +57,9 @@ export async function POST(request: Request): Promise<Response> {
   }
   if (articleId !== undefined && typeof articleId !== "string") {
     return NextResponse.json({ error: "Invalid articleId" }, { status: 400 })
+  }
+  if (storyId !== undefined && typeof storyId !== "string") {
+    return NextResponse.json({ error: "Invalid storyId" }, { status: 400 })
   }
 
   // Sanitise meta: must be a plain object, no nesting depth limit needed here
@@ -60,6 +74,7 @@ export async function POST(request: Request): Promise<Response> {
     userId: typeof userId === "string" ? userId : undefined,
     sessionId: typeof sessionId === "string" ? sessionId : undefined,
     articleId: typeof articleId === "string" ? articleId : undefined,
+    storyId: typeof storyId === "string" ? storyId : undefined,
     meta: safeMeta,
   })
 

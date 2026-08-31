@@ -20,6 +20,7 @@
  */
 
 import { prisma } from "./prisma"
+import { storyTablesPresent } from "./story-tables"
 
 /** Articles handed to the model as the only permitted source of facts. */
 export interface ContextArticle {
@@ -200,6 +201,69 @@ export async function retrieveContext(message: string): Promise<RetrievalResult>
   return { mode: "none", articles: [] }
 }
 
+/**
+ * Context for a question asked *about a specific story* (spec § 23).
+ *
+ * The generic path guesses which articles are relevant from the question's
+ * keywords. Here we already know: the user is looking at one story, so its own
+ * sources are the context and nothing else is. That removes the failure mode
+ * where "who benefits?" retrieves an unrelated article sharing a word, and it
+ * means the user never has to explain which story they mean.
+ *
+ * Returns `none` when the story has no article whose text we hold — better a
+ * plain "I cannot answer from what we have" than an answer grounded in
+ * something else.
+ */
+export async function retrieveStoryContext(storyKey: string): Promise<RetrievalResult> {
+  // Articles attached to the Story, when the Story tables are in play. Before
+  // the story_model migration they are not, and the News lookup below is the
+  // pre-clustering shape of the same thing.
+  let articleIds: string[] = []
+  if (await storyTablesPresent()) {
+    const story = await prisma.story.findFirst({
+      where: { OR: [{ slug: storyKey }, { id: storyKey }] },
+      select: { sources: { select: { newsId: true } } },
+    })
+    if (story) {
+      articleIds = story.sources.map((s) => s.newsId).filter((id): id is string => Boolean(id))
+    }
+  }
+
+  const articles = await prisma.news.findMany({
+    where:
+      articleIds.length > 0
+        ? { status: "PUBLISHED", id: { in: articleIds } }
+        : // No Story row, or none of its sources is an article we hold: a
+          // News-derived story's key is the article's own slug or id.
+          { status: "PUBLISHED", OR: [{ slug: storyKey }, { id: storyKey }] },
+    orderBy: { publishedAt: "asc" },
+    take: CONTEXT_LIMIT,
+    select: CONTEXT_SELECT,
+  })
+
+  if (articles.length === 0) return { mode: "none", articles: [] }
+  return { mode: "matched", articles: articles.map(toContextArticle) }
+}
+
+/**
+ * Extra instruction for story-scoped questions (spec § 24).
+ *
+ * The four categories have to stay apart because they carry different
+ * warranties: a FACT is in the sources, ANALYSIS is the model's reading of them,
+ * and blending the two is how a plausible interpretation gets read as reporting.
+ * UNKNOWN matters most — it is the honest answer to most "what happens next?"
+ * questions, and the one a model will otherwise talk its way out of.
+ */
+const STORY_SCOPE_ADDENDUM = `
+This question is about one specific story, and the articles below are that story's own sources.
+
+Separate what you know from what you infer. When a sentence is not a plain fact from the sources, mark it:
+- FACT: — stated in the sources.
+- CONTEXT: — related background you are confident in, not drawn from these sources.
+- ANALYSIS: — your reading of what the facts imply.
+- UNKNOWN: — the sources do not settle this.
+Never present CONTEXT or ANALYSIS as if it were FACT, and prefer UNKNOWN to a confident guess.`
+
 const SYSTEM_PROMPT = `You are NotiLab's news assistant. You answer strictly from the numbered articles given to you.
 
 Absolute rules:
@@ -225,6 +289,7 @@ export function buildGroundedPrompt(
   message: string,
   articles: ContextArticle[],
   history: Array<{ type: string; content: string }> = [],
+  options: { storyScoped?: boolean } = {},
 ): { system: string; user: string } {
   const rendered = articles
     .map((a, i) => {
@@ -246,7 +311,7 @@ export function buildGroundedPrompt(
     : ""
 
   return {
-    system: SYSTEM_PROMPT,
+    system: options.storyScoped ? `${SYSTEM_PROMPT}\n${STORY_SCOPE_ADDENDUM}` : SYSTEM_PROMPT,
     user: `${historyBlock}Question: ${message}\n\nArticles you may use:\n\n${rendered}`,
   }
 }
