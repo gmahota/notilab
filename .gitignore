@@ -43,3 +43,8 @@ next-env.d.ts
 # Project standardizes on pnpm — ignore npm/yarn lockfiles, keep pnpm-lock.yaml tracked
 package-lock.json
 yarn.lock
+
+# Generated from the tool registry by `pnpm agent:openapi`. Not committed:
+# a checked-in copy goes stale the moment a tool changes, while
+# GET /api/agent/openapi is generated per request and cannot drift.
+docs/agent-api.openapi.json

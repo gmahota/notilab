@@ -33,6 +33,13 @@ SMTP_PASS="your-app-password"
 # Social Media APIs (opcional)
 TWITTER_API_KEY="..."
 FACEBOOK_API_KEY="..."
+
+# Agent Management API (opcional — ver docs/agent-api.md)
+# Sem nenhuma chave configurada, /api/agent/* responde AGENT_API_DISABLED.
+# Mínimo 32 caracteres:  openssl rand -hex 32
+NOTILAB_AGENT_API_KEY="..."
+NOTILAB_AGENT_ID="abacus"
+NOTILAB_AGENT_PERMISSIONS="readonly"   # readonly | editorial | seo | lista de permissões
 \`\`\`
 
 ## Instalação Local
@@ -94,6 +101,28 @@ Obrigatórias em **Production** — sem elas partes do sistema falham em silênc
 
 Variáveis novas só entram em builds novos: **depois de as adicionar é preciso um redeploy**.
 
+#### Agent Management API (agentes externos)
+
+Opcional e **desligada por omissão**. Sem `NOTILAB_AGENT_API_KEY` (ou
+`NOTILAB_AGENT_API_KEYS`), todos os endpoints `/api/agent/*` respondem
+`AGENT_API_DISABLED` — um deploy a que ninguém deu credencial não é operável.
+
+| Variável | Omissão | Para quê |
+|---|---|---|
+| `NOTILAB_AGENT_API_KEY` | — | chave do agente. Mínimo 32 caracteres |
+| `NOTILAB_AGENT_ID` | `default` | identidade nas linhas de auditoria (`agent:<id>`) |
+| `NOTILAB_AGENT_PERMISSIONS` | `readonly` | `readonly`, `editorial`, `seo`, ou lista de permissões |
+| `NOTILAB_AGENT_API_KEYS` | — | JSON array, para vários agentes com permissões diferentes |
+| `NOTILAB_AGENT_RATE_LIMIT` | `120` | pedidos por janela, por agente |
+| `NOTILAB_AGENT_RATE_WINDOW_MS` | `60000` | duração da janela |
+| `NOTILAB_AGENT_CONFIRMATION_SECRET` | constante | chave HMAC dos tokens de confirmação humana |
+
+Nenhuma é `NEXT_PUBLIC_*`, portanto nenhuma chega ao bundle do browser. A omissão
+de `NOTILAB_AGENT_PERMISSIONS` concede **menos**, nunca mais: um esquecimento
+deixa o agente só a ler.
+
+Contrato completo, ferramentas, códigos de erro e auditoria: `docs/agent-api.md`.
+
 #### O origin público (links de partilha, referral, digest)
 
 Resolvido num único sítio, `lib/base-url.ts`, por esta ordem: `NEXT_PUBLIC_BASE_URL` →
@@ -153,6 +182,28 @@ chegar de manhã em Maputo (UTC+2):
 | `generate-digest` | 02:00 | 04:00 | monta a edição a partir do feed ranqueado |
 | `send-digest` | 05:00 | 07:00 | entrega de manhã |
 | `send-messaging` | 07:00 | 09:00 | WhatsApp/Telegram depois do email |
+
+#### `publish-scheduled` — existe, mas não está registada
+
+`app/api/cron/publish-scheduled/route.ts` cumpre os agendamentos criados pela
+Agent Management API (`schedule_article`). **Está deliberadamente fora do
+`vercel.json`.** As outras seis rotas lêem, enriquecem ou enviam; esta põe
+notícias no site público sem ninguém a ver, que é o risco central identificado
+em `AGENTS.md`. Ligar essa automação é uma decisão de operação, tomada uma vez e
+com consciência — não um efeito secundário de um commit.
+
+Enquanto não estiver registada, um agendamento é intenção registada que nada
+executa (a descrição da própria ferramenta avisa o agente disso).
+
+Para ligar — atenção ao tecto de 1×/dia do Hobby descrito acima:
+
+```json
+{ "path": "/api/cron/publish-scheduled", "schedule": "0 8 * * *" }
+```
+
+Publica apenas artigos já `APPROVED`, aplica o mesmo gate de revisão que
+qualquer outro chamador, fecha cada agendamento (cumprido ou falhado) e escreve
+auditoria atribuída a `system:cron`.
 
 **Consequência a assumir:** em Hobby o conteúdo do site só é actualizado 1× por dia. Para
 a frescura de 15–30 min que o produto pressupõe é preciso passar a Pro (permite cadência

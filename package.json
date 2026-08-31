@@ -11,6 +11,7 @@
     "test:watch": "jest --watch",
     "typecheck": "tsc --noEmit",
     "agents:sync": "node scripts/agents/sync-claude-agents.mjs",
+    "agent:openapi": "tsx scripts/agent/dump-openapi.ts",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "db:generate": "prisma generate",
