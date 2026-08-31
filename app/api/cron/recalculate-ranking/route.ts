@@ -3,6 +3,9 @@ import { recalculateAllRankings } from "@/lib/ranking-recalculate"
 
 export const dynamic = "force-dynamic"
 
+// Recomputes the score of every article in one pass.
+export const maxDuration = 60
+
 export async function GET(request: Request) {
   const authHeader = request.headers.get("Authorization")
   const expected = `Bearer ${process.env.CRON_SECRET}`

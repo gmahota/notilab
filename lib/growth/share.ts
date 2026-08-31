@@ -15,9 +15,8 @@
  */
 
 import { prisma } from "../prisma"
+import { BASE_URL } from "../base-url"
 import { trackEvent } from "./events"
-
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "https://notilab.app"
 
 // ---------------------------------------------------------------------------
 // PrismaExt

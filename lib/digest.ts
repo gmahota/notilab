@@ -14,6 +14,7 @@
  */
 
 import { prisma } from "./prisma"
+import { BASE_URL } from "./base-url"
 
 // ---------------------------------------------------------------------------
 // Types
@@ -88,8 +89,6 @@ const WINDOW_HOURS: Record<DigestFrequency, number> = {
   daily: 24,
   weekly: 168, // 7 days
 }
-
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "https://notilab.app"
 
 async function selectArticles(
   frequency: DigestFrequency,

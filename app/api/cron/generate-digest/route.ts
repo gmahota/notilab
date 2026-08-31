@@ -3,6 +3,10 @@ import { generateDigestIssue } from "@/lib/digest"
 
 export const dynamic = "force-dynamic"
 
+// Composes the daily issue (plus the weekly one on Mondays) and fans out one
+// delivery row per subscriber.
+export const maxDuration = 60
+
 export async function GET(request: Request) {
   const authHeader = request.headers.get("Authorization")
   const expected = `Bearer ${process.env.CRON_SECRET}`

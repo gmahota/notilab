@@ -3,6 +3,9 @@ import { sendPendingDigests } from "@/lib/digest-send"
 
 export const dynamic = "force-dynamic"
 
+// Up to BATCH_SIZE emails per invocation, one HTTP call each.
+export const maxDuration = 60
+
 const BATCH_SIZE = 50
 
 export async function GET(request: Request) {

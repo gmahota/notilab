@@ -82,6 +82,34 @@ No painel da Vercel:
 - Settings → Environment Variables
 - Adicionar todas as variáveis do `.env.example`
 
+Obrigatórias em **Production** — sem elas partes do sistema falham em silêncio:
+
+| Variável | Sem ela |
+|---|---|
+| `DATABASE_URL` | o site não arranca |
+| `CRON_SECRET` | as seis rotas de cron devolvem 500 e nada é ingerido |
+| `GNEWS_API_KEY` / `NEWSAPI_KEY` | os providers devolvem `[]` e a ingestão termina com `fetched: 0` sem erro |
+| `OPENAI_API_KEY` ou `GROQ_API_KEY` | o enriquecimento de IA falha artigo a artigo |
+| `NEXT_PUBLIC_BASE_URL` | *opcional* — ver a nota abaixo; sem ela o origin vem da variável de sistema da Vercel |
+
+Variáveis novas só entram em builds novos: **depois de as adicionar é preciso um redeploy**.
+
+#### O origin público (links de partilha, referral, digest)
+
+Resolvido num único sítio, `lib/base-url.ts`, por esta ordem: `NEXT_PUBLIC_BASE_URL` →
+`NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL` → `VERCEL_PROJECT_PRODUCTION_URL` → fallback.
+As duas do meio são
+[system environment variables](https://vercel.com/docs/environment-variables/system-environment-variables)
+que a Vercel define sozinha, desde que **Enable access to System Environment Variables**
+esteja activa em Settings → Environment Variables. Contêm o domínio de produção do
+projecto (o custom domain mais curto, ou o `.vercel.app` se não houver) e **não** o
+`VERCEL_URL`, que é o URL daquele deployment e muda a cada deploy.
+
+Definir `NEXT_PUBLIC_BASE_URL` à mão só é necessário fora da Vercel (o deploy manual em
+VPS mais abaixo) ou para forçar um domínio diferente do de produção. Como qualquer
+`NEXT_PUBLIC_*` é inlined no bundle no momento do build, mudá-la exige um build novo — um
+redeploy do build anterior não pega.
+
 ### 3. Configurar Banco de Dados
 Recomendado: **Neon** ou **Supabase**
 - Criar database PostgreSQL
@@ -99,6 +127,10 @@ deployment antigo que não tenha `vercel.json` corre com zero crons registados.
 **`CRON_SECRET` é obrigatório.** Todas as rotas em `app/api/cron/*` devolvem 500 sem ele
 (ver `app/api/cron/sync-news/route.ts`). Definir em Settings → Environment Variables; a
 Vercel injecta automaticamente `Authorization: Bearer $CRON_SECRET` nas invocações.
+
+**Cada rota declara `maxDuration = 60`.** O limite por defeito das funções é curto e o
+`sync-news` gasta ~11s só em esperas entre queries de provider; sem isto a execução é
+morta a meio e nada é persistido. 60s é o tecto do plano Hobby.
 
 #### Cadências e o limite do plano Hobby
 

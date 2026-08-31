@@ -8,7 +8,7 @@
  * Max recommended length: ~800 chars for a digest, ~280 for a single alert.
  */
 
-const BASE_URL = process.env.NEXT_PUBLIC_BASE_URL ?? "https://notilab.app"
+import { BASE_URL } from "../base-url"
 
 // ---------------------------------------------------------------------------
 // Shared article shape expected by formatters
