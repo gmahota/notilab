@@ -11,20 +11,10 @@
 
 import type { NormalizedArticle } from "./types"
 import { prisma } from "@/lib/prisma"
-
-/** Produces a URL-safe slug unique enough for this article. */
-function slugify(title: string): string {
-  return (
-    title
-      .toLowerCase()
-      .replace(/[^\w\s-]/g, "")
-      .trim()
-      .replace(/\s+/g, "-")
-      .substring(0, 90) +
-    "-" +
-    Date.now().toString(36)
-  )
-}
+// Shared with the editorial layer (lib/editorial/) so ingestion and
+// agent-created articles cannot drift into different URL shapes for the
+// same title. The implementation is unchanged from the one that lived here.
+import { slugify } from "@/lib/slug"
 
 export interface PersistResult {
   saved: number
