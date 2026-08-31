@@ -10,8 +10,14 @@ export async function GET(request: NextRequest) {
     const limit = Number.parseInt(searchParams.get("limit") || "10")
     const offset = Number.parseInt(searchParams.get("offset") || "0")
 
-  // Build where clause
-  const where: Record<string, unknown> = {}
+    // Only PUBLISHED articles are publicly readable. Without this filter the
+    // endpoint also returned DRAFT, PENDING_REVIEW, APPROVED, REJECTED and
+    // ARCHIVED articles, so unpublishing or archiving a story removed it from
+    // the feed, the category pages and the detail route but not from here.
+    // Matches app/api/news/feed, /api/news/category/[slug] and /api/news/[id].
+    const where: Record<string, unknown> = {
+      status: "PUBLISHED",
+    }
 
     if (category && category !== "all") {
       where.category = {
