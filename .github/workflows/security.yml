@@ -101,6 +101,29 @@ jobs:
         with:
           fail-on-severity: high
           deny-licenses: GPL-2.0, GPL-3.0, AGPL-3.0, LGPL-2.1
+          # The prebuilt libvips binaries that sharp loads are LGPL-3.0-or-later
+          # and have been in this tree for as long as Next.js has (main ships
+          # @img/sharp-libvips-*@1.2.4 under the same licence). They surface here
+          # only because a version bump makes them "changed" in the diff, and
+          # because dependency review itself started working once the repository
+          # dependency graph was enabled.
+          #
+          # Exempted by name rather than by widening deny-licenses: allowing
+          # LGPL-3.0 wholesale would silently accept the next such package too.
+          # LGPL permits use without the copyleft reaching this application, and
+          # these are unmodified upstream binaries — but that is a licensing
+          # judgement, so it is written down here rather than assumed.
+          allow-dependencies-licenses: >-
+            pkg:npm/%40img/sharp-libvips-darwin-arm64,
+            pkg:npm/%40img/sharp-libvips-darwin-x64,
+            pkg:npm/%40img/sharp-libvips-linux-arm,
+            pkg:npm/%40img/sharp-libvips-linux-arm64,
+            pkg:npm/%40img/sharp-libvips-linux-ppc64,
+            pkg:npm/%40img/sharp-libvips-linux-riscv64,
+            pkg:npm/%40img/sharp-libvips-linux-s390x,
+            pkg:npm/%40img/sharp-libvips-linux-x64,
+            pkg:npm/%40img/sharp-libvips-linuxmusl-arm64,
+            pkg:npm/%40img/sharp-libvips-linuxmusl-x64
           comment-summary-in-pr: always
 
   # ─── SECURITY HEADERS CHECK ─────────────────────────────────────────────────
