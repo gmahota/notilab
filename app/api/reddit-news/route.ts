@@ -47,6 +47,25 @@ interface TranslatedNews {
   subreddit: string
 }
 
+// Reddit subreddit names are 3-21 characters of letters, digits and underscores.
+// Validating against this pattern is what keeps attacker-controlled text out of
+// the outbound URL: no path traversal, no query or fragment injection, no way to
+// steer the request off www.reddit.com.
+const SUBREDDIT_PATTERN = /^[A-Za-z0-9_]{3,21}$/
+const DEFAULT_SUBREDDIT = "worldnews"
+const DEFAULT_LIMIT = 10
+const MAX_LIMIT = 15
+
+// Returns null for anything that isn't a plain positive integer, so a bad
+// "limit" is rejected instead of reaching the URL as NaN.
+function parseLimit(raw: string | null): number | null {
+  if (raw === null) return DEFAULT_LIMIT
+  if (!/^\d{1,3}$/.test(raw)) return null
+  const parsed = Number.parseInt(raw, 10)
+  if (parsed < 1) return null
+  return Math.min(parsed, MAX_LIMIT)
+}
+
 // Function to translate text using LibreTranslate
 async function translateText(text: string, source = "en", target = "pt"): Promise<string> {
   try {
@@ -104,12 +123,38 @@ function getImageUrl(post: RedditPost["data"]): string {
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
-    const limit = Math.min(Number.parseInt(searchParams.get("limit") || "10"), 15) // Max 15 posts
-    const subreddit = searchParams.get("subreddit") || "worldnews"
+
+    // Validate before any outbound request. This runs outside the inner
+    // try/catch on purpose: a rejected request must return 400, not fall
+    // through to the demo fallback and report success.
+    const subredditParam = searchParams.get("subreddit")
+    const subreddit = subredditParam === null || subredditParam === "" ? DEFAULT_SUBREDDIT : subredditParam
+    if (!SUBREDDIT_PATTERN.test(subreddit)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Invalid subreddit",
+          message: "subreddit must be 3-21 characters of letters, digits or underscores",
+        },
+        { status: 400 }
+      )
+    }
+
+    const limit = parseLimit(searchParams.get("limit"))
+    if (limit === null) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Invalid limit",
+          message: `limit must be an integer between 1 and ${MAX_LIMIT}`,
+        },
+        { status: 400 }
+      )
+    }
 
     try {
       // Fetch Reddit data
-      const redditUrl = `https://www.reddit.com/r/${subreddit}.json?limit=${limit}`
+      const redditUrl = `https://www.reddit.com/r/${encodeURIComponent(subreddit)}.json?limit=${limit}`
       const redditResponse = await fetch(redditUrl, {
         headers: {
           "User-Agent": "NotiLab/1.0 (news aggregator)",
