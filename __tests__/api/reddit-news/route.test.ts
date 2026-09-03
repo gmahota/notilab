@@ -63,6 +63,15 @@ describe("GET /api/reddit-news parameter validation", () => {
     expect(fetchedUrl()).toBe("https://www.reddit.com/r/worldnews.json?limit=15")
   })
 
+  // A parameter the caller left blank is an omitted parameter, not a bad
+  // value -- both fall back to the default, and they do it the same way.
+  it("treats a blank subreddit or limit as omitted", async () => {
+    const response = await call("?subreddit=&limit=")
+
+    expect(response.status).toBe(200)
+    expect(fetchedUrl()).toBe("https://www.reddit.com/r/worldnews.json?limit=10")
+  })
+
   // Each of these steered the outbound URL before validation was added.
   it.each([
     ["path traversal", "?subreddit=..%2F..%2Fr%2Fall"],
