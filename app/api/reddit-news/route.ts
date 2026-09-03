@@ -57,9 +57,11 @@ const DEFAULT_LIMIT = 10
 const MAX_LIMIT = 15
 
 // Returns null for anything that isn't a plain positive integer, so a bad
-// "limit" is rejected instead of reaching the URL as NaN.
+// "limit" is rejected instead of reaching the URL as NaN. An absent or empty
+// value falls back to the default, matching how an absent or empty "subreddit"
+// does -- "?limit=" is a parameter the caller left blank, not a bad value.
 function parseLimit(raw: string | null): number | null {
-  if (raw === null) return DEFAULT_LIMIT
+  if (raw === null || raw === "") return DEFAULT_LIMIT
   if (!/^\d{1,3}$/.test(raw)) return null
   const parsed = Number.parseInt(raw, 10)
   if (parsed < 1) return null
