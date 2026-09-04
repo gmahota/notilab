@@ -25,18 +25,24 @@ Staff accounts now live in the `User` table. Create the first one explicitly:
 #    Minimum 32 characters:  openssl rand -hex 32
 JWT_SECRET=<strong-random-secret>
 
-# 2. Provision the first administrator. Prints its plan and writes nothing
-#    without --apply. DATABASE_URL may point at production — read the plan.
-NOTILAB_ADMIN_EMAIL=you@example.com \
-NOTILAB_ADMIN_PASSWORD='<a long random password>' \
-NOTILAB_ADMIN_ROLE=SUPER_ADMIN \
-pnpm admin:provision --apply
+# 2. Provision the first administrator. Prints its plan and refuses to write
+#    without --confirm-production-write, because local and production point at
+#    the same Neon instance and this write cannot be undone by reverting a commit.
+ADMIN_PASSWORD='<a long random password>' \
+pnpm admin:provision --email you@example.com --role SUPER_ADMIN --confirm-production-write
 \`\`\`
 
-Further staff are provisioned the same way, with `NOTILAB_ADMIN_ROLE` set to the role
-they should hold (`REDATOR`, `REVISOR`, `SUPERVISOR`, `MARKETING`, `CRIADOR_CONTEUDO`,
-`ADMIN`, `SUPER_ADMIN`). Resetting an existing account's password additionally requires
-`--force-password`, so a re-run cannot silently overwrite one.
+Leave `ADMIN_PASSWORD` unset to be prompted on stdin instead; it will be visible as you
+type, so prefer the variable in a shell nobody else is watching. Never pass the password
+as an argument — it would land in your shell history and in the process list. Minimum 12
+characters.
+
+Further staff are provisioned the same way with `--role` set to the role they should hold
+(`REDATOR`, `REVISOR`, `SUPERVISOR`, `MARKETING`, `CRIADOR_CONTEUDO`, `ADMIN`,
+`SUPER_ADMIN`). Touching an account that already exists additionally requires
+`--update-existing`, so a re-run cannot silently replace someone's password or role.
+
+Run `pnpm admin:provision --help` for the authoritative flag list.
 
 ## Roles and Permissions
 

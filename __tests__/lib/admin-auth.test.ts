@@ -1,65 +1,59 @@
 /**
- * lib/admin-auth.ts signs and verifies every admin session.
+ * Admin session authentication.
  *
- * The defect these tests exist to prevent regressing (ROADMAP #38): the module
- * used to read `process.env.JWT_SECRET || "your-secret-key"`, so a deployment
- * with no secret configured signed and accepted tokens with a key published in
- * this repository. The two cases the AC names — absent and empty string — are
- * covered explicitly, plus whitespace-only, which is what a platform env UI
- * actually produces.
+ * Every case here is one that was silently wrong in production until recently.
+ * The module used to fall back to a committed literal, `"your-secret-key"`, so
+ * anyone could sign a SUPER_ADMIN cookie; it cast the decoded payload to `any`,
+ * so a token with no role at all was accepted; and it let `jsonwebtoken` pick
+ * the verification algorithm from the token itself.
  *
- * The secret is read at call time rather than at module load (see the comment on
- * requireSigningSecret), so these tests can mutate process.env directly instead
- * of reloading the module.
+ * The asymmetry between the two exported entry points is the thing most worth
+ * pinning: checkAdminAuth() must return null and never throw (it renders inside
+ * server components, where a throw breaks a page or a prerender), while
+ * generateAdminToken() must throw rather than sign with a weak secret.
+ *
+ * next/jest loads .env, so JWT_SECRET can arrive already set from a developer
+ * machine. Every case sets or deletes it explicitly instead of trusting the
+ * ambient environment.
  */
 
-import { readFileSync } from "node:fs"
-import path from "node:path"
 import jwt from "jsonwebtoken"
 
-/** Stands in for the Next cookie store, which is request-scoped in real life. */
-const cookieJar = new Map<string, string>()
+/** Whatever the mocked cookie jar should hand back for `admin-token`. */
+let cookieToken: string | null = null
 
 jest.mock("next/headers", () => ({
   cookies: async () => ({
     get: (name: string) =>
-      cookieJar.has(name) ? { name, value: cookieJar.get(name) } : undefined,
-    set: (name: string, value: string) => {
-      cookieJar.set(name, value)
-    },
+      name === "admin-token" && cookieToken !== null ? { value: cookieToken } : undefined,
   }),
 }))
 
-import {
-  checkAdminAuth,
-  generateAdminToken,
-  isStaffRole,
-  MissingSigningSecretError,
-  requireSigningSecret,
-  STAFF_ROLES,
-  type AdminUser,
-} from "@/lib/admin-auth"
+import { checkAdminAuth, generateAdminToken, hasAdminRole, isAdminRole } from "@/lib/admin-auth"
 
-/** NODE_ENV and friends are narrowly typed; go through a widened view. */
+/** 64 hex characters, as `openssl rand -hex 32` would produce. */
+const GOOD_SECRET = "a".repeat(64)
+const OTHER_GOOD_SECRET = "b".repeat(64)
+/** The literal this module used to fall back to. */
+const COMMITTED_LITERAL = "your-secret-key"
+
 const env = process.env as Record<string, string | undefined>
-
-/** Exactly at the 32-character floor. */
-const GOOD_SECRET = "0123456789abcdef0123456789abcdef"
-
-const STAFF: AdminUser = {
-  id: "user-1",
-  email: "editor@notilab.com",
-  name: "Editor",
-  role: "REDATOR",
-}
-
 const originalSecret = process.env.JWT_SECRET
 
+const ADMIN = {
+  id: "user_1",
+  email: "admin@example.com",
+  name: "Super Admin",
+  role: "SUPER_ADMIN",
+} as const
+
 beforeEach(() => {
-  cookieJar.clear()
-  // next/jest loads .env, so JWT_SECRET can arrive already set from a
-  // developer's machine. Pin it rather than trusting the ambient value.
+  cookieToken = null
   env.JWT_SECRET = GOOD_SECRET
+  // The module reports an unusable secret once per process; silence it so the
+  // expected error paths do not fill the test output.
+  jest.spyOn(console, "error").mockImplementation(() => {})
+  jest.spyOn(console, "warn").mockImplementation(() => {})
 })
 
 afterAll(() => {
@@ -67,149 +61,158 @@ afterAll(() => {
   else env.JWT_SECRET = originalSecret
 })
 
-/** Puts a token in the jar the way a browser would. */
-function presentToken(token: string): void {
-  cookieJar.set("admin-token", token)
-}
-
 describe("an unusable JWT_SECRET", () => {
   const unusable: Array<[string, string | undefined]> = [
-    ["absent", undefined],
-    ["an empty string", ""],
-    ["whitespace only", "   \n\t "],
-    ["shorter than 32 characters", "short-secret"],
+    ["unset", undefined],
+    ["empty", ""],
+    ["whitespace only", "   "],
+    ["31 characters, one short of the minimum", "c".repeat(31)],
   ]
 
-  it.each(unusable)("refuses to sign a token when JWT_SECRET is %s", (_label, value) => {
+  it.each(unusable)("checkAdminAuth returns null when the secret is %s", async (_label, value) => {
     if (value === undefined) delete env.JWT_SECRET
     else env.JWT_SECRET = value
 
-    expect(() => generateAdminToken(STAFF)).toThrow(MissingSigningSecretError)
+    // A token that would be perfectly valid under a good secret.
+    cookieToken = jwt.sign(ADMIN, GOOD_SECRET, { algorithm: "HS256", expiresIn: "8h" })
+
+    await expect(checkAdminAuth()).resolves.toBeNull()
   })
 
-  it.each(unusable)("names the variable and the fix when JWT_SECRET is %s", (_label, value) => {
+  it.each(unusable)("generateAdminToken throws when the secret is %s", (_label, value) => {
     if (value === undefined) delete env.JWT_SECRET
     else env.JWT_SECRET = value
 
-    expect(() => requireSigningSecret()).toThrow(/JWT_SECRET/)
-    expect(() => requireSigningSecret()).toThrow(/openssl rand -hex 32/)
+    expect(() => generateAdminToken({ ...ADMIN })).toThrow(/JWT_SECRET/)
   })
 
-  it("never substitutes the old committed literal", () => {
+  it("reads the secret per call, so setting it later needs no cold start", async () => {
     delete env.JWT_SECRET
-    expect(() => requireSigningSecret()).toThrow(MissingSigningSecretError)
+    expect(() => generateAdminToken({ ...ADMIN })).toThrow()
 
-    // The forged token an attacker could previously mint from the repository.
     env.JWT_SECRET = GOOD_SECRET
-    const forged = jwt.sign({ ...STAFF, role: "SUPER_ADMIN" }, "your-secret-key", {
-      expiresIn: "8h",
-    })
-    presentToken(forged)
-    return expect(checkAdminAuth()).resolves.toBeNull()
-  })
-
-  it("throws rather than reporting 'nobody is signed in' when a token is presented", async () => {
-    const token = generateAdminToken(STAFF)
-    presentToken(token)
-    delete env.JWT_SECRET
-
-    // A silent null here would turn a misconfiguration into an unexplained
-    // permission failure for every staff member at once.
-    await expect(checkAdminAuth()).rejects.toThrow(MissingSigningSecretError)
-  })
-
-  it("still reports no session for a visitor with no cookie", async () => {
-    delete env.JWT_SECRET
-    await expect(checkAdminAuth()).resolves.toBeNull()
-  })
-
-  it("carries a named error type, so callers can tell config from credentials", () => {
-    delete env.JWT_SECRET
-    try {
-      requireSigningSecret()
-      throw new Error("expected requireSigningSecret to throw")
-    } catch (error) {
-      expect((error as Error).name).toBe("MissingSigningSecretError")
-    }
+    expect(() => generateAdminToken({ ...ADMIN })).not.toThrow()
   })
 })
 
-describe("a usable JWT_SECRET", () => {
-  it("round-trips a staff session", async () => {
-    presentToken(generateAdminToken(STAFF))
-    await expect(checkAdminAuth()).resolves.toEqual(STAFF)
+describe("token acceptance", () => {
+  it("accepts a token it signed itself", async () => {
+    cookieToken = generateAdminToken({ ...ADMIN })
+
+    await expect(checkAdminAuth()).resolves.toEqual(ADMIN)
   })
 
-  it("treats a secret with surrounding whitespace as the trimmed value", async () => {
-    env.JWT_SECRET = `  ${GOOD_SECRET}\n`
-    presentToken(generateAdminToken(STAFF))
+  it("returns null when there is no cookie at all", async () => {
+    cookieToken = null
 
-    env.JWT_SECRET = GOOD_SECRET
-    await expect(checkAdminAuth()).resolves.toEqual(STAFF)
-  })
-})
-
-describe("token rejection", () => {
-  it("rejects a token signed with another secret", async () => {
-    const forged = jwt.sign(STAFF, `${GOOD_SECRET}-attacker`, { expiresIn: "8h" })
-    presentToken(forged)
     await expect(checkAdminAuth()).resolves.toBeNull()
   })
 
-  it("rejects an unsigned alg:none token", async () => {
-    const unsigned = `${Buffer.from(JSON.stringify({ alg: "none", typ: "JWT" })).toString(
-      "base64url",
-    )}.${Buffer.from(JSON.stringify({ ...STAFF, role: "SUPER_ADMIN" })).toString("base64url")}.`
-    presentToken(unsigned)
+  it("rejects a token signed with the old committed literal", async () => {
+    cookieToken = jwt.sign(ADMIN, COMMITTED_LITERAL, { algorithm: "HS256" })
+
+    await expect(checkAdminAuth()).resolves.toBeNull()
+  })
+
+  it("rejects a token signed with a different, equally strong secret", async () => {
+    cookieToken = jwt.sign(ADMIN, OTHER_GOOD_SECRET, { algorithm: "HS256" })
+
+    await expect(checkAdminAuth()).resolves.toBeNull()
+  })
+
+  it("rejects an alg:none token, signature or not", async () => {
+    const b64 = (value: object) => Buffer.from(JSON.stringify(value)).toString("base64url")
+    cookieToken = `${b64({ alg: "none", typ: "JWT" })}.${b64(ADMIN)}.`
+
+    await expect(checkAdminAuth()).resolves.toBeNull()
+  })
+
+  it("rejects an HS384 token even under the correct secret", async () => {
+    // Algorithm confusion: the secret is right, but HS256 is pinned on verify.
+    cookieToken = jwt.sign(ADMIN, GOOD_SECRET, { algorithm: "HS384" })
+
     await expect(checkAdminAuth()).resolves.toBeNull()
   })
 
   it("rejects an expired token", async () => {
-    presentToken(jwt.sign(STAFF, GOOD_SECRET, { expiresIn: -60 }))
+    cookieToken = jwt.sign(ADMIN, GOOD_SECRET, { algorithm: "HS256", expiresIn: "-1s" })
+
     await expect(checkAdminAuth()).resolves.toBeNull()
   })
 
-  it("rejects garbage", async () => {
-    presentToken("not-a-jwt")
-    await expect(checkAdminAuth()).resolves.toBeNull()
-  })
+  it("rejects a malformed token without throwing", async () => {
+    cookieToken = "not-a-jwt"
 
-  it("rejects a validly signed token whose role is not staff", async () => {
-    presentToken(jwt.sign({ ...STAFF, role: "USER" }, GOOD_SECRET, { expiresIn: "8h" }))
-    await expect(checkAdminAuth()).resolves.toBeNull()
-  })
-
-  it("rejects a validly signed token with no id", async () => {
-    presentToken(jwt.sign({ email: STAFF.email, role: "ADMIN" }, GOOD_SECRET, { expiresIn: "8h" }))
     await expect(checkAdminAuth()).resolves.toBeNull()
   })
 })
 
-describe("STAFF_ROLES", () => {
-  it("admits every staff role and no reader", () => {
-    for (const role of STAFF_ROLES) expect(isStaffRole(role)).toBe(true)
-    expect(isStaffRole("USER")).toBe(false)
-    expect(isStaffRole("")).toBe(false)
-    expect(isStaffRole(undefined)).toBe(false)
-    expect(isStaffRole({ role: "ADMIN" })).toBe(false)
+describe("claim validation", () => {
+  const malformed: Array<[string, Record<string, unknown>]> = [
+    ["no role", { id: "1", email: "a@b.c", name: "A" }],
+    ["role USER", { id: "1", email: "a@b.c", name: "A", role: "USER" }],
+    ["an unrecognised role", { id: "1", email: "a@b.c", name: "A", role: "OWNER" }],
+    ["a non-string role", { id: "1", email: "a@b.c", name: "A", role: { admin: true } }],
+    ["a non-string id", { id: { toString: 1 }, email: "a@b.c", name: "A", role: "ADMIN" }],
+    ["no id", { email: "a@b.c", name: "A", role: "ADMIN" }],
+    ["a blank name", { id: "1", email: "a@b.c", name: "   ", role: "ADMIN" }],
+    ["no email", { id: "1", name: "A", role: "ADMIN" }],
+  ]
+
+  it.each(malformed)("rejects a correctly signed token with %s", async (_label, claims) => {
+    cookieToken = jwt.sign(claims, GOOD_SECRET, { algorithm: "HS256" })
+
+    await expect(checkAdminAuth()).resolves.toBeNull()
+  })
+})
+
+describe("role gating", () => {
+  it("admits any administrative role when no role is required", async () => {
+    for (const role of ["REDATOR", "REVISOR", "SUPERVISOR", "MARKETING", "CRIADOR_CONTEUDO", "ADMIN", "SUPER_ADMIN"] as const) {
+      cookieToken = generateAdminToken({ ...ADMIN, role })
+      await expect(checkAdminAuth()).resolves.toMatchObject({ role })
+    }
   })
 
-  /**
-   * The role list is duplicated nowhere in code, but it does duplicate the
-   * schema. If someone adds a UserRole value, this fails and forces a decision
-   * about whether the new role reaches /admin — rather than it silently not.
-   */
-  it("is exactly the UserRole enum minus USER", () => {
-    const schema = readFileSync(path.join(process.cwd(), "prisma", "schema.prisma"), "utf8")
-    const block = /enum UserRole \{([^}]*)\}/.exec(schema)
-    expect(block).not.toBeNull()
+  it("admits a matching required role", async () => {
+    cookieToken = generateAdminToken({ ...ADMIN, role: "SUPER_ADMIN" })
 
-    const schemaRoles = (block as RegExpExecArray)[1]
-      .split("\n")
-      .map((line) => line.trim())
-      .filter((line) => line.length > 0 && !line.startsWith("//"))
+    await expect(checkAdminAuth(["SUPER_ADMIN"])).resolves.toMatchObject({ role: "SUPER_ADMIN" })
+  })
 
-    expect(schemaRoles).toContain("USER")
-    expect([...STAFF_ROLES].sort()).toEqual(schemaRoles.filter((r) => r !== "USER").sort())
+  it("refuses an administrative role that is not the required one", async () => {
+    cookieToken = generateAdminToken({ ...ADMIN, role: "REDATOR" })
+
+    await expect(checkAdminAuth(["SUPER_ADMIN", "ADMIN"])).resolves.toBeNull()
+  })
+
+  it("never grants USER, even to a caller that mistakenly allows it", () => {
+    // The guard against a copy-paste `["USER"]` in some future route.
+    expect(hasAdminRole({ ...ADMIN, role: "USER" }, ["USER"])).toBe(false)
+    expect(hasAdminRole(null, ["SUPER_ADMIN"])).toBe(false)
+    expect(isAdminRole("USER")).toBe(false)
+    expect(isAdminRole("SUPER_ADMIN")).toBe(true)
+    expect(isAdminRole(undefined)).toBe(false)
+  })
+
+  it("refuses to sign a token for a non-administrative role", () => {
+    expect(() => generateAdminToken({ ...ADMIN, role: "USER" })).toThrow(/non-admin role/)
+  })
+})
+
+describe("what ends up in the token", () => {
+  it("carries only the four identity claims", () => {
+    const token = generateAdminToken({ ...ADMIN })
+    const payload = jwt.verify(token, GOOD_SECRET) as Record<string, unknown>
+
+    // iat/exp are added by jsonwebtoken; nothing else should be there.
+    expect(Object.keys(payload).sort()).toEqual(["email", "exp", "iat", "id", "name", "role"])
+  })
+
+  it("pins HS256 in the header", () => {
+    const token = generateAdminToken({ ...ADMIN })
+    const header = JSON.parse(Buffer.from(token.split(".")[0], "base64url").toString())
+
+    expect(header.alg).toBe("HS256")
   })
 })

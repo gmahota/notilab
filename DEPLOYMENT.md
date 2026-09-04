@@ -287,15 +287,18 @@ JWT_SECRET=<strong-random-secret>
 
 #### First administrator
 
-There are no default staff accounts. After `JWT_SECRET` is set, create one explicitly —
-the script prints its plan and writes nothing without `--apply`:
+There are no default staff accounts. After `JWT_SECRET` is set, create one explicitly.
+The script prints its plan and refuses to write without `--confirm-production-write` —
+local and production share one Neon instance, so there is no rehearsal environment and
+the write cannot be rolled back by reverting a commit:
 
 \`\`\`bash
-NOTILAB_ADMIN_EMAIL=you@example.com \
-NOTILAB_ADMIN_PASSWORD='<a long random password>' \
-NOTILAB_ADMIN_ROLE=SUPER_ADMIN \
-pnpm admin:provision --apply
+ADMIN_PASSWORD='<a long random password>' \
+pnpm admin:provision --email you@example.com --role SUPER_ADMIN --confirm-production-write
 \`\`\`
+
+Leave `ADMIN_PASSWORD` unset to be prompted on stdin. Never pass the password as an
+argument — it would be recorded in shell history and visible in the process list.
 
 Order matters: with no secret, a correct login still cannot be issued a session; with no
 account, a correct secret has nobody to sign in as. See ADMIN_GUIDE.md § Credentials.
