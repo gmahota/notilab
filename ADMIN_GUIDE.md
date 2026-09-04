@@ -1,229 +1,229 @@
-# NotiLab - Painel Administrativo
+# NotiLab - Admin Panel
 
-## Visão Geral
+## Overview
 
-O painel administrativo do NotiLab é um sistema completo de gestão de conteúdo e marketing digital, projetado para suportar diferentes roles e workflows de uma redação moderna.
+The NotiLab admin panel is a complete content management and digital marketing system, designed to support the different roles and workflows of a modern newsroom.
 
-## Acesso ao Sistema
+## Accessing the System
 
-### URL de Acesso
-- **Painel Admin**: `/admin`
-- **Login Admin**: `/admin/login`
+### Access URL
+- **Admin Panel**: `/admin`
+- **Admin Login**: `/admin/login`
 
-### Credenciais de Teste
+### Test Credentials
 \`\`\`
 Email: admin@notilab.com
 Password: admin123
 Role: SUPERVISOR
 \`\`\`
 
-## Roles e Permissões
+## Roles and Permissions
 
-### 1. **REDATOR**
-- Criar e editar rascunhos de notícias
-- Usar ferramentas de IA para geração de conteúdo
-- Submeter artigos para revisão
-- Acesso ao sistema de pesquisa automática
+### 1. **REDATOR** (Writer)
+- Create and edit news drafts
+- Use AI tools for content generation
+- Submit articles for review
+- Access to the automatic research system
 
-### 2. **REVISOR**
-- Revisar artigos submetidos
-- Aprovar ou rejeitar conteúdo
-- Adicionar comentários e feedback
-- Editar conteúdo durante revisão
+### 2. **REVISOR** (Reviewer)
+- Review submitted articles
+- Approve or reject content
+- Add comments and feedback
+- Edit content during review
 
 ### 3. **SUPERVISOR**
-- Acesso completo ao sistema
-- Gestão de utilizadores e permissões
-- Aprovação final de conteúdo
-- Acesso a todas as métricas e analytics
+- Full system access
+- User and permission management
+- Final content approval
+- Access to all metrics and analytics
 
 ### 4. **MARKETING**
-- Ferramentas de marketing digital
-- Gestão de campanhas e newsletters
-- Analytics de engagement
-- A/B testing e otimização
+- Digital marketing tools
+- Campaign and newsletter management
+- Engagement analytics
+- A/B testing and optimization
 
-### 5. **CRIADOR_CONTEUDO**
-- Criação de conteúdo multimédia
-- Gestão de imagens e assets
-- Templates e layouts
-- Colaboração com redatores
+### 5. **CRIADOR_CONTEUDO** (Content Creator)
+- Multimedia content creation
+- Image and asset management
+- Templates and layouts
+- Collaboration with writers
 
-## Funcionalidades Principais
+## Main Features
 
-### 🏠 Dashboard Principal
-- **Métricas em tempo real**: Usuários ativos, notícias publicadas, visualizações
-- **Gráficos interativos**: Analytics de usuários e conteúdo
-- **Feed de atividade**: Últimas ações no sistema
-- **Tarefas pendentes**: Por role e prioridade
+### 🏠 Main Dashboard
+- **Real-time metrics**: Active users, published news, views
+- **Interactive charts**: User and content analytics
+- **Activity feed**: Latest actions in the system
+- **Pending tasks**: By role and priority
 
-### 📝 Sistema de Gestão de Conteúdo (CMS)
-- **Editor rico**: Formatação avançada com preview
-- **Gestão de categorias**: Cores personalizáveis e organização
-- **Upload de imagens**: Drag & drop com otimização automática
-- **Tags e metadados**: SEO e organização
-- **Agendamento**: Publicação programada
+### 📝 Content Management System (CMS)
+- **Rich editor**: Advanced formatting with preview
+- **Category management**: Customizable colors and organization
+- **Image upload**: Drag & drop with automatic optimization
+- **Tags and metadata**: SEO and organization
+- **Scheduling**: Scheduled publication
 
-### 🤖 Gerador de Notícias com IA
-- **Análise de tendências**: Tópicos em alta automaticamente
-- **Pesquisador automático**: Busca de fontes e referências
-- **Templates profissionais**: Diferentes estilos de artigo
-- **Geração personalizada**: Baseada em prompts específicos
-- **Análise de qualidade**: Métricas de SEO e legibilidade
+### 🤖 AI News Generator
+- **Trend analysis**: Trending topics automatically
+- **Automatic researcher**: Search for sources and references
+- **Professional templates**: Different article styles
+- **Custom generation**: Based on specific prompts
+- **Quality analysis**: SEO and readability metrics
 
-### 🔄 Sistema de Workflow
-- **Kanban visual**: Arrastar e soltar entre estágios
-- **Fila de revisão**: Organizada por prioridade e prazo
-- **Sistema de comentários**: Feedback estruturado
-- **Histórico completo**: Rastreamento de todas as mudanças
-- **Notificações**: Alertas automáticos por role
+### 🔄 Workflow System
+- **Visual Kanban**: Drag and drop between stages
+- **Review queue**: Organized by priority and deadline
+- **Comment system**: Structured feedback
+- **Full history**: Tracking of all changes
+- **Notifications**: Automatic alerts by role
 
-### 📊 Ferramentas de Marketing
-- **Analytics completo**: Métricas de engagement e conversão
-- **Gestão de campanhas**: Email marketing e automação
-- **Social media**: Agendamento e análise de posts
-- **SEO tools**: Otimização e monitoramento
-- **A/B testing**: Testes de conversão e otimização
-- **Lead management**: CRM integrado com scoring
+### 📊 Marketing Tools
+- **Full analytics**: Engagement and conversion metrics
+- **Campaign management**: Email marketing and automation
+- **Social media**: Post scheduling and analysis
+- **SEO tools**: Optimization and monitoring
+- **A/B testing**: Conversion and optimization testing
+- **Lead management**: Integrated CRM with scoring
 
-## Navegação do Sistema
+## System Navigation
 
-### Sidebar Principal
+### Main Sidebar
 \`\`\`
 📊 Dashboard
-📝 Gestão de Notícias
-🏷️ Categorias
-🤖 Gerador IA
+📝 News Management
+🏷️ Categories
+🤖 AI Generator
 🔄 Workflow
-👥 Utilizadores (Supervisor)
+👥 Users (Supervisor)
 📈 Marketing
-⚙️ Configurações
+⚙️ Settings
 \`\`\`
 
-### Atalhos de Teclado
-- `Ctrl + N`: Nova notícia
-- `Ctrl + S`: Salvar rascunho
+### Keyboard Shortcuts
+- `Ctrl + N`: New article
+- `Ctrl + S`: Save draft
 - `Ctrl + P`: Preview
-- `Ctrl + Enter`: Submeter para revisão
+- `Ctrl + Enter`: Submit for review
 
-## Workflow de Conteúdo
+## Content Workflow
 
-### 1. **Criação** (Redator)
-- Usar gerador IA ou criar manualmente
-- Adicionar imagens e formatação
-- Configurar metadados e SEO
-- Salvar como rascunho
+### 1. **Creation** (Writer)
+- Use the AI generator or create manually
+- Add images and formatting
+- Configure metadata and SEO
+- Save as draft
 
-### 2. **Revisão** (Revisor)
-- Receber notificação de novo conteúdo
-- Revisar qualidade e precisão
-- Adicionar comentários se necessário
-- Aprovar ou solicitar alterações
+### 2. **Review** (Reviewer)
+- Receive notification of new content
+- Review quality and accuracy
+- Add comments if needed
+- Approve or request changes
 
-### 3. **Aprovação Final** (Supervisor)
-- Revisão final do conteúdo
-- Verificação de compliance
-- Agendamento de publicação
-- Publicação no site
+### 3. **Final Approval** (Supervisor)
+- Final content review
+- Compliance check
+- Publication scheduling
+- Publish on the site
 
 ### 4. **Marketing** (Marketing)
-- Criar campanhas promocionais
-- Agendar posts nas redes sociais
-- Configurar newsletters
-- Monitorar performance
+- Create promotional campaigns
+- Schedule social media posts
+- Configure newsletters
+- Monitor performance
 
-## Integrações e APIs
+## Integrations and APIs
 
-### IA e Automação
-- **OpenAI GPT**: Geração de conteúdo
-- **Análise de sentimento**: Classificação automática
-- **Extração de keywords**: SEO automático
-- **Resumos inteligentes**: TL;DR automático
+### AI and Automation
+- **OpenAI GPT**: Content generation
+- **Sentiment analysis**: Automatic classification
+- **Keyword extraction**: Automatic SEO
+- **Smart summaries**: Automatic TL;DR
 
-### Redes Sociais
-- **Twitter/X**: Posts automáticos
-- **Facebook**: Campanhas integradas
-- **LinkedIn**: Conteúdo profissional
-- **Instagram**: Stories e posts
+### Social Media
+- **Twitter/X**: Automatic posts
+- **Facebook**: Integrated campaigns
+- **LinkedIn**: Professional content
+- **Instagram**: Stories and posts
 
 ### Analytics
-- **Google Analytics**: Integração completa
-- **Métricas customizadas**: KPIs específicos
-- **Relatórios automáticos**: Envio por email
-- **Dashboards personalizados**: Por role
+- **Google Analytics**: Full integration
+- **Custom metrics**: Specific KPIs
+- **Automatic reports**: Sent by email
+- **Custom dashboards**: By role
 
-## Configurações Avançadas
+## Advanced Settings
 
-### Personalização
-- **Temas**: Dark/Light mode
-- **Idiomas**: PT, EN, ES
-- **Notificações**: Email, push, in-app
-- **Workflows**: Customização por categoria
+### Customization
+- **Themes**: Dark/Light mode
+- **Languages**: PT, EN, ES
+- **Notifications**: Email, push, in-app
+- **Workflows**: Customization by category
 
-### Segurança
-- **Autenticação JWT**: Tokens seguros
-- **Roles granulares**: Permissões específicas
-- **Auditoria completa**: Log de todas as ações
-- **Backup automático**: Dados protegidos
+### Security
+- **JWT Authentication**: Secure tokens
+- **Granular roles**: Specific permissions
+- **Full audit trail**: Log of all actions
+- **Automatic backup**: Protected data
 
-## Métricas e KPIs
+## Metrics and KPIs
 
-### Conteúdo
-- **Artigos publicados**: Por período e autor
-- **Taxa de aprovação**: Workflow efficiency
-- **Tempo médio**: Criação até publicação
-- **Engagement**: Visualizações, likes, shares
+### Content
+- **Published articles**: By period and author
+- **Approval rate**: Workflow efficiency
+- **Average time**: Creation to publication
+- **Engagement**: Views, likes, shares
 
-### Utilizadores
-- **Produtividade**: Artigos por redator
-- **Qualidade**: Taxa de aprovação
-- **Colaboração**: Comentários e feedback
-- **Performance**: Métricas individuais
+### Users
+- **Productivity**: Articles per writer
+- **Quality**: Approval rate
+- **Collaboration**: Comments and feedback
+- **Performance**: Individual metrics
 
 ### Marketing
-- **ROI**: Retorno sobre investimento
-- **Conversões**: Taxa de conversão
-- **Alcance**: Impressões e reach
-- **Engagement**: Interações e tempo
+- **ROI**: Return on investment
+- **Conversions**: Conversion rate
+- **Reach**: Impressions and reach
+- **Engagement**: Interactions and time
 
-## Suporte e Manutenção
+## Support and Maintenance
 
-### Backup e Recuperação
-- **Backup automático**: Diário às 02:00
-- **Versionamento**: Histórico de mudanças
-- **Recuperação**: Point-in-time recovery
-- **Exportação**: Dados em JSON/CSV
+### Backup and Recovery
+- **Automatic backup**: Daily at 02:00
+- **Versioning**: Change history
+- **Recovery**: Point-in-time recovery
+- **Export**: Data in JSON/CSV
 
-### Monitoramento
-- **Health checks**: Status do sistema
-- **Performance**: Métricas de velocidade
-- **Erros**: Log centralizado
-- **Alertas**: Notificações automáticas
+### Monitoring
+- **Health checks**: System status
+- **Performance**: Speed metrics
+- **Errors**: Centralized log
+- **Alerts**: Automatic notifications
 
-### Atualizações
-- **Deploy automático**: CI/CD pipeline
-- **Rollback**: Reversão segura
-- **Feature flags**: Ativação gradual
-- **Testes**: Ambiente de staging
+### Updates
+- **Automatic deploy**: CI/CD pipeline
+- **Rollback**: Safe reversion
+- **Feature flags**: Gradual activation
+- **Tests**: Staging environment
 
 ## Troubleshooting
 
-### Problemas Comuns
-1. **Login não funciona**: Verificar credenciais e role
-2. **Upload falha**: Verificar tamanho e formato
-3. **IA não responde**: Verificar API keys
-4. **Workflow travado**: Verificar permissões
+### Common Issues
+1. **Login doesn't work**: Check credentials and role
+2. **Upload fails**: Check size and format
+3. **AI doesn't respond**: Check API keys
+4. **Workflow stuck**: Check permissions
 
-### Logs e Debug
+### Logs and Debug
 - **Admin logs**: `/admin/logs`
 - **API status**: `/admin/health`
 - **Performance**: `/admin/metrics`
-- **Errors**: Console do navegador
+- **Errors**: Browser console
 
-## Contato e Suporte
+## Contact and Support
 
-Para suporte técnico ou dúvidas sobre o sistema:
+For technical support or questions about the system:
 - **Email**: admin@notilab.com
 - **Slack**: #notilab-admin
-- **Documentação**: `/admin/docs`
+- **Documentation**: `/admin/docs`
 - **Status**: status.notilab.com

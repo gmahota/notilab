@@ -1,38 +1,38 @@
-echo "🚀 Configurando NotiLab..."
+echo "🚀 Setting up NotiLab..."
 
-# Verificar se Node.js está instalado
+# Check if Node.js is installed
 if ! command -v node &> /dev/null; then
-    echo "❌ Node.js não encontrado. Instale Node.js 18+ primeiro."
+    echo "❌ Node.js not found. Install Node.js 18+ first."
     exit 1
 fi
 
-# Verificar se PostgreSQL está disponível
+# Check if PostgreSQL is available
 if ! command -v psql &> /dev/null; then
-    echo "⚠️  PostgreSQL não encontrado. Certifique-se de ter um banco PostgreSQL disponível."
+    echo "⚠️  PostgreSQL not found. Make sure you have a PostgreSQL database available."
 fi
 
-# Instalar dependências
-echo "📦 Instalando dependências..."
+# Install dependencies
+echo "📦 Installing dependencies..."
 npm install
 
-# Verificar se .env existe
+# Check if .env exists
 if [ ! -f .env ]; then
-    echo "📝 Criando arquivo .env..."
+    echo "📝 Creating .env file..."
     cp .env.example .env
-    echo "⚠️  Configure as variáveis de ambiente no arquivo .env antes de continuar."
+    echo "⚠️  Configure the environment variables in the .env file before continuing."
     exit 1
 fi
 
-# Gerar cliente Prisma
-echo "🔧 Gerando cliente Prisma..."
+# Generate Prisma client
+echo "🔧 Generating Prisma client..."
 npx prisma generate
 
-# Executar migrações
-echo "🗄️  Executando migrações do banco..."
+# Run migrations
+echo "🗄️  Running database migrations..."
 npx prisma db push
 
-# Executar seed
-echo "🌱 Populando banco com dados iniciais..."
+# Run seed
+echo "🌱 Seeding database with initial data..."
 npx prisma db seed
 
-echo "✅ Setup concluído! Execute 'npm run dev' para iniciar o desenvolvimento."
+echo "✅ Setup complete! Run 'npm run dev' to start development."
