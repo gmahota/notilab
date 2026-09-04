@@ -74,33 +74,15 @@ export async function GET(request: NextRequest) {
       },
     })
 
-    // Define the type for news items
-    type NewsItem = {
-      id: string
-      title: string
-      summary?: string
-      content: string
-      imageUrl?: string
-      sourceUrl: string
-      sourceName: string
-      publishedAt: Date
-      category?: {
-        name?: string
-        slug?: string
-        color?: string
-      }
-      tags?: string[]
-      trending?: boolean
-      priority?: number
-      aiSummary?: string
-      sentiment?: string
-      readTime?: number
-      reactions: Array<{ type: string }>
-      readHistory?: unknown
-    }
-
-    // Transform data for frontend
-    const transformedNews = news.map((article: any) => ({
+    // Transform data for frontend.
+    //
+    // No annotation on `article`: findMany already infers the exact row shape
+    // from the `include` above, and that inference stays in sync with the
+    // schema. The `: any` that used to sit here threw it away, alongside a
+    // hand-written NewsItem type that was never applied to anything — and had
+    // already drifted (it declared `priority?: number`, but News.priority is
+    // the Priority enum, so this endpoint returns a string there).
+    const transformedNews = news.map((article) => ({
       id: article.id,
       title: article.title,
       summary: article.summary ?? "",
@@ -121,7 +103,7 @@ export async function GET(request: NextRequest) {
       sentiment: article.sentiment ?? "neutral",
       readTime: article.readTime ?? 3,
       reactions: Array.isArray(article.reactions)
-        ? article.reactions.map((r: typeof article.reactions[number]) => ({
+        ? article.reactions.map((r) => ({
             type: r.type,
             count: 1,
           }))
@@ -130,6 +112,9 @@ export async function GET(request: NextRequest) {
     }))
     return NextResponse.json(transformedNews)
   } catch (error) {
+    // The caught error was previously discarded, so a failing query surfaced
+    // only as an opaque 500 with nothing in the logs to diagnose it.
+    console.error("[api/news] Failed to fetch news:", error)
     return NextResponse.json({ error: "Failed to fetch news" }, { status: 500 })
   }
 }

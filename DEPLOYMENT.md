@@ -1,246 +1,250 @@
-# NotiLab - Guia de Deploy
+# NotiLab - Deployment Guide
 
-## Pré-requisitos
+## Prerequisites
 
-### Ambiente de Desenvolvimento
+### Development Environment
 \`\`\`bash
 Node.js >= 18.0.0
 npm >= 9.0.0
 PostgreSQL >= 14.0
-Redis >= 6.0 (opcional)
+Redis >= 6.0 (optional)
 \`\`\`
 
-### Variáveis de Ambiente
+### Environment Variables
 \`\`\`env
 # Database
 DATABASE_URL="postgresql://user:password@localhost:5432/notilab"
 
 # Authentication
-JWT_SECRET="your-super-secret-jwt-key-here"
+# JWT_SECRET is MANDATORY and has no fallback: with it unset, blank, or shorter
+# than 32 characters, no admin session can be signed or verified — /api/admin/auth
+# answers 503 and every admin page redirects to the login screen. Generate one:
+#   openssl rand -hex 32
+JWT_SECRET="<strong-random-secret, minimum 32 characters>"
 NEXTAUTH_SECRET="your-nextauth-secret"
 NEXTAUTH_URL="http://localhost:3000"
 
-# AI Services (opcional)
+# AI Services (optional)
 OPENAI_API_KEY="sk-..."
 GROQ_API_KEY="gsk_..."
 
-# Email (opcional)
+# Email (optional)
 SMTP_HOST="smtp.gmail.com"
 SMTP_PORT="587"
 SMTP_USER="your-email@gmail.com"
 SMTP_PASS="your-app-password"
 
-# Social Media APIs (opcional)
+# Social Media APIs (optional)
 TWITTER_API_KEY="..."
 FACEBOOK_API_KEY="..."
 
-# Agent Management API (opcional — ver docs/agent-api.md)
-# Sem nenhuma chave configurada, /api/agent/* responde AGENT_API_DISABLED.
-# Mínimo 32 caracteres:  openssl rand -hex 32
+# Agent Management API (optional — see docs/agent-api.md)
+# With no key configured, /api/agent/* responds AGENT_API_DISABLED.
+# Minimum 32 characters:  openssl rand -hex 32
 NOTILAB_AGENT_API_KEY="..."
 NOTILAB_AGENT_ID="abacus"
-NOTILAB_AGENT_PERMISSIONS="readonly"   # readonly | editorial | seo | lista de permissões
+NOTILAB_AGENT_PERMISSIONS="readonly"   # readonly | editorial | seo | list of permissions
 \`\`\`
 
-## Instalação Local
+## Local Installation
 
-### 1. Clone e Instale
+### 1. Clone and Install
 \`\`\`bash
 git clone <repository-url>
 cd notilab
 npm install
 \`\`\`
 
-### 2. Configure o Banco de Dados
+### 2. Configure the Database
 \`\`\`bash
-# Gerar cliente Prisma
+# Generate the Prisma client
 npx prisma generate
 
-# Executar migrações
+# Run migrations
 npx prisma db push
 
-# Seed inicial (opcional)
+# Initial seed (optional)
 npm run seed
 \`\`\`
 
-### 3. Execute o Projeto
+### 3. Run the Project
 \`\`\`bash
-# Desenvolvimento
+# Development
 npm run dev
 
-# Produção
+# Production
 npm run build
 npm start
 \`\`\`
 
-## Deploy na Vercel
+## Deploying to Vercel
 
-### 1. Configuração Automática
+### 1. Automatic Configuration
 \`\`\`bash
-# Instalar Vercel CLI
+# Install Vercel CLI
 npm i -g vercel
 
 # Deploy
 vercel --prod
 \`\`\`
 
-### 2. Configurar Variáveis
-No painel da Vercel:
+### 2. Configure Variables
+In the Vercel dashboard:
 - Settings → Environment Variables
-- Adicionar todas as variáveis do `.env.example`
+- Add all the variables from `.env.example`
 
-Obrigatórias em **Production** — sem elas partes do sistema falham em silêncio:
+Required in **Production** — without them, parts of the system fail silently:
 
-| Variável | Sem ela |
+| Variable | Without it |
 |---|---|
-| `DATABASE_URL` | o site não arranca |
-| `CRON_SECRET` | as seis rotas de cron devolvem 500 e nada é ingerido |
-| `GNEWS_API_KEY` / `NEWSAPI_KEY` | os providers devolvem `[]` e a ingestão termina com `fetched: 0` sem erro |
-| `OPENAI_API_KEY` ou `GROQ_API_KEY` | o enriquecimento de IA falha artigo a artigo |
-| `NEXT_PUBLIC_BASE_URL` | *opcional* — ver a nota abaixo; sem ela o origin vem da variável de sistema da Vercel |
+| `DATABASE_URL` | the site won't boot |
+| `CRON_SECRET` | the six cron routes return 500 and nothing gets ingested |
+| `GNEWS_API_KEY` / `NEWSAPI_KEY` | the providers return `[]` and ingestion ends with `fetched: 0` with no error |
+| `OPENAI_API_KEY` or `GROQ_API_KEY` | AI enrichment fails article by article |
+| `NEXT_PUBLIC_BASE_URL` | *optional* — see the note below; without it the origin comes from Vercel's system variable |
 
-Variáveis novas só entram em builds novos: **depois de as adicionar é preciso um redeploy**.
+New variables only take effect in new builds: **after adding them, a redeploy is required**.
 
-#### Agent Management API (agentes externos)
+#### Agent Management API (external agents)
 
-Opcional e **desligada por omissão**. Sem `NOTILAB_AGENT_API_KEY` (ou
-`NOTILAB_AGENT_API_KEYS`), todos os endpoints `/api/agent/*` respondem
-`AGENT_API_DISABLED` — um deploy a que ninguém deu credencial não é operável.
+Optional and **disabled by default**. Without `NOTILAB_AGENT_API_KEY` (or
+`NOTILAB_AGENT_API_KEYS`), all `/api/agent/*` endpoints respond
+`AGENT_API_DISABLED` — a deployment nobody handed a credential to is not operable.
 
-| Variável | Omissão | Para quê |
+| Variable | Default | Purpose |
 |---|---|---|
-| `NOTILAB_AGENT_API_KEY` | — | chave do agente. Mínimo 32 caracteres |
-| `NOTILAB_AGENT_ID` | `default` | identidade nas linhas de auditoria (`agent:<id>`) |
-| `NOTILAB_AGENT_PERMISSIONS` | `readonly` | `readonly`, `editorial`, `seo`, ou lista de permissões |
-| `NOTILAB_AGENT_API_KEYS` | — | JSON array, para vários agentes com permissões diferentes |
-| `NOTILAB_AGENT_RATE_LIMIT` | `120` | pedidos por janela, por agente |
-| `NOTILAB_AGENT_RATE_WINDOW_MS` | `60000` | duração da janela |
-| `NOTILAB_AGENT_CONFIRMATION_SECRET` | constante | chave HMAC dos tokens de confirmação humana |
+| `NOTILAB_AGENT_API_KEY` | — | agent key. Minimum 32 characters |
+| `NOTILAB_AGENT_ID` | `default` | identity in audit lines (`agent:<id>`) |
+| `NOTILAB_AGENT_PERMISSIONS` | `readonly` | `readonly`, `editorial`, `seo`, or a list of permissions |
+| `NOTILAB_AGENT_API_KEYS` | — | JSON array, for multiple agents with different permissions |
+| `NOTILAB_AGENT_RATE_LIMIT` | `120` | requests per window, per agent |
+| `NOTILAB_AGENT_RATE_WINDOW_MS` | `60000` | window duration |
+| `NOTILAB_AGENT_CONFIRMATION_SECRET` | constant | HMAC key for human confirmation tokens |
 
-Nenhuma é `NEXT_PUBLIC_*`, portanto nenhuma chega ao bundle do browser. A omissão
-de `NOTILAB_AGENT_PERMISSIONS` concede **menos**, nunca mais: um esquecimento
-deixa o agente só a ler.
+None of these are `NEXT_PUBLIC_*`, so none of them reach the browser bundle. Omitting
+`NOTILAB_AGENT_PERMISSIONS` grants **less**, never more: an oversight
+leaves the agent read-only.
 
-Contrato completo, ferramentas, códigos de erro e auditoria: `docs/agent-api.md`.
+Full contract, tools, error codes, and audit: `docs/agent-api.md`.
 
-#### O origin público (links de partilha, referral, digest)
+#### The public origin (share links, referral, digest)
 
-Resolvido num único sítio, `lib/base-url.ts`, por esta ordem: `NEXT_PUBLIC_BASE_URL` →
+Resolved in a single place, `lib/base-url.ts`, in this order: `NEXT_PUBLIC_BASE_URL` →
 `NEXT_PUBLIC_VERCEL_PROJECT_PRODUCTION_URL` → `VERCEL_PROJECT_PRODUCTION_URL` → fallback.
-As duas do meio são
+The middle two are
 [system environment variables](https://vercel.com/docs/environment-variables/system-environment-variables)
-que a Vercel define sozinha, desde que **Enable access to System Environment Variables**
-esteja activa em Settings → Environment Variables. Contêm o domínio de produção do
-projecto (o custom domain mais curto, ou o `.vercel.app` se não houver) e **não** o
-`VERCEL_URL`, que é o URL daquele deployment e muda a cada deploy.
+that Vercel sets on its own, as long as **Enable access to System Environment Variables**
+is active in Settings → Environment Variables. They contain the project's production
+domain (the shortest custom domain, or the `.vercel.app` one if there isn't one) and **not**
+`VERCEL_URL`, which is that deployment's URL and changes on every deploy.
 
-Definir `NEXT_PUBLIC_BASE_URL` à mão só é necessário fora da Vercel (o deploy manual em
-VPS mais abaixo) ou para forçar um domínio diferente do de produção. Como qualquer
-`NEXT_PUBLIC_*` é inlined no bundle no momento do build, mudá-la exige um build novo — um
-redeploy do build anterior não pega.
+Setting `NEXT_PUBLIC_BASE_URL` by hand is only necessary outside Vercel (the manual VPS
+deploy further below) or to force a domain different from the production one. Since any
+`NEXT_PUBLIC_*` is inlined into the bundle at build time, changing it requires a new build — a
+redeploy of the previous build won't pick it up.
 
-### 3. Configurar Banco de Dados
-Recomendado: **Neon** ou **Supabase**
-- Criar database PostgreSQL
-- Copiar connection string
-- Adicionar como `DATABASE_URL`
+### 3. Configure the Database
+Recommended: **Neon** or **Supabase**
+- Create a PostgreSQL database
+- Copy the connection string
+- Add it as `DATABASE_URL`
 
 ### 4. Cron Jobs
 
-As seis rotas de cron são declaradas em `vercel.json`. Dois pontos que não são óbvios:
+The six cron routes are declared in `vercel.json`. Two points that aren't obvious:
 
-**Os crons só existem se o `vercel.json` estiver no deployment de produção.** Não há nada
-a configurar no painel — a Vercel lê a lista do ficheiro em cada deploy de produção. Um
-deployment antigo que não tenha `vercel.json` corre com zero crons registados.
+**Crons only exist if `vercel.json` is present in the production deployment.** There's nothing
+to configure in the dashboard — Vercel reads the list from the file on every production deploy. An
+older deployment that lacks `vercel.json` runs with zero registered crons.
 
-**`CRON_SECRET` é obrigatório.** Todas as rotas em `app/api/cron/*` devolvem 500 sem ele
-(ver `app/api/cron/sync-news/route.ts`). Definir em Settings → Environment Variables; a
-Vercel injecta automaticamente `Authorization: Bearer $CRON_SECRET` nas invocações.
+**`CRON_SECRET` is required.** All routes under `app/api/cron/*` return 500 without it
+(see `app/api/cron/sync-news/route.ts`). Set it in Settings → Environment Variables; Vercel
+automatically injects `Authorization: Bearer $CRON_SECRET` on the invocations.
 
-**Cada rota declara `maxDuration = 60`.** O limite por defeito das funções é curto e o
-`sync-news` gasta ~11s só em esperas entre queries de provider; sem isto a execução é
-morta a meio e nada é persistido. 60s é o tecto do plano Hobby.
+**Each route declares `maxDuration = 60`.** The default function limit is short and
+`sync-news` spends ~11s just waiting between provider queries; without this the execution is
+killed midway and nothing is persisted. 60s is the ceiling on the Hobby plan.
 
-#### Cadências e o limite do plano Hobby
+#### Schedules and the Hobby plan limit
 
-O plano Hobby aceita no máximo **uma execução por dia** por cron, com precisão de ±59 min
-([docs](https://vercel.com/docs/cron-jobs/usage-and-pricing)). Expressões sub-diárias como
-`*/30 * * * *` **falham o deployment**, não são apenas ignoradas.
+The Hobby plan accepts at most **one run per day** per cron, with ±59 min precision
+([docs](https://vercel.com/docs/cron-jobs/usage-and-pricing)). Sub-daily expressions like
+`*/30 * * * *` **fail the deployment**, they aren't simply ignored.
 
-As etapas são encadeadas (`sync → AI → ranking → digest → envio`), e com ±59 min de
-imprecisão um intervalo curto não garante a ordem: uma etapa marcada para as 06:00 pode
-disparar às 06:59 e a seguinte marcada para as 06:30 pode disparar às 06:30, fora de ordem.
-Daí os **intervalos de 2h** — no pior caso sobra ~1h entre o fim de uma etapa e o início da
-seguinte. Os horários são UTC e trabalham para trás a partir do envio do digest, para
-chegar de manhã em Maputo (UTC+2):
+The steps are chained (`sync → AI → ranking → digest → send`), and with ±59 min of
+imprecision a short interval doesn't guarantee ordering: a step scheduled for 06:00 might
+fire at 06:59, and the next one scheduled for 06:30 might fire at 06:30, out of order.
+Hence the **2h intervals** — in the worst case there's ~1h left between the end of one step and the start of the
+next. Times are UTC and work backward from the digest send, to
+arrive in the morning in Maputo (UTC+2):
 
-| Cron | UTC | Maputo | Porquê |
+| Cron | UTC | Maputo | Why |
 |---|---|---|---|
-| `sync-news` | 20:00 | 22:00 | ingestão da noite anterior; 12 pedidos GNews/dia, dentro do tier gratuito |
-| `process-ai-news` | 22:00 | 00:00 | enriquece o que o sync trouxe |
-| `recalculate-ranking` | 00:00 | 02:00 | precisa dos scores de importância da IA |
-| `generate-digest` | 02:00 | 04:00 | monta a edição a partir do feed ranqueado |
-| `send-digest` | 05:00 | 07:00 | entrega de manhã |
-| `send-messaging` | 07:00 | 09:00 | WhatsApp/Telegram depois do email |
+| `sync-news` | 20:00 | 22:00 | previous night's ingestion; 12 GNews requests/day, within the free tier |
+| `process-ai-news` | 22:00 | 00:00 | enriches what sync brought in |
+| `recalculate-ranking` | 00:00 | 02:00 | needs the AI importance scores |
+| `generate-digest` | 02:00 | 04:00 | builds the edition from the ranked feed |
+| `send-digest` | 05:00 | 07:00 | morning delivery |
+| `send-messaging` | 07:00 | 09:00 | WhatsApp/Telegram after email |
 
-#### `publish-scheduled` — existe, mas não está registada
+#### `publish-scheduled` — exists, but is not registered
 
-`app/api/cron/publish-scheduled/route.ts` cumpre os agendamentos criados pela
-Agent Management API (`schedule_article`). **Está deliberadamente fora do
-`vercel.json`.** As outras seis rotas lêem, enriquecem ou enviam; esta põe
-notícias no site público sem ninguém a ver, que é o risco central identificado
-em `AGENTS.md`. Ligar essa automação é uma decisão de operação, tomada uma vez e
-com consciência — não um efeito secundário de um commit.
+`app/api/cron/publish-scheduled/route.ts` fulfills the schedules created by
+the Agent Management API (`schedule_article`). **It is deliberately left out of
+`vercel.json`.** The other six routes read, enrich, or send; this one puts
+news on the public site without anyone reviewing it, which is the central risk identified
+in `AGENTS.md`. Turning on that automation is an operational decision, made once and
+deliberately — not a side effect of a commit.
 
-Enquanto não estiver registada, um agendamento é intenção registada que nada
-executa (a descrição da própria ferramenta avisa o agente disso).
+While it isn't registered, a schedule is a recorded intent that nothing
+executes (the tool's own description warns the agent of this).
 
-Para ligar — atenção ao tecto de 1×/dia do Hobby descrito acima:
+To turn it on — mind the Hobby 1×/day ceiling described above:
 
 ```json
 { "path": "/api/cron/publish-scheduled", "schedule": "0 8 * * *" }
 ```
 
-Publica apenas artigos já `APPROVED`, aplica o mesmo gate de revisão que
-qualquer outro chamador, fecha cada agendamento (cumprido ou falhado) e escreve
-auditoria atribuída a `system:cron`.
+It publishes only articles already `APPROVED`, applies the same review gate as
+any other caller, closes each schedule (fulfilled or failed), and writes
+an audit entry attributed to `system:cron`.
 
-**Consequência a assumir:** em Hobby o conteúdo do site só é actualizado 1× por dia. Para
-a frescura de 15–30 min que o produto pressupõe é preciso passar a Pro (permite cadência
-ao minuto) ou disparar as rotas a partir de um agendador externo — um workflow agendado no
-GitHub Actions a chamar os endpoints com o `CRON_SECRET` contorna o limite sem mudar de plano.
+**Consequence to accept:** on Hobby, site content is only updated 1× per day. For
+the 15–30 min freshness the product assumes, you need to move to Pro (which allows
+minute-level scheduling) or trigger the routes from an external scheduler — a scheduled
+GitHub Actions workflow calling the endpoints with `CRON_SECRET` works around the limit without changing plans.
 
-## Deploy Manual (VPS/Servidor)
+## Manual Deploy (VPS/Server)
 
-### 1. Preparar Servidor
+### 1. Prepare the Server
 \`\`\`bash
 # Ubuntu/Debian
 sudo apt update
 sudo apt install nodejs npm postgresql nginx
 
-# Configurar PostgreSQL
+# Configure PostgreSQL
 sudo -u postgres createdb notilab
 sudo -u postgres createuser notilab_user
 \`\`\`
 
-### 2. Deploy da Aplicação
+### 2. Deploy the Application
 \`\`\`bash
-# Clone do repositório
+# Clone the repository
 git clone <repository-url>
 cd notilab
 
-# Instalar dependências
+# Install dependencies
 npm ci --production
 
-# Build da aplicação
+# Build the application
 npm run build
 
-# Configurar PM2 (opcional)
+# Configure PM2 (optional)
 npm install -g pm2
 pm2 start npm --name "notilab" -- start
 \`\`\`
 
-### 3. Configurar Nginx
+### 3. Configure Nginx
 \`\`\`nginx
 server {
     listen 80;
@@ -257,7 +261,7 @@ server {
 }
 \`\`\`
 
-## Configurações de Produção
+## Production Settings
 
 ### Performance
 \`\`\`javascript
@@ -273,20 +277,38 @@ export default {
 }
 \`\`\`
 
-### Segurança
+### Security
 \`\`\`env
-# Produção
+# Production
 NODE_ENV=production
 NEXTAUTH_URL=https://your-domain.com
 JWT_SECRET=<strong-random-secret>
 \`\`\`
 
-## Monitoramento
+#### First administrator
+
+There are no default staff accounts. After `JWT_SECRET` is set, create one explicitly.
+The script prints its plan and refuses to write without `--confirm-production-write` —
+local and production share one Neon instance, so there is no rehearsal environment and
+the write cannot be rolled back by reverting a commit:
+
+\`\`\`bash
+ADMIN_PASSWORD='<a long random password>' \
+pnpm admin:provision --email you@example.com --role SUPER_ADMIN --confirm-production-write
+\`\`\`
+
+Leave `ADMIN_PASSWORD` unset to be prompted on stdin. Never pass the password as an
+argument — it would be recorded in shell history and visible in the process list.
+
+Order matters: with no secret, a correct login still cannot be issued a session; with no
+account, a correct secret has nobody to sign in as. See ADMIN_GUIDE.md § Credentials.
+
+## Monitoring
 
 ### Health Checks
 - **Endpoint**: `/api/health`
 - **Status**: 200 = OK, 500 = Error
-- **Métricas**: Database, Redis, APIs
+- **Metrics**: Database, Redis, APIs
 
 ### Logs
 \`\`\`bash
@@ -300,9 +322,9 @@ vercel logs
 docker logs notilab-container
 \`\`\`
 
-## Backup e Recuperação
+## Backup and Recovery
 
-### Banco de Dados
+### Database
 \`\`\`bash
 # Backup
 pg_dump notilab > backup_$(date +%Y%m%d).sql
@@ -311,7 +333,7 @@ pg_dump notilab > backup_$(date +%Y%m%d).sql
 psql notilab < backup_20240115.sql
 \`\`\`
 
-### Arquivos
+### Files
 \`\`\`bash
 # Backup uploads
 tar -czf uploads_backup.tar.gz public/uploads/
@@ -322,18 +344,18 @@ tar -xzf uploads_backup.tar.gz
 
 ## Troubleshooting
 
-### Problemas Comuns
-1. **Build falha**: Verificar Node.js version
-2. **Database error**: Verificar connection string
-3. **404 em produção**: Verificar build output
-4. **Slow performance**: Verificar database indexes
+### Common Issues
+1. **Build fails**: Check the Node.js version
+2. **Database error**: Check the connection string
+3. **404 in production**: Check the build output
+4. **Slow performance**: Check database indexes
 
 ### Debug
 \`\`\`bash
-# Logs detalhados
+# Detailed logs
 DEBUG=* npm run dev
 
-# Verificar build
+# Check the build
 npm run build
 npm run start
 

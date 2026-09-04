@@ -70,8 +70,8 @@ export function AITemplates() {
 
   const handleUseTemplate = (template: any) => {
     setSelectedTemplate(template)
-    // Implementar uso do template
-    console.log("Usando template:", template)
+    // TODO: implement template usage
+    console.log("Using template:", template)
   }
 
   return (

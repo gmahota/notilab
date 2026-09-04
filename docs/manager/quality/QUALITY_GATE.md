@@ -36,19 +36,22 @@ The baseline (what's required above) can only get **stricter over time, never lo
 
 ## What's NOT in the gate yet (known gap, not a silent omission)
 
-- **No automated tests.** There is no Jest/Vitest/Playwright in this repo and no `test` script. `09-testing` (`.claude/agents/09-testing.agent.md`) is responsible for flagging this gap on any High/Critical change and proposing minimal coverage — but adding a full test framework is a baseline change requiring a `01-cto`-level decision, not something to do silently mid-task.
-- **`any`/unused-vars are not actually linted** — `.eslintrc.json` currently disables `@typescript-eslint/no-explicit-any` and `no-unused-vars`, which contradicts the stated convention in `AGENTS.md`/`.github/copilot-instructions.md`. Tracked in `docs/memory/lessons-learned.md`.
-- **`.lighthouserc.json` is orphaned** — present but not wired into any workflow. Either use it or remove it.
+- **Tests exist but do not gate anything.** Jest (`pnpm test`, `jest.config.mjs`, specs in `__tests__/`) runs 12 suites / 206 tests as of 2026-09-03. **No CI job invokes it** — `ci-cd.yml` runs lint, typecheck and build only, so a broken spec merges green. Wiring a `test` job is the single highest-value remaining gate change; it needs no new tooling, only a CODEOWNERS-reviewed edit to `ci-cd.yml`.
+- **Coverage is partial.** Covered: `lib/agent/*`, `lib/editorial/*`, `lib/base-url.ts`, `lib/ranking.ts`, `app/api/news`, `app/api/reddit-news`. Not covered: `lib/ai-processing/*`, `lib/trends.ts`, `lib/ranking-recalculate.ts`, `lib/messaging/*`, `lib/admin-auth.ts`.
+- **`any`/unused-vars are linted as warnings, not errors** (as of 2026-09-03 — previously `"off"`). 81 pre-existing violations across 37 files is too large a diff to fix behind a single flip to `"error"`; `app/api/news/route.ts` was fixed as the reference module. The rules go to `"error"` once the backlog clears — see `docs/memory/decisions.md` (2026-09-03).
+- **No Lighthouse / performance budget.** `.lighthouserc.json` was removed on 2026-09-03 rather than wired in — it had never been referenced by a workflow, and adding Lighthouse CI means adding a CI tool, which `AGENTS.md` § Dependency Policy puts behind an explicit discussion. Its assertions (a11y ≥ 0.90 as error, CLS ≤ 0.1 as error, perf/FCP/LCP/TBT as warnings) are recorded in `docs/memory/decisions.md` so the intent survives the file; recover it from git history if it is adopted in Phase 2.
 
 ## Phase 2 (deferred, not built now)
 
 Adopt only when the team/traffic justifies the added maintenance cost:
 
-- Test framework (Jest/Vitest) + a coverage floor, wired as a blocking CI job.
+- **Wire `pnpm test` into `ci-cd.yml` as a blocking job** — the framework is already installed and green, so this is the cheapest strictening left. A coverage floor can follow separately once coverage is less lopsided.
+- Promote `no-explicit-any`/`no-unused-vars` from `"warn"` to `"error"` once the 76 remaining violations (37 files, minus the reference module) are cleared.
+- Cover `lib/ai-processing/*` and `lib/trends.ts`, the two remaining critical paths with no specs.
+- Lighthouse CI / performance budget (needs a new CI tool — see above).
 - Code duplication check (e.g. `jscpd`) with a baseline threshold.
 - Max-file-size guardrail (simple line-count script).
 - A local pre-push hook (husky) running the fast subset of the gate before every push.
-- Tighten `.eslintrc.json` to actually enforce `no-explicit-any`/`no-unused-vars`.
 
 ## Local usage
 

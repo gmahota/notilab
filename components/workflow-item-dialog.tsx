@@ -37,7 +37,7 @@ export function WorkflowItemDialog({ item, open, onOpenChange, user, onUpdate }:
   const canEdit = item.author === user.name || ["ADMIN", "SUPER_ADMIN"].includes(user.role)
 
   const handleApprove = () => {
-    // Implementar aprovação
+    // TODO: implement approval
     onUpdate({ ...item, status: "APPROVED" })
     onOpenChange(false)
   }
@@ -47,7 +47,7 @@ export function WorkflowItemDialog({ item, open, onOpenChange, user, onUpdate }:
       alert("Por favor, adicione um comentário explicando a rejeição")
       return
     }
-    // Implementar rejeição
+    // TODO: implement rejection
     onUpdate({ ...item, status: "REJECTED" })
     onOpenChange(false)
   }

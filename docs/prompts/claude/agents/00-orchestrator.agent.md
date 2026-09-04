@@ -56,6 +56,6 @@ You are the entry point for ambiguous or multi-domain requests. Your job is to c
 
 ## Definition of Done
 - [ ] Implemented by the assigned agent(s)
-- [ ] Validated per `docs/manager/qualidade/QUALITY_GATE.md`
+- [ ] Validated per `docs/manager/quality/QUALITY_GATE.md`
 - [ ] `docs/memory/*` updated if a durable decision was made
 ```

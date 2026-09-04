@@ -30,4 +30,4 @@ lib/*-service.ts    @gmahota
 AGENTS.md                              @gmahota
 CLAUDE.md                              @gmahota
 .claude/                               @gmahota
-docs/manager/qualidade/QUALITY_GATE.md @gmahota
+docs/manager/quality/QUALITY_GATE.md   @gmahota

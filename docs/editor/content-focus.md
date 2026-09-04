@@ -167,4 +167,4 @@ Deliberately no bare `action`, `comedy`, or `marvel` (would false-positive, e.g.
 - No fabricated verdict — AI may summarize the critic's stated opinion, never substitute its own judgment as if it were the source's.
 - No spoilers not present in the source.
 - Attribute opinion to the critic/outlet; preserve `sourceName`/`sourceUrl`.
-- Standard REVIEW/APPROVAL gate applies before PUBLISHED — not the mandatory-human-hold weight of Moçambique/SA content, but not optional either.
+- Standard REVIEW/APPROVAL gate applies before PUBLISHED — not the mandatory-human-hold weight of Mozambique/SA content, but not optional either.

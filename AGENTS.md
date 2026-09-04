@@ -43,13 +43,20 @@ NotiLab is an AI-powered news aggregation and notification platform (Next.js 15,
 
 - Prefer already-installed dependencies over adding new ones.
 - Before adding a new package, check it is actively maintained (no multi-year-stale packages) and has no known high/critical vulnerabilities (`pnpm audit`).
-- Do not add a testing framework, linter, or build tool without discussing it first — the quality gate baseline (`docs/manager/qualidade/QUALITY_GATE.md`) is deliberately scoped to what's installed today.
+- Do not add a testing framework, linter, or build tool without discussing it first — the quality gate baseline (`docs/manager/quality/QUALITY_GATE.md`) is deliberately scoped to what's installed today.
 
 ## TypeScript Rules
 
 - Strict mode is on (`tsconfig.json`) — do not weaken it.
 - Avoid `any`; prefer explicit types or `unknown` + narrowing. (Note: `.eslintrc.json` currently disables `@typescript-eslint/no-explicit-any` — treat that as a gap to close over time, not a license to use `any` freely.)
 - Prefer discriminated unions for API results (`{ success: true, data }` / `{ success: false, error }`) over throwing across module boundaries.
+
+## Language Rules
+
+- **English**: all code, identifiers, type/interface names, code comments, `prisma/schema.prisma` (models, fields, enums, comments), file and directory names, environment variable names, commit messages, all documentation, and developer/operator tooling output (a CLI script's `console.log` status text is developer-facing, so it's English).
+- **Portuguese**: user-facing content only — article bodies, AI-generated `summary`/`tldr`/`whyItMatters`/`explainLikeIm10`/`titleTranslated`, UI copy and labels rendered to readers, `aria-label`s, and API error messages returned to end users.
+- **The test**: who reads the string. A reader of the site sees Portuguese; a developer or operator reading a terminal, a schema, or a doc sees English.
+- **Exception — persisted data values stay Portuguese**: `ProfileType` enum values (`JOVEM`, `EXECUTIVO`, `ESTUDANTE`, `SENIOR`) and category slugs (`mocambique`, `africa-do-sul`, `filmes`, `ciencia`). These are stored data, not identifiers; renaming them is a real migration (enum rename + backfill of every `user_profiles` row) plus a product-rule change that needs `02-editorial-content` sign-off. Do not pick these up as cosmetic cleanup.
 
 ## Next.js Rules
 
@@ -79,9 +86,11 @@ NotiLab's core product risk is publishing AI-generated news content that is wron
 
 ## Testing Rules
 
-- There is currently **no test suite** in this repository (no Jest/Vitest/Playwright, no `*.test.*` files). Do not claim tests pass — there are none to run.
-- When adding non-trivial logic (ranking, AI processing, auth), prefer adding at least a minimal smoke check over adding none; do not block a task on building a full test framework, but flag the gap in the relevant `docs/memory/lessons-learned.md` entry or PR description.
-- Before asserting anything "works", actually run it (`pnpm lint`, `pnpm typecheck`, `pnpm build`, manual exercise of the flow) — see `docs/manager/qualidade/QUALITY_GATE.md`.
+- There **is** a test suite: Jest (via `next/jest`, config in `jest.config.mjs`), specs under `__tests__/`, run with `pnpm test`. Adding a case to it needs no new tooling and no prior discussion. (This section previously said no suite existed — true when written on 2026-07-13, stale since the Agent Management API work.)
+- **`pnpm test` is not yet a CI job** — `.github/workflows/ci-cd.yml` runs lint, typecheck and build only. Until that changes, a passing suite is only as good as the last person who ran it locally, so run it before calling a task done.
+- Coverage is partial by design, not uniform: the agent surface, editorial services and `lib/base-url.ts` are covered, as is `lib/ranking.ts`. `lib/ai-processing/*` and `lib/trends.ts` are **not**. Do not infer coverage — check for the spec file.
+- When adding non-trivial logic (ranking, AI processing, auth), add at least a minimal case rather than none. Do not block a task on broadening the framework, but say plainly in the report which paths you left uncovered.
+- Before asserting anything "works", actually run it (`pnpm lint`, `pnpm typecheck`, `pnpm build`, manual exercise of the flow) — see `docs/manager/quality/QUALITY_GATE.md`.
 
 ## Git and Pull Request Rules
 

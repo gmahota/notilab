@@ -84,7 +84,7 @@ export function NewsEditor({ news, user, onClose, onSave }: NewsEditorProps) {
 
   const handleAIAnalysis = async () => {
     setAiAnalyzing(true)
-    // Simular análise de IA
+    // Simulate AI analysis
     setTimeout(() => {
       setFormData({
         ...formData,

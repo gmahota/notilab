@@ -2,11 +2,17 @@
  * providers.ts — Fetch raw articles from GNews (primary) and NewsAPI (fallback).
  *
  * Each query is isolated: one provider failing does not abort the others.
- * Rate-limit note: 10 queries × 1 provider = 10 req/run. The sync-news cron
- * (vercel.json) runs every 30 min = 48 runs/day → 480 GNews req/day, ~4.8x a
- * 100-req/day free tier. Query count is not the lever here — cron cadence is.
- * Fix by dropping the cron to every 3h (8 runs/day × 10 = 80/day) or moving to
- * a paid GNews plan — see docs/editor/content-focus.md Addendum v1.1 § C.
+ *
+ * Rate-limit note: 10 queries × 1 provider = 10 req/run, and the sync-news cron
+ * (vercel.json) fires once a day at 20:00 UTC → 10 GNews req/day, inside the
+ * 100-req/day free tier. The cadence is what keeps this in budget, not the query
+ * count, so a sub-daily schedule needs a paid GNews plan — 48 runs/day (the old
+ * every-30-minutes schedule) worked out to 480 req/day, ~4.8x the tier. Note
+ * that the Hobby plan rejects sub-daily cron expressions at deploy time; see
+ * DEPLOYMENT.md § "Cadências e o limite do plano Hobby" and
+ * docs/editor/content-focus.md Addendum v1.1 § C.
+ *
+ * Keep SYNC_QUERIES ≤ 10 so one run stays under the daily tier on its own.
  */
 
 import type { RawArticle, SyncQuery } from "./types"

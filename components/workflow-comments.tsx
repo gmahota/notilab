@@ -32,7 +32,7 @@ export function WorkflowComments({ itemId }: WorkflowCommentsProps) {
 
   const handleAddComment = () => {
     if (newComment.trim()) {
-      // Implementar adição de comentário
+      // TODO: implement adding the comment
       setNewComment("")
     }
   }

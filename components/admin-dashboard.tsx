@@ -34,7 +34,7 @@ export function AdminDashboard({ user }: AdminDashboardProps) {
   })
 
   useEffect(() => {
-    // Mock data - em produção, buscar do banco
+    // Mock data - fetch from the database in production
     setStats({
       totalUsers: 12543,
       totalNews: 8921,
