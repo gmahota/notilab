@@ -340,25 +340,67 @@ the one that genuinely needs it.
 
 ## Human confirmation
 
-The seam exists; no tool uses it yet, because every current tool acts on one
-article and every effect is reversible through another tool.
+Four tools require it. The classification lives in
+`lib/agent/critical-actions.ts` and is attached to the tool declarations, so it
+applies here and over MCP identically — a gate that were stricter on one
+transport is a gate an agent can shop around.
 
-When a tool's policy fires:
+| Tier | Tools | Confirmation | Audited |
+|---|---|---|---|
+| **read** | `search_articles`, `get_article`, `list_categories` | no | no |
+| **write** | `create_article`, `update_article`, `update_article_seo`, `set_article_image`, `submit_article_for_review`, `reject_article`, `schedule_article`, `unschedule_article` | no | yes |
+| **critical** | `approve_article`, `publish_article`, `unpublish_article`, `archive_article` | **yes** | yes |
 
-1. The API answers `CONFIRMATION_REQUIRED` with
+What the critical four have in common is not that they are irreversible —
+`unpublish` and `approve` are both walk-backable — but that their blast radius is
+outside NotiLab. `reject_article` is terminal too and is deliberately **not**
+critical: it removes a story that was never public, and gating it would train
+agents to treat the confirmation step as noise.
+
+The flow:
+
+1. The API answers `409` / `CONFIRMATION_REQUIRED` with
    `meta.confirmation = { reason, summary, confirmationToken }`.
 2. The agent shows `summary` to its operator.
 3. On approval, the agent repeats the **identical** call with
    `confirmationToken` in the body.
 
+```bash
+# 1. Refused, and told how to proceed
+curl -s -X POST $BASE/api/agent/tools/publish_article \
+  -H "$AUTH" -H "$JSON" -d '{"id":"cmg…"}'
+# → 409  meta.confirmation.confirmationToken = "9f3a…"
+
+# 2. The same call, carrying the token
+curl -s -X POST $BASE/api/agent/tools/publish_article \
+  -H "$AUTH" -H "$JSON" -d '{"id":"cmg…","confirmationToken":"9f3a…"}'
+```
+
 The token is an HMAC of `(agentId, tool, canonical input)`, not a random nonce.
-Approving "publish these 25" therefore cannot be replayed to authorise "publish
-these 400" — a different payload produces a different token. It proves payload
-integrity, not *who* approved; a real approval queue with an identity is listed
-under Next steps.
+It is bound to the exact act approved: a token minted for `{id: A}` does not
+authorise `{id: B}`, and a token minted for one agent identity does not work for
+another. Both are tested.
+
+**Be precise about what this buys.** The token proves payload integrity, not
+that a human approved — an autonomous agent can read it out of the refusal and
+repeat the call itself. What is gained is visibility (two audit rows, one with
+`confirmation: {required: true, satisfied: false}` and one with
+`satisfied: true`), and that a looping agent cannot publish on its first misfire.
+A real approval queue with an identity attached is listed under Next steps; this
+is the seam for it, not the thing itself.
+
+**Set `NOTILAB_AGENT_CONFIRMATION_SECRET`.** With it unset the HMAC falls back to
+a constant, which was harmless while no policy fired and is not any more.
+
+An operator can exempt one credential with `skipCriticalConfirmation` on its
+entry in `NOTILAB_AGENT_API_KEYS` (or `NOTILAB_MCP_CLIENTS_JSON`). Opt-out rather
+than opt-in, so a credential configured by someone who never considered
+confirmation gets the gate.
 
 `confirmationToken` is the only reserved body key. It is stripped before
-validation, so it never trips the unknown-field check.
+validation, so it never trips the unknown-field check. Over MCP the same token
+travels in `_meta["notilab/confirmationToken"]` instead, because the advertised
+input schemas set `additionalProperties: false` — see `docs/mcp.md`.
 
 ## Scheduling
 

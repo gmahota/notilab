@@ -118,6 +118,10 @@ export function loadConfiguredAgents(): ConfiguredAgent[] {
         label: typeof record.label === "string" ? record.label : id,
         key,
         permissions: parsePermissionValue(record.permissions),
+        // Same opt-out as the MCP roster, spelled the same way. An exemption
+        // that existed on one transport and not the other would be a reason to
+        // move an integration to the laxer door.
+        ...(record.skipCriticalConfirmation === true ? { skipCriticalConfirmation: true } : {}),
       })
     }
     return agents
@@ -200,7 +204,12 @@ export function authenticateAgent(headers: Headers): AgentIdentity {
     throw new AgentError("INVALID_API_KEY", "The provided API key is not valid.")
   }
 
-  return { id: matched.id, label: matched.label, permissions: matched.permissions }
+  return {
+    id: matched.id,
+    label: matched.label,
+    permissions: matched.permissions,
+    ...(matched.skipCriticalConfirmation ? { skipCriticalConfirmation: true } : {}),
+  }
 }
 
 /** Throws FORBIDDEN unless the identity holds every permission a tool requires. */

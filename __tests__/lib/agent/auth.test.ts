@@ -116,6 +116,40 @@ describe("authenticateAgent", () => {
     )
   })
 
+  it("carries the critical-confirmation exemption through, and only when asked", () => {
+    // The MCP roster spells this the same way. An exemption honoured on one
+    // transport and ignored on the other would be a reason to move an
+    // integration to the laxer door.
+    env.NOTILAB_AGENT_API_KEYS = JSON.stringify([
+      { id: "gated", key: VALID_KEY, permissions: "editorial" },
+      {
+        id: "exempt",
+        key: OTHER_KEY,
+        permissions: "editorial",
+        skipCriticalConfirmation: true,
+      },
+    ])
+
+    expect(
+      authenticateAgent(headers({ authorization: `Bearer ${VALID_KEY}` })).skipCriticalConfirmation,
+    ).toBeUndefined()
+    expect(
+      authenticateAgent(headers({ authorization: `Bearer ${OTHER_KEY}` })).skipCriticalConfirmation,
+    ).toBe(true)
+  })
+
+  it("does not accept a truthy-but-not-true exemption", () => {
+    // Opt-out of a safety gate takes the literal boolean, so a stray "false"
+    // string or a 1 from a config generator cannot switch it on.
+    env.NOTILAB_AGENT_API_KEYS = JSON.stringify([
+      { id: "sloppy", key: VALID_KEY, permissions: "editorial", skipCriticalConfirmation: "false" },
+    ])
+
+    expect(
+      authenticateAgent(headers({ authorization: `Bearer ${VALID_KEY}` })).skipCriticalConfirmation,
+    ).toBeUndefined()
+  })
+
   it("accepts a valid key over Authorization or X-Agent-Api-Key", () => {
     env.NOTILAB_AGENT_API_KEY = VALID_KEY
     env.NOTILAB_AGENT_ID = "abacus"
