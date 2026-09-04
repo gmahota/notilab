@@ -19,7 +19,7 @@ export async function checkAdminAuth(): Promise<AdminUser | null> {
 
     const decoded = jwt.verify(token, JWT_SECRET) as any
 
-    // Verificar se o usuário tem permissões administrativas
+    // Check whether the user has administrative permissions
     const adminRoles = ["REDATOR", "REVISOR", "SUPERVISOR", "MARKETING", "CRIADOR_CONTEUDO", "ADMIN", "SUPER_ADMIN"]
 
     if (!adminRoles.includes(decoded.role)) {

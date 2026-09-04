@@ -3,7 +3,7 @@ import { cookies } from "next/headers"
 import bcrypt from "bcryptjs"
 import { generateAdminToken } from "@/lib/admin-auth"
 
-// Mock admin users - em produção, buscar do banco de dados
+// Mock admin users - in production, fetch these from the database
 const adminUsers = [
   {
     id: "1",
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 8 * 60 * 60, // 8 horas
+      maxAge: 8 * 60 * 60, // 8 hours
     })
 
     return NextResponse.json({

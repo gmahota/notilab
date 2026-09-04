@@ -137,7 +137,7 @@ export function AdminNewsManager({ user }: AdminNewsManagerProps) {
           setEditingNews(null)
         }}
         onSave={(savedNews) => {
-          // Atualizar lista de notícias
+          // Update news list
           setShowEditor(false)
           setEditingNews(null)
         }}

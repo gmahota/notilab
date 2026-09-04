@@ -61,7 +61,7 @@ export function AdminCategoryManager({ user }: AdminCategoryManagerProps) {
   }
 
   const handleSave = () => {
-    // Implementar lógica de salvamento
+    // TODO: implement save logic
     setShowDialog(false)
   }
 

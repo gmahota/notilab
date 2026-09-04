@@ -232,8 +232,8 @@ export function WorkflowKanban({ user, filters }: WorkflowKanbanProps) {
         onOpenChange={setShowDialog}
         user={user}
         onUpdate={(updatedItem) => {
-          // Implementar atualização do item
-          console.log("Item atualizado:", updatedItem)
+          // TODO: implement item update
+          console.log("Item updated:", updatedItem)
         }}
       />
     </>

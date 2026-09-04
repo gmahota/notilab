@@ -3,37 +3,37 @@ import { PrismaClient } from "@prisma/client"
 const prisma = new PrismaClient()
 
 async function healthCheck() {
-  console.log("🔍 Verificando saúde do sistema NotiLab...\n")
+  console.log("🔍 Checking NotiLab system health...\n")
 
   try {
-    // Verificar conexão com banco
-    console.log("📊 Testando conexão com banco de dados...")
+    // Check database connection
+    console.log("📊 Testing database connection...")
     await prisma.$connect()
-    console.log("✅ Banco de dados conectado")
+    console.log("✅ Database connected")
 
-    // Verificar tabelas principais
+    // Check core tables (User, News, Category)
     const userCount = await prisma.user.count()
     const newsCount = await prisma.news.count()
     const categoryCount = await prisma.category.count()
 
-    console.log(`📈 Estatísticas do banco:`)
-    console.log(`   - Utilizadores: ${userCount}`)
-    console.log(`   - Notícias: ${newsCount}`)
-    console.log(`   - Categorias: ${categoryCount}`)
+    console.log(`📈 Database statistics:`)
+    console.log(`   - Users: ${userCount}`)
+    console.log(`   - News: ${newsCount}`)
+    console.log(`   - Categories: ${categoryCount}`)
 
-    // Verificar variáveis de ambiente essenciais
-    console.log("\n🔧 Verificando configuração...")
+    // Check essential environment variables
+    console.log("\n🔧 Checking configuration...")
     const requiredEnvs = ["DATABASE_URL"]
     const missingEnvs = requiredEnvs.filter((env) => !process.env[env])
 
     if (missingEnvs.length > 0) {
-      console.log(`⚠️  Variáveis de ambiente em falta: ${missingEnvs.join(", ")}`)
+      console.log(`⚠️  Missing environment variables: ${missingEnvs.join(", ")}`)
     } else {
-      console.log("✅ Configuração básica OK")
+      console.log("✅ Basic configuration OK")
     }
 
-    // Verificar integrações opcionais
-    console.log("\n🔌 Integrações opcionais:")
+    // Check optional integrations
+    console.log("\n🔌 Optional integrations:")
     const optionalEnvs = ["OPENAI_API_KEY", "GROQ_API_KEY", "WHATSAPP_TOKEN", "TELEGRAM_BOT_TOKEN"]
 
     optionalEnvs.forEach((env) => {
@@ -41,9 +41,9 @@ async function healthCheck() {
       console.log(`   ${status} ${env}`)
     })
 
-    console.log("\n🎉 Sistema NotiLab funcionando corretamente!")
+    console.log("\n🎉 NotiLab system running correctly!")
   } catch (error) {
-    console.error("❌ Erro na verificação:", error)
+    console.error("❌ Error during health check:", error)
     process.exit(1)
   } finally {
     await prisma.$disconnect()

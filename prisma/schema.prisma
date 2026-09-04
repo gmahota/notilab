@@ -20,7 +20,7 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   
-  // Relacionamentos
+  // Relations
   preferences UserPreferences?
   readHistory ReadHistory[]
   reactions   NewsReaction[]
@@ -42,7 +42,7 @@ model UserProfile {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   type        ProfileType @default(JOVEM)
-  interests   String[]    // Array de categorias de interesse
+  interests   String[]    // Array of categories of interest
   language    String      @default("pt")
   timezone    String      @default("Europe/Lisbon")
   
@@ -57,7 +57,7 @@ model UserPreferences {
   dailyDigest     Boolean @default(true)
   pushNotifications Boolean @default(true)
   emailAlerts     Boolean @default(false)
-  categories      String[] // Categorias preferidas
+  categories      String[] // Preferred categories
   
   @@map("user_preferences")
 }
@@ -70,7 +70,7 @@ model Category {
   color       String @default("#007BFF")
   icon        String?
   
-  // Relacionamentos
+  // Relations
   news        News[]
   
   @@map("categories")
@@ -89,18 +89,18 @@ model News {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
-  // Classificação
+  // Classification
   categoryId  String
   category    Category @relation(fields: [categoryId], references: [id])
   tags        String[]
   trending    Boolean  @default(false)
   priority    Priority @default(NORMAL)
   
-  // IA e Personalização
+  // AI and personalization
   aiSummary   String?
   aiAnalysis  Json?    // AI analysis results
   sentiment   String?
-  readTime    Int?     // em minutos
+  readTime    Int?     // in minutes
   
   // AI-generated content
   articleAI   ArticleAI?
@@ -113,7 +113,7 @@ model News {
   importanceScore Float @default(0)
   rankingScore    Float @default(0) // composite ranking score (0-100), recalculated by cron
 
-  // Relacionamentos
+  // Relations
   reactions   NewsReaction[]
   readHistory ReadHistory[]
   savedBy     SavedArticle[]

@@ -15,7 +15,7 @@ export function NewsResearcher() {
 
   const handleResearch = async () => {
     setResearching(true)
-    // Simular pesquisa
+    // Simulate research
     setTimeout(() => {
       setResults([
         {
