@@ -16,6 +16,7 @@
 
 import type { AgentIdentity } from "./auth"
 import type { ConfirmationDecision } from "./confirmation"
+import type { ConfirmationContext } from "./critical-actions"
 import type { FieldChange } from "./audit"
 import type { FieldMap, Infer, JsonSchema } from "./schema"
 import type { AgentPermission } from "./permissions"
@@ -68,8 +69,12 @@ export interface ToolDefinition<S extends FieldMap, TOut> {
   /**
    * Declared as a method, not a function-typed property, so the registry can
    * hold tools with different input types (method parameters are bivariant).
+   *
+   * `ctx` carries only the calling identity, so a policy can honour a credential
+   * an operator has exempted. It is optional so a policy that ignores the caller
+   * — most of them — stays a one-argument function.
    */
-  confirmation?(input: Infer<S>): ConfirmationDecision
+  confirmation?(input: Infer<S>, ctx?: ConfirmationContext): ConfirmationDecision
 
   handler(input: Infer<S>, ctx: ToolContext): Promise<ToolResult<TOut>>
 }

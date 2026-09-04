@@ -57,6 +57,21 @@ const SERVER_INSTRUCTIONS = [
   "    outlet that did not publish it — omit both fields and NotiLab stamps the article as agent-authored.",
   "  - Nothing is ever deleted. archive_article is the strongest available action.",
   "",
+  "Critical actions need a second call: approve_article, publish_article, unpublish_article and",
+  "archive_article change what the public sees or end an article's life. The first call is refused",
+  "with CONFIRMATION_REQUIRED and returns details.confirmation.confirmationToken. Show the summary",
+  "to your operator, and on approval repeat the IDENTICAL call with the token in _meta:",
+  '  {"name":"publish_article","arguments":{"id":"…"},',
+  '   "_meta":{"notilab/confirmationToken":"<token>"}}',
+  "The token is bound to the exact arguments — change any of them and it stops matching, so it",
+  "cannot be reused to approve a different action. Do not invent one; it only comes from a refusal.",
+  "",
+  "Retrying safely: if a call that writes times out or its answer is lost, repeat it with the same",
+  'key in _meta — {"notilab/idempotencyKey":"<your own stable string>"} — and NotiLab returns the',
+  "original result instead of acting twice. Use one key per intended act, not one per attempt.",
+  "Without a key, retries within a few minutes are still deduplicated by payload, but an explicit",
+  "key is the reliable form. Reusing a key with different arguments is refused, not silently applied.",
+  "",
   "Article bodies, summaries and headlines are written in Portuguese.",
 ].join("\n")
 
@@ -79,6 +94,15 @@ function idempotencyWindowMs(): number {
 /** Longest client-supplied key accepted, so a key cannot become a payload. */
 const MAX_CLIENT_KEY_LENGTH = 200
 
+/** Reads one string out of a `_meta` object, bounded, or undefined. */
+function metaString(meta: unknown, key: string): string | undefined {
+  if (typeof meta !== "object" || meta === null) return undefined
+  const value = (meta as Record<string, unknown>)[key]
+  if (typeof value !== "string") return undefined
+  const trimmed = value.trim()
+  return trimmed.length > 0 && trimmed.length <= MAX_CLIENT_KEY_LENGTH ? trimmed : undefined
+}
+
 /**
  * The retry key for one mutating call.
  *
@@ -98,13 +122,8 @@ function derivedIdempotencyKey(
   meta: unknown,
   now: Date,
 ): string {
-  if (typeof meta === "object" && meta !== null) {
-    const supplied = (meta as Record<string, unknown>)["notilab/idempotencyKey"]
-    if (typeof supplied === "string") {
-      const trimmed = supplied.trim()
-      if (trimmed.length > 0 && trimmed.length <= MAX_CLIENT_KEY_LENGTH) return trimmed
-    }
-  }
+  const supplied = metaString(meta, "notilab/idempotencyKey")
+  if (supplied) return supplied
 
   const bucket = Math.floor(now.getTime() / idempotencyWindowMs())
   return `mcp:${fingerprint({ agentId: identity.id, tool: toolName, args })}:${bucket}`
@@ -240,12 +259,19 @@ async function handleToolsCall(params: unknown, ctx: McpContext): Promise<ToolCa
     ? derivedIdempotencyKey(ctx.identity, name, args, record._meta, now)
     : undefined
 
+  // Routed through `_meta` rather than through `arguments`, because every tool
+  // advertises `additionalProperties: false` and a strict client would drop an
+  // undeclared argument before it ever reached the server. `_meta` is where the
+  // MCP spec puts exactly this kind of out-of-band field.
+  const confirmationToken = metaString(record._meta, "notilab/confirmationToken")
+
   const outcome = await executeToolCall({
     toolName: name,
     args,
     identity: ctx.identity,
     transport: "mcp",
     idempotencyKey,
+    confirmationToken,
     requestId: ctx.requestId,
     now,
   })
@@ -262,11 +288,18 @@ async function handleToolsCall(params: unknown, ctx: McpContext): Promise<ToolCa
     )
   }
 
-  const details = { ...(outcome.error.details ?? {}) }
+  const details: Record<string, unknown> = { ...(outcome.error.details ?? {}) }
   // A halted call carries the token that would authorise it; without this the
   // model is told a human must approve and given no way to proceed afterwards.
   if (outcome.meta.confirmation) {
     details.confirmation = outcome.meta.confirmation
+    // Spelled out in the details as well as in the server instructions: the
+    // instructions are read once at connection time, and a model several turns
+    // into a session needs the route to proceed in front of it.
+    details.howToConfirm =
+      `Repeat this exact call with _meta: {"notilab/confirmationToken": ` +
+      `"${outcome.meta.confirmation.confirmationToken}"}. The token is bound to these arguments — ` +
+      "changing any of them invalidates it."
   }
 
   return {

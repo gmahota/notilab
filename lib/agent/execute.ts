@@ -29,7 +29,12 @@ import { assertPermissions, type AgentIdentity } from "./auth"
 import { consumeRateLimit, type RateDecision } from "./rate-limit"
 import { getTool, listToolNames } from "./registry"
 import { parseInput } from "./schema"
-import { recordAgentAction, type AgentTransport, type FieldChange } from "./audit"
+import {
+  recordAgentAction,
+  type AgentTransport,
+  type ConfirmationAudit,
+  type FieldChange,
+} from "./audit"
 import {
   claimIdempotencyKey,
   completeIdempotencyKey,
@@ -68,6 +73,18 @@ export interface ToolCallRequest {
   now?: Date
   /** Supplied by the caller for correlation; generated when absent. */
   requestId?: string
+  /**
+   * The token from a previous CONFIRMATION_REQUIRED answer, when the transport
+   * carries it out of band.
+   *
+   * HTTP does not need this — the Agent API takes `confirmationToken` inside the
+   * body, which the reserved-key strip below handles. MCP does: every tool's
+   * advertised `inputSchema` sets `additionalProperties: false`, so a strict
+   * client drops any argument that is not a declared field, and the token would
+   * never arrive. MCP therefore reads it from `_meta` and passes it here. See
+   * lib/mcp/server.ts.
+   */
+  confirmationToken?: string
 }
 
 export interface ToolCallMeta {
@@ -111,6 +128,7 @@ export async function executeToolCall(request: ToolCallRequest): Promise<ToolCal
   let idempotencyRecordId: string | null = null
   let idempotencyKey: string | undefined
   let rate: RateDecision | undefined
+  let confirmationAudit: ConfirmationAudit | undefined
 
   const meta = (extra: Partial<ToolCallMeta> = {}): ToolCallMeta => ({
     requestId,
@@ -144,6 +162,7 @@ export async function executeToolCall(request: ToolCallRequest): Promise<ToolCal
       errorCode: error.code,
       errorMessage: error.message,
       idempotencyKey,
+      confirmation: confirmationAudit,
     })
   }
 
@@ -181,14 +200,16 @@ export async function executeToolCall(request: ToolCallRequest): Promise<ToolCal
     assertPermissions(identity, tool.permissions)
 
     // ── Is the request well-formed ───────────────────────────────────────────
-    let presentedConfirmation: string | undefined
+    let presentedConfirmation: string | undefined = request.confirmationToken?.trim() || undefined
     let toolArgs: unknown = request.args
 
     if (typeof request.args === "object" && request.args !== null && !Array.isArray(request.args)) {
       const stripped: Record<string, unknown> = {}
       for (const [key, value] of Object.entries(request.args as Record<string, unknown>)) {
         if (RESERVED_ARGUMENT_KEYS.has(key)) {
-          if (key === "confirmationToken" && typeof value === "string") {
+          // An out-of-band token wins: a transport that had to route the token
+          // around the schema knows better than an argument of the same name.
+          if (key === "confirmationToken" && typeof value === "string" && !presentedConfirmation) {
             presentedConfirmation = value
           }
           continue
@@ -207,12 +228,19 @@ export async function executeToolCall(request: ToolCallRequest): Promise<ToolCal
     validatedInput = parsed.value as Record<string, unknown>
 
     // ── Does a human need to say yes ─────────────────────────────────────────
-    const decision = tool.confirmation?.(parsed.value) ?? { required: false }
+    // The policy sees the calling identity so a credential an operator has
+    // deliberately exempted can pass — see AgentIdentity.skipCriticalConfirmation.
+    const decision = tool.confirmation?.(parsed.value, { agent: identity }) ?? { required: false }
     if (decision.required) {
       const expected = confirmationTokenFor(identity.id, tool.name, parsed.value)
       const approved =
         presentedConfirmation !== undefined &&
         confirmationTokenMatches(expected, presentedConfirmation)
+
+      // Recorded either way. "This agent was asked to confirm and did" and "this
+      // agent was refused for lack of a token" are both things an operator
+      // reviewing a publish needs to be able to see.
+      confirmationAudit = { required: true, satisfied: approved }
 
       if (!approved) {
         const error = new AgentError(
@@ -275,6 +303,7 @@ export async function executeToolCall(request: ToolCallRequest): Promise<ToolCal
         input: parsed.value,
         changes: result.audit?.changes as Record<string, FieldChange> | undefined,
         idempotencyKey,
+        confirmation: confirmationAudit,
       })
     }
 
