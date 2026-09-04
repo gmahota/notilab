@@ -27,11 +27,28 @@ import {
 } from "./permissions"
 
 export interface AgentIdentity {
-  /** Stable name for this credential. Appears in every audit row. */
+  /**
+   * Stable name for this credential. Appears in every audit row, keys the rate
+   * limiter and namespaces idempotency keys, so two credentials with different
+   * ids are isolated from each other on all three.
+   *
+   * Always resolved by the server from the presented secret. Nothing a caller
+   * sends can name it — see the note on `authenticateAgent`.
+   */
   id: string
   /** Optional human label for logs and the capabilities document. */
   label: string
   permissions: readonly AgentPermission[]
+  /**
+   * Exempts this credential from the confirmation gate on critical actions
+   * (see lib/agent/critical-actions.ts).
+   *
+   * Opt-out rather than opt-in, and absent means the gate applies: a client
+   * configured by someone who never thought about confirmation gets the safe
+   * behaviour. Set it only for an unattended internal pipeline whose operator
+   * has accepted that it can publish and archive on a single call.
+   */
+  skipCriticalConfirmation?: boolean
 }
 
 interface ConfiguredAgent extends AgentIdentity {

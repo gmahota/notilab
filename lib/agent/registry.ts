@@ -13,6 +13,7 @@
 
 import type { AnyToolDefinition } from "./types"
 import { toJsonSchema } from "./schema"
+import { toolRisk, type ToolRisk } from "./critical-actions"
 import { getArticleTool, searchArticlesTool } from "./tools/articles-read"
 import {
   createArticleTool,
@@ -76,12 +77,42 @@ export interface ToolDescriptor {
   description: string
   permissions: string[]
   mutating: boolean
+  /**
+   * read | write | critical — see lib/agent/critical-actions.ts. Published so a
+   * client can group tools by blast radius without hard-coding a name list.
+   */
+  risk: ToolRisk
+  /**
+   * True when every call to this tool is halted for confirmation on the first
+   * attempt. Derived from the tool's own policy, evaluated with no input and no
+   * identity: a policy that fires unconditionally — which is what the critical
+   * tools declare — says so here, and a policy that depends on the payload does
+   * not claim a guarantee it cannot make at catalogue time.
+   */
+  requiresConfirmation: boolean
   /** Mutating tools honour the Idempotency-Key header. */
   supportsIdempotencyKey: boolean
   endpoint: string
   method: "POST"
   inputSchema: Record<string, unknown>
   outputSchema: Record<string, unknown>
+}
+
+/**
+ * Whether a tool's policy fires for every caller.
+ *
+ * Probed with an empty input and no identity, which is safe because a policy is
+ * a pure function by contract (see ConfirmationPolicy) — and a policy that
+ * throws on an unfamiliar input is treated as "not unconditional" rather than
+ * being allowed to break the catalogue.
+ */
+function alwaysConfirms(tool: AnyToolDefinition): boolean {
+  if (!tool.confirmation) return false
+  try {
+    return tool.confirmation({}).required === true
+  } catch {
+    return false
+  }
 }
 
 export function describeTool(tool: AnyToolDefinition): ToolDescriptor {
@@ -91,6 +122,8 @@ export function describeTool(tool: AnyToolDefinition): ToolDescriptor {
     description: tool.description,
     permissions: [...tool.permissions],
     mutating: tool.mutating,
+    risk: toolRisk(tool),
+    requiresConfirmation: alwaysConfirms(tool),
     supportsIdempotencyKey: tool.mutating,
     endpoint: `/api/agent/tools/${tool.name}`,
     method: "POST",
