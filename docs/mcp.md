@@ -710,11 +710,41 @@ NOTILAB_MCP_API_KEY=$(openssl rand -hex 32)   # also put this in .env, then rest
 curl -s http://localhost:3000/api/mcp/health
 ```
 
-Tests:
+Unit tests (no deployment involved):
 
 ```bash
 pnpm test __tests__/lib/mcp
 ```
+
+Smoke test against a running deployment — a different question from `pnpm test`,
+which runs the units in isolation. It answers whether *this* deployment can
+actually be driven by the credential in `NOTILAB_MCP_API_KEY`:
+
+```bash
+pnpm mcp:smoke                                  # NEXT_PUBLIC_BASE_URL, else production
+```
+```bash
+pnpm mcp:smoke http://localhost:3000            # a deployment of your choosing
+```
+
+The default run is **strictly read-only and writes nothing at all — not even an
+audit row**. That is stricter than it looks: probing a mutating tool with a bad
+payload is not read-only either, because a refused write still produces an
+`AdminAction` row. So the default run proves containment from the schemas the
+server advertises in `tools/list` rather than by attempting a write it expects
+to fail.
+
+`--write` opts into the editorial lifecycle. Even then it never publishes: it
+creates its own DRAFT, proves the publish gate refuses it, exercises the
+containment rules and the review transitions, and archives it.
+
+```bash
+pnpm mcp:smoke https://notilab.vercel.app --write
+```
+
+Archiving is terminal and NotiLab deletes nothing, so **each `--write` run leaves
+one ARCHIVED article behind** — visible to an operator, invisible to a reader.
+Point it at a staging deployment if you have one.
 
 ## Source map
 
