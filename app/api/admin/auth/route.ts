@@ -1,53 +1,54 @@
+/**
+ * POST /api/admin/auth — staff login.
+ *
+ * Thin by design (AGENTS.md § Next.js Rules): parse the body, ask
+ * lib/admin/staff-auth.ts, set the cookie, map the result. The credential check
+ * itself lives in lib/ and is unit-tested there.
+ *
+ * What used to be here was a three-entry array of accounts sharing the
+ * published bcrypt test vector for the password `password`, live in production.
+ * See lib/admin/staff-auth.ts. (ROADMAP #39.)
+ */
+
 import { type NextRequest, NextResponse } from "next/server"
 import { cookies } from "next/headers"
-import bcrypt from "bcryptjs"
-import { generateAdminToken } from "@/lib/admin-auth"
+import { generateAdminToken, MissingSigningSecretError } from "@/lib/admin-auth"
+import { authenticateStaff } from "@/lib/admin/staff-auth"
 
-// Mock admin users - in production, fetch these from the database
-const adminUsers = [
-  {
-    id: "1",
-    email: "admin@notilab.com",
-    name: "Super Admin",
-    role: "SUPER_ADMIN",
-    password: "$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi", // password
-  },
-  {
-    id: "2",
-    email: "redator@notilab.com",
-    name: "João Redator",
-    role: "REDATOR",
-    password: "$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi",
-  },
-  {
-    id: "3",
-    email: "revisor@notilab.com",
-    name: "Maria Revisora",
-    role: "REVISOR",
-    password: "$2a$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi",
-  },
-]
+/**
+ * One message for every rejection.
+ *
+ * The previous code answered "Usuário não encontrado" or "Senha incorreta",
+ * which let anyone test whether an address has an account here. Unknown
+ * address, wrong password, deactivated account and reader-without-admin-rights
+ * are now indistinguishable to the caller: same status, same body.
+ */
+const GENERIC_FAILURE = "Credenciais inválidas"
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<Response> {
+  let body: unknown
+
   try {
-    const { email, password } = await request.json()
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: "Pedido inválido" }, { status: 400 })
+  }
 
-    const user = adminUsers.find((u) => u.email === email)
-    if (!user) {
-      return NextResponse.json({ error: "Usuário não encontrado" }, { status: 401 })
+  const { email, password } = (body ?? {}) as { email?: unknown; password?: unknown }
+
+  try {
+    const result = await authenticateStaff(email, password)
+
+    if (!result.ok) {
+      // The reason is logged, the address is not: an email is personal data
+      // (AGENTS.md § Security First) and the log is not the place for it.
+      console.warn(`[admin/auth] login rejected (${result.reason})`)
+      return NextResponse.json({ error: GENERIC_FAILURE }, { status: 401 })
     }
 
-    const isValidPassword = await bcrypt.compare(password, user.password)
-    if (!isValidPassword) {
-      return NextResponse.json({ error: "Senha incorreta" }, { status: 401 })
-    }
-
-    const token = generateAdminToken({
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-    })
+    // Issued only after the credentials check, so an anonymous caller cannot
+    // probe a misconfigured deployment by watching for a 503.
+    const token = generateAdminToken(result.user)
 
     const cookieStore = await cookies()
     cookieStore.set("admin-token", token, {
@@ -60,13 +61,25 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
+        id: result.user.id,
+        email: result.user.email,
+        name: result.user.name,
+        role: result.user.role,
       },
     })
   } catch (error) {
+    if (error instanceof MissingSigningSecretError) {
+      // Correct credentials, no way to sign a session. This is an operator
+      // problem and the log has to say so plainly — the message names
+      // JWT_SECRET and the fix, and contains no secret value.
+      console.error(`[admin/auth] ${error.message}`)
+      return NextResponse.json(
+        { error: "Serviço de autenticação indisponível. Contacte o administrador do sistema." },
+        { status: 503 },
+      )
+    }
+
+    console.error("[admin/auth] unexpected failure", error)
     return NextResponse.json({ error: "Erro interno do servidor" }, { status: 500 })
   }
 }

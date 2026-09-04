@@ -16,7 +16,11 @@ Redis >= 6.0 (optional)
 DATABASE_URL="postgresql://user:password@localhost:5432/notilab"
 
 # Authentication
-JWT_SECRET="your-super-secret-jwt-key-here"
+# JWT_SECRET is MANDATORY and has no fallback: with it unset, blank, or shorter
+# than 32 characters, no admin session can be signed or verified — /api/admin/auth
+# answers 503 and every admin page redirects to the login screen. Generate one:
+#   openssl rand -hex 32
+JWT_SECRET="<strong-random-secret, minimum 32 characters>"
 NEXTAUTH_SECRET="your-nextauth-secret"
 NEXTAUTH_URL="http://localhost:3000"
 
@@ -280,6 +284,21 @@ NODE_ENV=production
 NEXTAUTH_URL=https://your-domain.com
 JWT_SECRET=<strong-random-secret>
 \`\`\`
+
+#### First administrator
+
+There are no default staff accounts. After `JWT_SECRET` is set, create one explicitly —
+the script prints its plan and writes nothing without `--apply`:
+
+\`\`\`bash
+NOTILAB_ADMIN_EMAIL=you@example.com \
+NOTILAB_ADMIN_PASSWORD='<a long random password>' \
+NOTILAB_ADMIN_ROLE=SUPER_ADMIN \
+pnpm admin:provision --apply
+\`\`\`
+
+Order matters: with no secret, a correct login still cannot be issued a session; with no
+account, a correct secret has nobody to sign in as. See ADMIN_GUIDE.md § Credentials.
 
 ## Monitoring
 

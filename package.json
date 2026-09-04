@@ -17,6 +17,7 @@
     "db:generate": "prisma generate",
     "db:seed": "tsx prisma/seed.ts",
     "db:reset": "prisma db push --force-reset && pnpm run db:seed",
+    "admin:provision": "tsx scripts/admin/provision-staff.ts",
     "setup": "chmod +x scripts/setup.sh && ./scripts/setup.sh",
     "check": "tsx scripts/health-check.ts",
     "postinstall": "prisma generate",

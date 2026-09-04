@@ -10,12 +10,33 @@ The NotiLab admin panel is a complete content management and digital marketing s
 - **Admin Panel**: `/admin`
 - **Admin Login**: `/admin/login`
 
-### Test Credentials
+### Credentials
+
+There are **no default credentials**. The panel used to accept three built-in accounts
+(`admin@notilab.com`, `redator@notilab.com`, `revisor@notilab.com`) that shared a bcrypt
+hash published in every bcrypt tutorial, with no environment gate — so they worked in
+production. They were removed in ROADMAP #39 and those three addresses should be treated
+as permanently compromised.
+
+Staff accounts now live in the `User` table. Create the first one explicitly:
+
+\`\`\`bash
+# 1. A signing secret must exist wherever the app runs, or login answers 503.
+#    Minimum 32 characters:  openssl rand -hex 32
+JWT_SECRET=<strong-random-secret>
+
+# 2. Provision the first administrator. Prints its plan and writes nothing
+#    without --apply. DATABASE_URL may point at production — read the plan.
+NOTILAB_ADMIN_EMAIL=you@example.com \
+NOTILAB_ADMIN_PASSWORD='<a long random password>' \
+NOTILAB_ADMIN_ROLE=SUPER_ADMIN \
+pnpm admin:provision --apply
 \`\`\`
-Email: admin@notilab.com
-Password: admin123
-Role: SUPERVISOR
-\`\`\`
+
+Further staff are provisioned the same way, with `NOTILAB_ADMIN_ROLE` set to the role
+they should hold (`REDATOR`, `REVISOR`, `SUPERVISOR`, `MARKETING`, `CRIADOR_CONTEUDO`,
+`ADMIN`, `SUPER_ADMIN`). Resetting an existing account's password additionally requires
+`--force-password`, so a re-run cannot silently overwrite one.
 
 ## Roles and Permissions
 
