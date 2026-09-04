@@ -33,7 +33,7 @@ Which .claude/agents/*.agent.md agent(s) should implement this, per CLAUDE.md §
 - [ ] ...
 
 ## Test Plan
-How this will be validated (pnpm lint/typecheck/build, manual exercise — see docs/manager/qualidade/QUALITY_GATE.md).
+How this will be validated (pnpm lint/typecheck/build, manual exercise — see docs/manager/quality/QUALITY_GATE.md).
 
 ## Risks
 ...
