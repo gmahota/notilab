@@ -1,16 +1,16 @@
 /**
- * lib/agent/runner.ts — The pipeline every agent call passes through.
+ * lib/agent/runner.ts — The HTTP transport for the Agent Management API.
  *
- * One implementation, one order, no exceptions:
+ * The pipeline itself lives in lib/agent/execute.ts. This module owns only what
+ * is genuinely about HTTP:
  *
- *   parse body → authenticate → rate limit → resolve tool → authorise
- *   → validate input → confirmation gate → claim idempotency key
- *   → execute through the business layer → audit → respond
+ *   read the body → authenticate the bearer key → read Idempotency-Key
+ *   → executeToolCall → render the { success, data, meta } envelope
  *
- * The value of putting this in one place is that a new tool cannot forget a
- * step. A tool author writes a schema and a handler; they cannot accidentally
- * ship one that skips authorisation or leaves no audit trail, because neither
- * is their code's responsibility.
+ * That split exists because NotiLab has a second transport (MCP, lib/mcp/*).
+ * Both authenticate their own credential and both hand off to the same
+ * `executeToolCall`, so neither can drift into a version of the pipeline that
+ * skips authorisation, validation or the audit trail.
  *
  * Two rules about what leaves this module:
  *
@@ -24,33 +24,11 @@
 import { randomUUID } from "node:crypto"
 import type { NextRequest } from "next/server"
 import { NextResponse } from "next/server"
-import {
-  AGENT_API_VERSION,
-  errorBody,
-  successBody,
-  toResponse,
-  type AgentMeta,
-} from "./envelope"
+import { AGENT_API_VERSION, errorBody, successBody, toResponse, type AgentMeta } from "./envelope"
 import { AgentError, isAgentError } from "./errors"
-import { assertPermissions, authenticateAgent, type AgentIdentity } from "./auth"
+import { authenticateAgent, type AgentIdentity } from "./auth"
 import { consumeRateLimit } from "./rate-limit"
-import { getTool, listToolNames } from "./registry"
-import { parseInput } from "./schema"
-import { recordAgentAction, type FieldChange } from "./audit"
-import {
-  claimIdempotencyKey,
-  completeIdempotencyKey,
-  payloadFingerprint,
-  releaseIdempotencyKey,
-} from "./idempotency"
-import { confirmationTokenFor, confirmationTokenMatches } from "./confirmation"
-
-/**
- * Body keys the runner consumes before validation, so they are not rejected as
- * unknown fields. Kept to a minimum — every reserved key is one an agent cannot
- * use as a tool parameter.
- */
-const RESERVED_BODY_KEYS = new Set(["confirmationToken"])
+import { executeToolCall, type ToolCallMeta } from "./execute"
 
 function baseMeta(requestId: string, tool?: string): AgentMeta {
   return {
@@ -71,227 +49,78 @@ async function readJsonBody(request: NextRequest): Promise<unknown> {
   }
 }
 
+/**
+ * Projects the pipeline's own meta onto the wire envelope.
+ *
+ * `transport` and `rate` are deliberately not published: the first is an
+ * internal distinction that belongs in the audit trail rather than in a
+ * response an agent branches on, and the second is already expressed as
+ * `X-RateLimit-*` headers.
+ */
+function toEnvelopeMeta(meta: ToolCallMeta): AgentMeta {
+  return {
+    ...baseMeta(meta.requestId, meta.tool),
+    agentId: meta.agentId,
+    durationMs: meta.durationMs,
+    ...(meta.idempotentReplay ? { idempotentReplay: true } : {}),
+    ...(meta.auditRecorded !== undefined ? { auditRecorded: meta.auditRecorded } : {}),
+    ...(meta.confirmation ? { confirmation: meta.confirmation } : {}),
+  }
+}
+
 /** Executes one named tool and returns the HTTP response. */
 export async function runTool(toolName: string, request: NextRequest): Promise<NextResponse> {
   const requestId = randomUUID()
   const startedAt = Date.now()
-  const now = new Date()
 
   let identity: AgentIdentity | null = null
-  let auditContext: { action: string; resource: string; mutating: boolean } | null = null
-  let validatedInput: Record<string, unknown> | undefined
-  let idempotencyRecordId: string | null = null
-  let idempotencyKey: string | undefined
-
-  const meta = (extra: Partial<AgentMeta> = {}): AgentMeta => ({
-    ...baseMeta(requestId, toolName),
-    ...(identity ? { agentId: identity.id } : {}),
-    durationMs: Date.now() - startedAt,
-    ...extra,
-  })
-
-  /**
-   * Records a failed write attempt. Denied and invalid attempts are worth
-   * keeping: "this agent tried to publish 40 times and was refused" is the kind
-   * of thing an operator needs to be able to see afterwards.
-   */
-  const auditFailure = async (error: AgentError): Promise<void> => {
-    if (!identity || !auditContext?.mutating) return
-    await recordAgentAction({
-      agentId: identity.id,
-      tool: toolName,
-      action: auditContext.action,
-      resource: auditContext.resource,
-      resourceId:
-        typeof validatedInput?.id === "string" ? (validatedInput.id as string) : "-",
-      outcome: "error",
-      requestId,
-      durationMs: Date.now() - startedAt,
-      input: validatedInput,
-      errorCode: error.code,
-      errorMessage: error.message,
-      idempotencyKey,
-    })
-  }
 
   try {
-    // ── Body ─────────────────────────────────────────────────────────────────
     const rawBody = await readJsonBody(request)
-
-    // ── Who ──────────────────────────────────────────────────────────────────
     identity = authenticateAgent(request.headers)
 
-    // ── How fast ─────────────────────────────────────────────────────────────
-    const rate = consumeRateLimit(identity.id, now.getTime())
-    if (!rate.allowed) {
-      // Not audited to the database on purpose: writing a row per throttled
-      // request would amplify exactly the load being throttled.
-      console.warn(`[agent/runner] rate limit hit by agent:${identity.id} on ${toolName}`)
+    const outcome = await executeToolCall({
+      toolName,
+      args: rawBody,
+      identity,
+      transport: "http",
+      idempotencyKey: request.headers.get("idempotency-key")?.trim() || undefined,
+      requestId,
+    })
+
+    const meta = toEnvelopeMeta(outcome.meta)
+
+    if (!outcome.ok) {
       const response = toResponse(
-        errorBody(
-          "RATE_LIMITED",
-          `Rate limit of ${rate.limit} requests exceeded. Retry in ${rate.retryAfterSeconds}s.`,
-          meta(),
-        ),
+        errorBody(outcome.error.code, outcome.error.message, meta, outcome.error.details),
       )
-      response.headers.set("Retry-After", String(rate.retryAfterSeconds))
+      if (outcome.error.code === "RATE_LIMITED" && outcome.meta.rate) {
+        response.headers.set("Retry-After", String(outcome.meta.rate.retryAfterSeconds))
+      }
       return response
     }
 
-    // ── What ─────────────────────────────────────────────────────────────────
-    const tool = getTool(toolName)
-    if (!tool) {
-      throw new AgentError("TOOL_NOT_FOUND", `No tool named "${toolName}".`, {
-        availableTools: listToolNames(),
-      })
+    const response = toResponse(successBody(outcome.data, meta))
+    if (outcome.meta.rate) {
+      response.headers.set("X-RateLimit-Limit", String(outcome.meta.rate.limit))
+      response.headers.set("X-RateLimit-Remaining", String(outcome.meta.rate.remaining))
     }
-
-    auditContext = {
-      action: tool.audit?.action ?? `TOOL_${tool.name.toUpperCase()}`,
-      resource: tool.audit?.resource ?? "ARTICLE",
-      mutating: tool.mutating,
-    }
-
-    // ── May they ─────────────────────────────────────────────────────────────
-    assertPermissions(identity, tool.permissions)
-
-    // ── Is the request well-formed ───────────────────────────────────────────
-    const bodyRecord =
-      typeof rawBody === "object" && rawBody !== null && !Array.isArray(rawBody)
-        ? (rawBody as Record<string, unknown>)
-        : rawBody
-
-    let presentedConfirmation: string | undefined
-    let toolBody: unknown = bodyRecord
-
-    if (typeof bodyRecord === "object" && bodyRecord !== null && !Array.isArray(bodyRecord)) {
-      const stripped: Record<string, unknown> = {}
-      for (const [key, value] of Object.entries(bodyRecord)) {
-        if (RESERVED_BODY_KEYS.has(key)) {
-          if (key === "confirmationToken" && typeof value === "string") {
-            presentedConfirmation = value
-          }
-          continue
-        }
-        stripped[key] = value
-      }
-      toolBody = stripped
-    }
-
-    const parsed = parseInput(tool.input, toolBody)
-    if (!parsed.ok) {
-      throw new AgentError("VALIDATION_FAILED", "One or more fields are invalid.", {
-        fields: parsed.errors,
-      })
-    }
-    validatedInput = parsed.value as Record<string, unknown>
-
-    // ── Does a human need to say yes ─────────────────────────────────────────
-    const decision = tool.confirmation?.(parsed.value) ?? { required: false }
-    if (decision.required) {
-      const expected = confirmationTokenFor(identity.id, tool.name, parsed.value)
-      const approved =
-        presentedConfirmation !== undefined &&
-        confirmationTokenMatches(expected, presentedConfirmation)
-
-      if (!approved) {
-        const error = new AgentError(
-          "CONFIRMATION_REQUIRED",
-          decision.summary ?? "This action needs human confirmation before it can run.",
-        )
-        await auditFailure(error)
-        return toResponse(
-          errorBody(
-            "CONFIRMATION_REQUIRED",
-            error.message,
-            meta({
-              confirmation: {
-                reason: decision.reason ?? "confirmation_required",
-                summary: decision.summary ?? error.message,
-                confirmationToken: expected,
-              },
-            }),
-          ),
-        )
-      }
-    }
-
-    // ── Has this exact call already run ──────────────────────────────────────
-    const headerKey = request.headers.get("idempotency-key")?.trim()
-    let idempotencyDegraded = false
-
-    if (tool.mutating && headerKey) {
-      idempotencyKey = headerKey
-      const outcome = await claimIdempotencyKey(identity.id, tool.name, headerKey, parsed.value)
-
-      if (outcome.kind === "replay") {
-        return toResponse(successBody(outcome.data, meta({ idempotentReplay: true })))
-      }
-      if (outcome.kind === "proceed") {
-        idempotencyRecordId = outcome.recordId
-      } else {
-        idempotencyDegraded = true
-      }
-    }
-
-    // ── Do it, through the business layer ────────────────────────────────────
-    const result = await tool.handler(parsed.value, { agent: identity, requestId, now })
-
-    // ── Write it down ────────────────────────────────────────────────────────
-    let auditRecorded = true
-    if (tool.mutating) {
-      auditRecorded = await recordAgentAction({
-        agentId: identity.id,
-        tool: tool.name,
-        action: result.audit?.action ?? auditContext.action,
-        resource: auditContext.resource,
-        resourceId: result.audit?.resourceId ?? "-",
-        outcome: "success",
-        requestId,
-        durationMs: Date.now() - startedAt,
-        input: parsed.value,
-        changes: result.audit?.changes as Record<string, FieldChange> | undefined,
-        idempotencyKey,
-      })
-    }
-
-    if (idempotencyRecordId) {
-      await completeIdempotencyKey(
-        idempotencyRecordId,
-        payloadFingerprint(parsed.value),
-        result.data,
-      )
-    }
-
-    if (idempotencyDegraded) {
-      console.warn(
-        `[agent/runner] Idempotency-Key accepted but not enforced for request ${requestId} — storage unavailable`,
-      )
-    }
-
-    const response = toResponse(
-      successBody(result.data, meta(tool.mutating ? { auditRecorded } : {})),
-    )
-    response.headers.set("X-RateLimit-Limit", String(rate.limit))
-    response.headers.set("X-RateLimit-Remaining", String(rate.remaining))
     return response
   } catch (err) {
-    if (idempotencyRecordId) {
-      // Free the key so the agent can retry with it. Without this one transient
-      // failure would permanently burn that key.
-      await releaseIdempotencyKey(idempotencyRecordId)
+    // Only transport-level failures reach here — a malformed body or a rejected
+    // credential. `executeToolCall` reports its own failures as values.
+    const meta: AgentMeta = {
+      ...baseMeta(requestId, toolName),
+      ...(identity ? { agentId: identity.id } : {}),
+      durationMs: Date.now() - startedAt,
     }
 
     if (isAgentError(err)) {
-      await auditFailure(err)
-      return toResponse(errorBody(err.code, err.message, meta(), err.details))
+      return toResponse(errorBody(err.code, err.message, meta, err.details))
     }
 
-    // Anything unplanned: full detail to the server log, nothing to the caller.
     console.error(`[agent/runner] Unhandled error on ${toolName} (request ${requestId})`, err)
-    const wrapped = new AgentError("INTERNAL_ERROR", "The request could not be completed.")
-    await auditFailure(wrapped)
-    return toResponse(errorBody("INTERNAL_ERROR", wrapped.message, meta()))
+    return toResponse(errorBody("INTERNAL_ERROR", "The request could not be completed.", meta))
   }
 }
 

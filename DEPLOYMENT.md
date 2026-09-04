@@ -44,6 +44,13 @@ FACEBOOK_API_KEY="..."
 NOTILAB_AGENT_API_KEY="..."
 NOTILAB_AGENT_ID="abacus"
 NOTILAB_AGENT_PERMISSIONS="readonly"   # readonly | editorial | seo | list of permissions
+
+# MCP server (optional — see docs/mcp.md)
+# Remote MCP transport over the same tools, for Abacus.ai. Separate credential:
+# there is no fallback to NOTILAB_AGENT_API_KEY. Minimum 32 characters.
+NOTILAB_MCP_API_KEY="..."
+NOTILAB_MCP_AGENT_ID="abacus-mcp"
+NOTILAB_MCP_PERMISSIONS="readonly"     # same vocabulary as NOTILAB_AGENT_PERMISSIONS
 \`\`\`
 
 ## Local Installation
@@ -126,6 +133,27 @@ None of these are `NEXT_PUBLIC_*`, so none of them reach the browser bundle. Omi
 leaves the agent read-only.
 
 Full contract, tools, error codes, and audit: `docs/agent-api.md`.
+
+#### MCP server (Abacus.ai and other MCP clients)
+
+Optional and **disabled by default**, independently of the Agent API. Without
+`NOTILAB_MCP_API_KEY`, `/api/mcp` responds `AGENT_API_DISABLED` — and there is
+**no fallback to `NOTILAB_AGENT_API_KEY`**, so a deploy that has an agent key but
+no MCP key exposes no MCP endpoint. Revoking one transport never revokes the other.
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `NOTILAB_MCP_API_KEY` | — | MCP credential. Minimum 32 characters |
+| `NOTILAB_MCP_AGENT_ID` | `abacus-mcp` | identity in audit rows (`agent:<id>`) |
+| `NOTILAB_MCP_PERMISSIONS` | `readonly` | same vocabulary and presets as `NOTILAB_AGENT_PERMISSIONS` |
+| `NOTILAB_MCP_IDEMPOTENCY_WINDOW_MS` | `900000` | retry window for derived idempotency keys |
+
+The endpoint is `POST /api/mcp` (stateless Streamable HTTP) with
+`GET /api/mcp/health` for the connection test. Both transports run the same
+tools through the same pipeline; MCP calls are marked `transport: "mcp"` in the
+audit trail so the two can be told apart.
+
+Full contract, Abacus setup and debugging: `docs/mcp.md`.
 
 #### The public origin (share links, referral, digest)
 

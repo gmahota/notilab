@@ -35,6 +35,24 @@ External agent
 An agent never receives a connection string, never issues SQL, never writes a
 column directly, and cannot reach a code path that skips the review gate.
 
+### There is a second transport, and it shares this pipeline
+
+NotiLab also speaks MCP, at `POST /api/mcp`, for Abacus.ai and other MCP
+clients (`docs/mcp.md`). It is **not** a second API: the stages between
+"authenticate" and "audit trail" above live in `lib/agent/execute.ts`, and both
+transports enter there with an `AgentIdentity` and an untrusted argument object.
+
+```
+Other agents → POST /api/agent/tools/<tool> → lib/agent/runner.ts ─┐
+Abacus.ai    → POST /api/mcp                → lib/mcp/server.ts   ─┴→ lib/agent/execute.ts
+```
+
+Neither transport owns a pipeline stage, so neither can skip one, and the MCP
+tool list is derived from this same registry — adding a tool here exposes it
+there. The two carry separate credentials (`NOTILAB_AGENT_API_KEY` vs
+`NOTILAB_MCP_API_KEY`) so either can be revoked alone, and every audit row
+records which door a call came through as `details.transport`.
+
 ### There is no generic executor
 
 There is no `POST /execute`, no endpoint that takes an instruction, and no
@@ -264,7 +282,10 @@ agent identity can own a row without pretending to be a person.
 | `resource` | `ARTICLE`, `ARTICLE_SCHEDULE`, `AGENT_IDEMPOTENCY` |
 | `resourceId` | Article id |
 | `createdAt` | Timestamp |
-| `details` | `{ agentId, tool, outcome, requestId, durationMs, input, changes, errorCode, errorMessage, idempotencyKey }` |
+| `details` | `{ agentId, transport, tool, outcome, requestId, durationMs, input, changes, errorCode, errorMessage, idempotencyKey }` |
+
+`transport` is `"http"` for an Agent API call and `"mcp"` for one that arrived
+over `/api/mcp`.
 
 ```json
 {
@@ -610,7 +631,10 @@ Honest list. None of these are hidden behind a workaround.
 | Path | Role |
 |---|---|
 | `lib/agent/registry.ts` | The catalogue. Start here |
-| `lib/agent/runner.ts` | The pipeline every call passes through |
+| `lib/agent/execute.ts` | The pipeline every call passes through, on either transport |
+| `lib/agent/runner.ts` | HTTP adapter over that pipeline |
+| `lib/agent/secret-compare.ts` | Timing-safe key comparison, shared with MCP |
+| `lib/mcp/*` | The MCP transport. See `docs/mcp.md` |
 | `lib/agent/types.ts` | What a tool is |
 | `lib/agent/schema.ts` | Validation + JSON Schema generation |
 | `lib/agent/auth.ts` | Key authentication, permission assertion |
