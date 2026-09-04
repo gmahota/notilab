@@ -20,6 +20,13 @@
 
 import { prisma } from "@/lib/prisma"
 
+/**
+ * Which door a call came through. Written into every audit row so an operator
+ * can separate Agent API traffic from MCP traffic when both are enabled — the
+ * two use different credentials but reach the same tools.
+ */
+export type AgentTransport = "http" | "mcp"
+
 /** Entity types the agent layer writes about. */
 export const AUDIT_RESOURCE = {
   ARTICLE: "ARTICLE",
@@ -74,6 +81,8 @@ export interface FieldChange {
 
 export interface AuditEntry {
   agentId: string
+  /** Defaults to "http" so an unmigrated caller still produces a valid row. */
+  transport?: AgentTransport
   /** The tool the agent called, e.g. "publish_article". */
   tool: string
   /** The action recorded, e.g. "ARTICLE_PUBLISH". Uppercase, verb-last. */
@@ -107,6 +116,7 @@ export async function recordAgentAction(entry: AuditEntry): Promise<boolean> {
         resourceId: entry.resourceId,
         details: redact({
           agentId: entry.agentId,
+          transport: entry.transport ?? "http",
           tool: entry.tool,
           outcome: entry.outcome,
           requestId: entry.requestId,
