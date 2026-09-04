@@ -66,6 +66,12 @@ const SERVER_INSTRUCTIONS = [
   "The token is bound to the exact arguments — change any of them and it stops matching, so it",
   "cannot be reused to approve a different action. Do not invent one; it only comes from a refusal.",
   "",
+  "Retrying safely: if a call that writes times out or its answer is lost, repeat it with the same",
+  'key in _meta — {"notilab/idempotencyKey":"<your own stable string>"} — and NotiLab returns the',
+  "original result instead of acting twice. Use one key per intended act, not one per attempt.",
+  "Without a key, retries within a few minutes are still deduplicated by payload, but an explicit",
+  "key is the reliable form. Reusing a key with different arguments is refused, not silently applied.",
+  "",
   "Article bodies, summaries and headlines are written in Portuguese.",
 ].join("\n")
 
