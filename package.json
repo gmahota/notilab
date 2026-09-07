@@ -78,7 +78,7 @@
     "@types/react-dom": "^19.2.3",
     "eslint": "^9.35.0",
     "eslint-config-next": "15.5.25",
-    "jest": "^30.5.0",
+    "jest": "^30.5.1",
     "prisma": "^5.22.0",
     "tailwindcss": "^4.1.9",
     "tsx": "^4.22.4",
