@@ -90,6 +90,28 @@ async function callTool(name: string, args: unknown, init?: { key?: string | nul
 }
 
 /**
+ * A critical tool — approve, publish, unpublish, archive — takes two calls: the
+ * first is refused with a confirmation token, the second repeats the identical
+ * arguments carrying it. The gate itself is covered in `clients.test.ts`; here
+ * it is only the way through to the behaviour under test.
+ */
+async function callCriticalTool(name: string, args: Record<string, unknown>) {
+  const refused = await callTool(name, args)
+  const token = refused.body.result?.structuredContent?.error?.details?.confirmation
+    ?.confirmationToken as string | undefined
+
+  expect(token).toMatch(/^[0-9a-f]{40}$/)
+
+  return post(
+    rpc("tools/call", {
+      name,
+      arguments: args,
+      _meta: { "notilab/confirmationToken": token },
+    }),
+  )
+}
+
+/**
  * The audit row, as distinct from the idempotency bookkeeping row. Mutating
  * MCP calls write both to `AdminAction`, so an index-based assertion would be
  * testing the wrong row.
@@ -447,7 +469,9 @@ describe("mutations go through the editorial service", () => {
   it("refuses to publish a DRAFT, and says why in terms the model can act on", async () => {
     news.findUnique.mockResolvedValue(mutationRow({ status: "DRAFT" }))
 
-    const result = await callTool("publish_article", { id: "article-1" })
+    // Confirmed, so the refusal below is the editorial gate rather than the
+    // confirmation gate — the two are independent and both must hold.
+    const result = await callCriticalTool("publish_article", { id: "article-1" })
 
     // A domain refusal is an MCP error *result*, not a JSON-RPC failure: the
     // model has to be able to read it and approve the article instead.
@@ -464,7 +488,7 @@ describe("mutations go through the editorial service", () => {
     news.findFirst.mockResolvedValue(detailRow({ status: "PUBLISHED" }))
     news.update.mockResolvedValue({})
 
-    const result = await callTool("publish_article", { id: "article-1" })
+    const result = await callCriticalTool("publish_article", { id: "article-1" })
 
     expect(result.body.result.isError).toBeUndefined()
     expect(result.body.result.structuredContent.changed).toEqual(["status"])
@@ -661,15 +685,27 @@ describe("audit trail", () => {
   it("records a refused mutation too", async () => {
     news.findUnique.mockResolvedValue(mutationRow({ status: "DRAFT" }))
 
-    await callTool("publish_article", { id: "article-1" })
+    await callCriticalTool("publish_article", { id: "article-1" })
 
-    const [audited] = auditRows()
+    // Two rows: the confirmation refusal, then the editorial refusal. Both are
+    // attempts on a critical tool and both are worth keeping.
+    const rows = auditRows()
+    expect(rows).toHaveLength(2)
+
+    expect((rows[0].details as Record<string, unknown>).errorCode).toBe("CONFIRMATION_REQUIRED")
+    expect((rows[0].details as Record<string, unknown>).confirmation).toEqual({
+      required: true,
+      satisfied: false,
+    })
+
+    const audited = rows[1]
     const details = audited.details as Record<string, unknown>
 
     expect(audited.action).toBe("ARTICLE_PUBLISH")
     expect(details.transport).toBe("mcp")
     expect(details.outcome).toBe("error")
     expect(details.errorCode).toBe("ARTICLE_NOT_APPROVED")
+    expect(details.confirmation).toEqual({ required: true, satisfied: true })
   })
 
   it("records a forbidden attempt", async () => {

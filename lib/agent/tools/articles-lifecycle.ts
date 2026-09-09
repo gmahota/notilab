@@ -20,6 +20,7 @@
 import { defineTool } from "../types"
 import { f } from "../schema"
 import { AUDIT_RESOURCE } from "../audit"
+import { criticalActionConfirmation } from "../critical-actions"
 import { transitionArticle } from "@/lib/editorial/article-service"
 import {
   getSchedule,
@@ -54,11 +55,24 @@ export const approveArticleTool = defineTool({
   name: "approve_article",
   title: "Approve an article",
   description:
-    "Approve an article that is PENDING_REVIEW, making it eligible for publication or scheduling. " +
-    "Approving does not make an article public — call publish_article or schedule_article after.",
+    "Sign off an article that is PENDING_REVIEW, moving it to APPROVED. This is the editorial gate: " +
+    "an article cannot be published or scheduled until it passes through here, so approving is the " +
+    "act that makes a story publishable. It does NOT make it public — call publish_article or " +
+    "schedule_article afterwards. " +
+    "Required: id (article id or slug). No other field. " +
+    "Fails with INVALID_STATUS_TRANSITION unless the article is PENDING_REVIEW or DRAFT-adjacent per " +
+    "the state machine; approving an already-APPROVED article succeeds and reports changed: []. " +
+    "CRITICAL ACTION — requires confirmation: the first call is refused with CONFIRMATION_REQUIRED " +
+    "and a confirmationToken, and the identical call carrying that token proceeds. " +
+    "Do NOT use it to fix an article: approval is a judgement that the text is ready as it stands, " +
+    "so edit with update_article first and approve after. Do not approve your own drafts unattended " +
+    "when a human is meant to review them.",
   permissions: ["article.review"],
   mutating: true,
   audit: { action: "ARTICLE_APPROVE", resource: AUDIT_RESOURCE.ARTICLE },
+  confirmation: criticalActionConfirmation(
+    "Approving clears this article for publication. Confirm that it has been read and is ready.",
+  ),
   input: { id: idField },
   output: ARTICLE_MUTATION_SCHEMA,
   async handler(input) {
@@ -95,14 +109,25 @@ export const publishArticleTool = defineTool({
   name: "publish_article",
   title: "Publish an article",
   description:
-    "Make an APPROVED article publicly visible. It will fail with ARTICLE_NOT_APPROVED on a draft " +
-    "or an article still under review — that gate is a business rule, not a permission, so run " +
-    "submit_article_for_review and approve_article first. Publishing an already-published article " +
-    "succeeds and changes nothing, so this is safe to retry. `publishedAt` is left as-is unless " +
-    "you pass one; for a syndicated story that field is the original outlet's publication date.",
+    "Put an APPROVED article on the public site, immediately and for every reader. This is the only " +
+    "tool that makes NotiLab content visible to the outside world. " +
+    "Required: id (article id or slug). Optional: publishedAt (ISO-8601) — left as-is when omitted; " +
+    "for a syndicated story that field is the original outlet's publication date, not now. " +
+    "Fails with ARTICLE_NOT_APPROVED on a DRAFT or an article still under review, and that gate is a " +
+    "business rule rather than a permission: no credential can skip it, so run " +
+    "submit_article_for_review and approve_article first. Publishing an already-PUBLISHED article " +
+    "succeeds and reports changed: [], so it is safe to retry. " +
+    "CRITICAL ACTION — requires confirmation: the first call is refused with CONFIRMATION_REQUIRED " +
+    "and a confirmationToken, and the identical call carrying that token proceeds. " +
+    "Do NOT use it to correct a live story — the article is already public, so edit it with " +
+    "update_article instead. Do NOT use it to schedule: for a future instant call schedule_article. " +
+    "To take a story back down, use unpublish_article.",
   permissions: ["article.publish"],
   mutating: true,
   audit: { action: "ARTICLE_PUBLISH", resource: AUDIT_RESOURCE.ARTICLE },
+  confirmation: criticalActionConfirmation(
+    "Publishing makes this article visible to every reader of the public site. Confirm to proceed.",
+  ),
   input: {
     id: idField,
     publishedAt: f.optional(
@@ -125,11 +150,22 @@ export const unpublishArticleTool = defineTool({
   name: "unpublish_article",
   title: "Unpublish an article",
   description:
-    "Withdraw a published article from the public site. It returns to APPROVED — already reviewed, " +
-    "and republishable with publish_article without going through review again. Nothing is deleted.",
+    "Take a PUBLISHED article back off the public site. Readers stop seeing it immediately. " +
+    "Required: id (article id or slug). No other field. " +
+    "The article returns to APPROVED — already reviewed, and republishable with publish_article " +
+    "without going through review again. Nothing is deleted and no history is lost. Unpublishing an " +
+    "article that is not published succeeds and reports changed: []. " +
+    "CRITICAL ACTION — requires confirmation: the first call is refused with CONFIRMATION_REQUIRED " +
+    "and a confirmationToken, and the identical call carrying that token proceeds. " +
+    "Use it when a live story is wrong or premature. Do NOT use it as a way to edit — update_article " +
+    "works on a published article and leaves it up. Do NOT use it to retire a story permanently; " +
+    "that is archive_article.",
   permissions: ["article.unpublish"],
   mutating: true,
   audit: { action: "ARTICLE_UNPUBLISH", resource: AUDIT_RESOURCE.ARTICLE },
+  confirmation: criticalActionConfirmation(
+    "Unpublishing removes this article from the public site immediately. Confirm to proceed.",
+  ),
   input: { id: idField },
   output: ARTICLE_MUTATION_SCHEMA,
   async handler(input) {
@@ -145,13 +181,23 @@ export const archiveArticleTool = defineTool({
   name: "archive_article",
   title: "Archive an article",
   description:
-    "Archive an article so it stops appearing anywhere. This is NotiLab's alternative to deletion — " +
-    "the row, its provenance and its history are kept. ARCHIVED is terminal: an archived article " +
-    "cannot be restored through this API, only by an operator. Prefer unpublish_article when the " +
-    "intent is temporary.",
+    "Retire an article permanently, from any status. It stops appearing anywhere — public site, " +
+    "search, digests. This is NotiLab's alternative to deletion: the row, its provenance and its " +
+    "history are kept, but ARCHIVED is TERMINAL. No tool in this API can bring it back; only a human " +
+    "operator working directly on the database can. " +
+    "Required: id (article id or slug). No other field. " +
+    "CRITICAL ACTION — requires confirmation: the first call is refused with CONFIRMATION_REQUIRED " +
+    "and a confirmationToken, and the identical call carrying that token proceeds. " +
+    "Use it only when the story is genuinely finished with. Do NOT use it to hide a story " +
+    "temporarily, to take a live story down, or to tidy up — unpublish_article is reversible and is " +
+    "almost always what is wanted. Do NOT use it on an article you did not create unless the " +
+    "operator asked for that article by name.",
   permissions: ["article.archive"],
   mutating: true,
   audit: { action: "ARTICLE_ARCHIVE", resource: AUDIT_RESOURCE.ARTICLE },
+  confirmation: criticalActionConfirmation(
+    "Archiving is permanent — nothing in this API can restore the article afterwards. Confirm to proceed.",
+  ),
   input: { id: idField },
   output: ARTICLE_MUTATION_SCHEMA,
   async handler(input) {
@@ -167,11 +213,19 @@ export const scheduleArticleTool = defineTool({
   name: "schedule_article",
   title: "Schedule a publication",
   description:
-    "Record that an APPROVED article should be published at a future instant. `publishAt` is " +
-    "ISO-8601; a value with no timezone offset is read as UTC, so state the offset when the " +
-    "request is in local time. Calling it again replaces the pending schedule. IMPORTANT: the job " +
-    "that fulfils schedules is not switched on by default on every deployment — check with the " +
-    "operator before promising a story will go live unattended.",
+    "Record that an APPROVED article should be published at a future instant. This writes an " +
+    "intent, not a publication: nothing becomes visible now. " +
+    "Required: id (article id or slug) and publishAt (ISO-8601, must be in the future). A value " +
+    "with no timezone offset is read as UTC, so state the offset when the operator spoke in local " +
+    "time — Maputo is UTC+02:00. Fails with SCHEDULE_IN_THE_PAST for an instant that has passed, " +
+    "and the article must already be APPROVED. Calling it again replaces the pending schedule " +
+    "rather than adding a second one; the response carries previousSchedule so the replacement is " +
+    "visible. " +
+    "IMPORTANT: the cron job that fulfils schedules is not switched on by default on every " +
+    "deployment. Where it is off, a scheduled article simply never goes live — check with the " +
+    "operator before promising a story will publish unattended. " +
+    "Do NOT use it to publish now: that is publish_article. To cancel, call unschedule_article; " +
+    "there is no way to cancel by scheduling a past date.",
   permissions: ["article.schedule"],
   mutating: true,
   audit: { action: "ARTICLE_SCHEDULE", resource: AUDIT_RESOURCE.ARTICLE },

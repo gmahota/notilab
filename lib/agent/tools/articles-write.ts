@@ -92,11 +92,22 @@ export const updateArticleTool = defineTool({
   name: "update_article",
   title: "Update article content",
   description:
-    "Update the editorial fields of an existing article: headline, summary, body, category, tags, " +
-    "reading time, and `priority` — which is NotiLab's editorial prominence flag, the field to " +
-    "change when asked to feature a story or drop it from the highlights. Only the fields you send " +
-    "are touched. This tool cannot change publication state, publication date, provenance, the " +
-    "trending flag or any computed score; use the lifecycle tools for state.",
+    "Rewrite the editorial fields of an existing article, in place, at whatever status it currently " +
+    "holds — including PUBLISHED, where the change is live to readers at once. " +
+    "Required: id (article id or slug), plus at least one field to change; sending only an id fails " +
+    "with NO_FIELDS_TO_UPDATE. " +
+    "Optional, and only what you send is touched: title, summary, content, categorySlug (must be an " +
+    "existing slug — call list_categories, there is no tool that creates one), tags, readTime, and " +
+    "priority — NotiLab's editorial prominence flag ('destaque'), the field to change when asked to " +
+    "feature a story or drop it from the highlights. Sending a field unchanged is a no-op and it " +
+    "will not appear in `changed`. " +
+    "This tool CANNOT reach status, publishedAt, slug, provenance (sourceUrl, sourceName), the " +
+    "trending flag or any computed score — those fields are absent from the schema and sending one " +
+    "fails the whole call with VALIDATION_FAILED rather than being ignored. " +
+    "Do NOT use it to move an article through the workflow (submit_article_for_review, " +
+    "approve_article, publish_article do that), to change the URL slug (update_article_seo), or to " +
+    "set the lead image (set_article_image). Call get_article first so the edit is based on the " +
+    "current text rather than a stale search result — this tool replaces a field, it does not merge.",
   permissions: ["article.update"],
   mutating: true,
   audit: { action: "ARTICLE_UPDATE", resource: AUDIT_RESOURCE.ARTICLE },

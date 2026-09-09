@@ -68,6 +68,29 @@ async function call(
   return { status: response.status, body: await response.json(), headers: response.headers }
 }
 
+/**
+ * A critical tool — approve, publish, unpublish, archive — takes two calls: the
+ * first is refused with a confirmation token, the second repeats the identical
+ * body carrying it as `confirmationToken`. Over HTTP the token travels in the
+ * body; MCP has to route it through `_meta`, because its advertised schemas
+ * reject undeclared fields.
+ */
+async function callCritical(
+  tool: string,
+  body: Record<string, unknown>,
+  init?: { key?: string | null; headers?: Record<string, string> },
+) {
+  const refused = await call(tool, body, init)
+
+  expect(refused.status).toBe(409)
+  expect(refused.body.error.code).toBe("CONFIRMATION_REQUIRED")
+
+  const token = refused.body.meta?.confirmation?.confirmationToken as string | undefined
+  expect(token).toMatch(/^[0-9a-f]{40}$/)
+
+  return call(tool, { ...body, confirmationToken: token }, init)
+}
+
 function mutationRow(overrides: Record<string, unknown> = {}) {
   return {
     id: "article-1",
@@ -280,12 +303,16 @@ describe("writes and the audit trail", () => {
     // operator needs to be able to see afterwards.
     news.findUnique.mockResolvedValue(mutationRow({ status: "DRAFT" }))
 
-    const result = await call("publish_article", { id: "article-1" })
+    const result = await callCritical("publish_article", { id: "article-1" })
 
     expect(result.status).toBe(409)
     expect(result.body.error.code).toBe("ARTICLE_NOT_APPROVED")
 
-    const audited = adminAction.create.mock.calls[0][0].data
+    // Two rows: the confirmation refusal, then the editorial one.
+    const rows = adminAction.create.mock.calls.map((c) => c[0].data)
+    expect((rows[0].details as Record<string, unknown>).errorCode).toBe("CONFIRMATION_REQUIRED")
+
+    const audited = rows[1]
     expect(audited.action).toBe("ARTICLE_PUBLISH")
     expect((audited.details as Record<string, unknown>).outcome).toBe("error")
     expect((audited.details as Record<string, unknown>).errorCode).toBe("ARTICLE_NOT_APPROVED")
@@ -317,10 +344,48 @@ describe("writes and the audit trail", () => {
     news.findFirst.mockResolvedValue(detailRow({ status: "PUBLISHED" }))
     news.update.mockResolvedValue({})
 
-    const result = await call("publish_article", { id: "article-1" })
+    const result = await callCritical("publish_article", { id: "article-1" })
 
     expect(result.status).toBe(200)
     expect(result.body.data.changed).toEqual(["status"])
+  })
+})
+
+describe("the confirmation gate over HTTP", () => {
+  it.each(["approve_article", "publish_article", "unpublish_article", "archive_article"])(
+    "halts %s on the first call, before the business layer",
+    async (tool) => {
+      news.findUnique.mockResolvedValue(mutationRow())
+
+      const result = await call(tool, { id: "article-1" })
+
+      expect(result.status).toBe(409)
+      expect(result.body.error.code).toBe("CONFIRMATION_REQUIRED")
+      expect(result.body.meta.confirmation.reason).toBe("critical_action")
+      expect(news.update).not.toHaveBeenCalled()
+    },
+  )
+
+  it("leaves an ordinary write ungated", async () => {
+    news.findUnique.mockResolvedValue(mutationRow())
+    news.findFirst.mockResolvedValue(detailRow({ title: "Título novo" }))
+    news.update.mockResolvedValue({})
+
+    const result = await call("update_article", { id: "article-1", title: "Título novo" })
+
+    expect(result.status).toBe(200)
+  })
+
+  it("refuses a token minted for a different payload", async () => {
+    news.findUnique.mockResolvedValue(mutationRow())
+
+    const refused = await call("archive_article", { id: "article-1" })
+    const token = refused.body.meta.confirmation.confirmationToken
+
+    const reused = await call("archive_article", { id: "article-2", confirmationToken: token })
+
+    expect(reused.body.error.code).toBe("CONFIRMATION_REQUIRED")
+    expect(news.update).not.toHaveBeenCalled()
   })
 })
 

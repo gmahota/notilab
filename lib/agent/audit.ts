@@ -79,6 +79,20 @@ export interface FieldChange {
   after: unknown
 }
 
+/**
+ * Whether the confirmation gate stood in front of this call, and whether it was
+ * satisfied.
+ *
+ * Absent on a tool with no confirmation policy — which is most of them — so a
+ * row where it is missing means "the gate did not apply", not "the gate was
+ * skipped". Present and `satisfied: false` is the interesting row: an agent
+ * reached for a critical action and was turned away.
+ */
+export interface ConfirmationAudit {
+  required: boolean
+  satisfied: boolean
+}
+
 export interface AuditEntry {
   agentId: string
   /** Defaults to "http" so an unmigrated caller still produces a valid row. */
@@ -100,6 +114,8 @@ export interface AuditEntry {
   errorCode?: string
   errorMessage?: string
   idempotencyKey?: string
+  /** Only set when the tool declared a confirmation policy. */
+  confirmation?: ConfirmationAudit
 }
 
 /**
@@ -127,6 +143,9 @@ export async function recordAgentAction(entry: AuditEntry): Promise<boolean> {
           errorMessage: entry.errorMessage ?? null,
           // Recorded so a replayed call can be traced back to the original.
           idempotencyKey: entry.idempotencyKey ?? null,
+          // Null rather than absent, so a query can ask for rows where the gate
+          // applied without knowing which tools declare a policy.
+          confirmation: entry.confirmation ?? null,
         }) as object,
       },
     })
