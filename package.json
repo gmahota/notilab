@@ -11,28 +11,20 @@
     "test:watch": "jest --watch",
     "typecheck": "tsc --noEmit",
     "agents:sync": "node scripts/agents/sync-claude-agents.mjs",
-    "agent:openapi": "tsx scripts/agent/dump-openapi.ts",
-    "agent:smoke": "tsx scripts/agent/smoke-test.ts",
-    "admin:provision": "tsx scripts/admin/provision-admin.ts",
+    "agent:openapi": "tsx --env-file-if-exists=.env scripts/agent/dump-openapi.ts",
+    "agent:smoke": "tsx --env-file-if-exists=.env scripts/agent/smoke-test.ts",
+    "admin:provision": "tsx --env-file-if-exists=.env scripts/admin/provision-admin.ts",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
     "db:generate": "prisma generate",
-    "db:seed": "tsx prisma/seed.ts",
+    "db:seed": "tsx --env-file-if-exists=.env prisma/seed.ts",
     "db:reset": "prisma db push --force-reset && pnpm run db:seed",
     "setup": "chmod +x scripts/setup.sh && ./scripts/setup.sh",
-    "check": "tsx scripts/health-check.ts",
+    "check": "tsx --env-file-if-exists=.env scripts/health-check.ts",
     "postinstall": "prisma generate",
-    "ingest:dry-run": "tsx scripts/ingestion-dry-run.ts"
-  },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
+    "ingest:dry-run": "tsx --env-file-if-exists=.env scripts/ingestion-dry-run.ts"
   },
   "pnpm": {
-    "onlyBuiltDependencies": [
-      "prisma",
-      "@prisma/client",
-      "@prisma/engines"
-    ],
     "overrides": {
       "postcss@8": "^8.5.26",
       "nanoid@3": "^3.3.18",
@@ -58,7 +50,8 @@
     }
   },
   "dependencies": {
-    "@prisma/client": "6.19.0",
+    "@prisma/adapter-pg": "7.9.0",
+    "@prisma/client": "7.9.0",
     "@radix-ui/react-avatar": "^1.1.1",
     "@radix-ui/react-dialog": "^1.1.2",
     "@radix-ui/react-dropdown-menu": "^2.1.2",
@@ -82,6 +75,7 @@
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^1.14.0",
     "next": "15.5.28",
+    "pg": "^8.22.0",
     "react": "19.2.7",
     "react-day-picker": "^9.14.0",
     "react-dom": "19.2.7",
@@ -94,12 +88,13 @@
     "@types/jest": "^30.0.0",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^26.5.1",
+    "@types/pg": "^8.20.0",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "eslint": "^9.35.0",
     "eslint-config-next": "15.5.25",
     "jest": "^30.5.0",
-    "prisma": "6.19.0",
+    "prisma": "7.9.0",
     "tailwindcss": "^4.1.9",
     "tsx": "^4.22.4",
     "typescript": "^5.7.2"
