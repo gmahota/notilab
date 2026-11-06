@@ -30,6 +30,15 @@
  * User affinity (future-ready):
  *   When no user context is provided, returns 50 (neutral — no advantage or penalty).
  *   Plug in userCategoryIds from user preferences to activate personalization.
+ *
+ * Editorial prominence ('destaque'):
+ *   News.priority is the newsroom's own lever over the feed, set in the CMS.
+ *   It is applied as a multiplier on the composite score, not as a weighted
+ *   dimension, so the five weights keep summing to 1.0 and a pinned story wins
+ *   by a margin rather than by overriding the signals outright. A HIGH story
+ *   leads the feed for roughly a day and an URGENT one for roughly two before
+ *   recency decay hands the lead back — which is what stops a forgotten
+ *   'destaque' from freezing the front page.
  */
 
 // ---------------------------------------------------------------------------
@@ -38,6 +47,9 @@
 
 /** Controls which weight profile to apply. */
 export type FeedMode = "homepage" | "category" | "trending" | "global"
+
+/** News.priority — the CMS prominence flag an editor sets on a story. */
+export type EditorialPriority = "LOW" | "NORMAL" | "HIGH" | "URGENT"
 
 export interface WeightProfile {
   recency: number
@@ -64,6 +76,8 @@ export interface ScoringInput {
   articleCategoryId?: string
   /** User's preferred category IDs. Leave undefined for anonymous / no-personalization. */
   userCategoryIds?: string[]
+  /** News.priority — the editor's 'destaque' flag. Omit to treat the article as NORMAL. */
+  editorialPriority?: EditorialPriority | string | null
 }
 
 export interface ScoreBreakdown {
@@ -78,6 +92,8 @@ export interface ScoredArticle {
   /** Composite 0–100 score. Stored in News.rankingScore for feed ordering. */
   finalScore: number
   breakdown: ScoreBreakdown
+  /** The News.priority multiplier that was applied. 1.0 means no editorial nudge. */
+  editorialMultiplier: number
 }
 
 // ---------------------------------------------------------------------------
@@ -130,6 +146,21 @@ const LOW_TRUST_MULTIPLIER = 0.70
 /** Number of matching tags needed to reach trendBoost = 100. */
 const TREND_MATCH_TARGET = 3
 
+/**
+ * News.priority → multiplier on the composite score.
+ *
+ * Sized against the recency curve rather than picked for roundness: 24 h of
+ * decay costs a typical story ~15 points of composite score, so HIGH (×1.35)
+ * buys a pinned story about a day at the top and URGENT (×1.8) about two. LOW
+ * demotes without hiding — the article still appears, just below the fold.
+ */
+const EDITORIAL_MULTIPLIER: Record<EditorialPriority, number> = {
+  LOW: 0.75,
+  NORMAL: 1.0,
+  HIGH: 1.35,
+  URGENT: 1.8,
+}
+
 /** Hours after which still-trending articles get a longevity bonus. */
 const TREND_ALIVE_HOURS = 72
 const TREND_ALIVE_MIN_BOOST = 60
@@ -171,6 +202,16 @@ function dimSourceTrust(priority: number | null): number {
 
 function dimAIImportance(aiScore: number | null, fallback: number): number {
   return Math.min(100, Math.max(0, aiScore ?? fallback))
+}
+
+/**
+ * Editorial multiplier for a News.priority value.
+ * Unknown or missing values fall back to NORMAL (1.0) so a priority added to
+ * the Prisma enum later cannot silently zero a story out of the feed.
+ */
+function editorialMultiplier(priority: EditorialPriority | string | null | undefined): number {
+  if (!priority) return EDITORIAL_MULTIPLIER.NORMAL
+  return EDITORIAL_MULTIPLIER[priority as EditorialPriority] ?? EDITORIAL_MULTIPLIER.NORMAL
 }
 
 /**
@@ -220,9 +261,14 @@ export function scoreArticle(
   const trustMultiplier =
     (input.sourcePriority ?? 50) < LOW_TRUST_THRESHOLD ? LOW_TRUST_MULTIPLIER : 1.0
 
-  const finalScore = Math.round(Math.min(100, raw * trustMultiplier) * 100) / 100
+  // Apply the newsroom's own lever last, so 'destaque' moves a story relative
+  // to whatever the signals already said about it.
+  const editorial = editorialMultiplier(input.editorialPriority)
 
-  return { finalScore, breakdown }
+  const finalScore =
+    Math.round(Math.min(100, raw * trustMultiplier * editorial) * 100) / 100
+
+  return { finalScore, breakdown, editorialMultiplier: editorial }
 }
 
 // ---------------------------------------------------------------------------
@@ -235,6 +281,8 @@ export interface ArticleForRanking {
   importanceScore?: number
   sourceName?: string
   categoryId?: string
+  /** News.priority, passed straight through from the row. */
+  priority?: EditorialPriority | string | null
   [key: string]: unknown
 }
 
@@ -275,6 +323,7 @@ export function rankArticles<T extends ArticleForRanking>(
           trendingKeywords,
           articleCategoryId: article.categoryId,
           userCategoryIds,
+          editorialPriority: article.priority,
         },
         mode,
       )

@@ -2,6 +2,29 @@ import { type NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { rankArticles } from "@/lib/ranking"
 
+/**
+ * How far back a pinned story stays eligible for the lead slot. Past this the
+ * editor's 'destaque' stops being pulled in explicitly and the story competes
+ * on its own signals like any other.
+ */
+const PINNED_LOOKBACK_HOURS = 48
+
+/** Shared between the recency window and the pinned pull-in so both shapes match. */
+const ARTICLE_INCLUDE = {
+  category: { select: { name: true, slug: true, color: true } },
+  articleAI: {
+    select: {
+      titleTranslated: true,
+      summary: true,
+      tldr: true,
+      whyItMatters: true,
+      importanceScore: true,
+    },
+  },
+  reactions: { select: { type: true } },
+  _count: { select: { readHistory: true, reactions: true, savedBy: true } },
+} as const
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
@@ -33,21 +56,34 @@ export async function GET(request: NextRequest) {
       take: limit + 10, // fetch extra for ranking reorder
       skip: offset,
       orderBy: { publishedAt: "desc" },
-      include: {
-        category: { select: { name: true, slug: true, color: true } },
-        articleAI: {
-          select: {
-            titleTranslated: true,
-            summary: true,
-            tldr: true,
-            whyItMatters: true,
-            importanceScore: true,
+      include: ARTICLE_INCLUDE,
+    })
+
+    // The window above is the newest `limit + 10` articles, so a story the
+    // newsroom pinned yesterday is simply not among the candidates and its
+    // 'destaque' does nothing. Pull recent pinned stories in by hand. First
+    // page only — on page 2 they have already been shown.
+    let candidates = articles
+    if (offset === 0) {
+      const pinned = await prisma.news.findMany({
+        where: {
+          ...where,
+          priority: { in: ["HIGH", "URGENT"] },
+          publishedAt: {
+            gte: new Date(Date.now() - PINNED_LOOKBACK_HOURS * 3_600_000),
           },
         },
-        reactions: { select: { type: true } },
-        _count: { select: { readHistory: true, reactions: true, savedBy: true } },
-      },
-    })
+        take: 10,
+        orderBy: { publishedAt: "desc" },
+        include: ARTICLE_INCLUDE,
+      })
+
+      const alreadyInWindow = new Set(articles.map((a: typeof articles[number]) => a.id))
+      candidates = [
+        ...articles,
+        ...pinned.filter((p: typeof articles[number]) => !alreadyInWindow.has(p.id)),
+      ]
+    }
 
     // Get user categories for affinity scoring
     let userCategories: string[] = []
@@ -60,7 +96,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Apply ranking
-    const articlesForRanking = articles.map((a: typeof articles[number]) => ({
+    const articlesForRanking = candidates.map((a: typeof articles[number]) => ({
       ...a,
       importanceScore: a.articleAI?.importanceScore || a.importanceScore || 50,
       categorySlug: a.category?.slug || "",

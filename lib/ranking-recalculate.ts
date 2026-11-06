@@ -11,6 +11,8 @@ interface ArticleRow {
   tags: string[]
   importanceScore: number
   categoryId: string | null
+  /** News.priority — the editor's 'destaque' flag, not the source's trust score. */
+  priority: string | null
   source: { priority: number } | null
   articleAI: { importanceScore: number } | null
 }
@@ -47,7 +49,7 @@ const BATCH_SIZE = 50
  *
  * Strategy:
  *  1. Load active TrendingTopic keywords once (top 50 by volume).
- *  2. Load all News rows with source priority and ArticleAI score.
+ *  2. Load all News rows with editorial priority, source priority and ArticleAI score.
  *  3. Score every article with `scoreArticle()`.
  *  4. Persist in batched Prisma transactions (BATCH_SIZE updates each).
  */
@@ -71,6 +73,7 @@ export async function recalculateAllRankings(): Promise<RecalculateResult> {
       tags: true,
       importanceScore: true,
       categoryId: true,
+      priority: true,
       source: { select: { priority: true } },
       articleAI: { select: { importanceScore: true } },
     },
@@ -87,6 +90,7 @@ export async function recalculateAllRankings(): Promise<RecalculateResult> {
         newsImportanceScore: article.importanceScore ?? 0,
         trendingKeywords,
         articleCategoryId: article.categoryId ?? undefined,
+        editorialPriority: article.priority,
       },
       "global" satisfies FeedMode,
     )
