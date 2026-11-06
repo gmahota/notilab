@@ -1,4 +1,4 @@
-import { PrismaClient, Priority, NewsStatus } from "@prisma/client"
+import { PrismaClient, Priority, NewsStatus } from "../lib/generated/prisma"
 
 const prisma = new PrismaClient()
 
