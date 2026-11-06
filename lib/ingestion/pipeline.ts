@@ -5,6 +5,7 @@
  *   fetchFromProviders
  *     → applyQualityGate
  *       → normalizeArticles
+ *       → applyImageRights
  *       → deduplicateArticles
  *         → resolveCategoryIds
  *           → saveToDatabase
@@ -17,6 +18,7 @@
 import { fetchFromProviders }   from "./providers"
 import { applyQualityGate }     from "./quality"
 import { normalizeArticles }    from "./normalize"
+import { applyImageRights }     from "./image-rights"
 import { deduplicateArticles }  from "./deduplicate"
 import { resolveCategoryIds }   from "./categorize"
 import { saveToDatabase }       from "./persist"
@@ -72,8 +74,35 @@ export async function runIngestionPipeline(): Promise<IngestionResult> {
     }
   }
 
+  // ── 2b. Image rights ──────────────────────────────────────────────────────
+  // Strips images we have no licence basis to hotlink. Never drops an article:
+  // a rejected image only becomes null, and the article publishes without it.
+  // See docs/editor/ingestion-editorial-workflow.md § 4.
+  const images = applyImageRights(normalized)
+  const withImage = images.articles.filter((a) => a.imageUrl).length
+  const { unlicensedHost, insecure, nonPhoto, unusableUrl } = images.rejected
+  console.log(
+    `[pipeline] Image rights kept ${withImage}/${images.articles.length} image(s) ` +
+    `(dropped ${unlicensedHost} unlicensed, ${insecure} non-HTTPS, ` +
+    `${nonPhoto} non-photo, ${unusableUrl} unusable)`,
+  )
+  if (images.unlicensedImageHosts.length > 0) {
+    // Named for the same reason quality.ts names rejected sources: an image
+    // host that belongs on the allowlist should be visible as a name, not as
+    // an unexplained drop in how many articles carry a picture. Only hosts
+    // rejected for lack of a licence basis belong on this line — they are the
+    // allowlist candidates.
+    console.log(`[pipeline] Image hosts without a licence basis: ${images.unlicensedImageHosts.join(", ")}`)
+  }
+  if (images.otherDroppedImageHosts.length > 0) {
+    // Separate line, separate meaning: these hosts may well be allowed already
+    // and simply served something that is not a usable photograph. Proposing
+    // them for the allowlist would fix nothing.
+    console.log(`[pipeline] Images dropped for other reasons from: ${images.otherDroppedImageHosts.join(", ")}`)
+  }
+
   // ── 3. Deduplicate ────────────────────────────────────────────────────────
-  const { toSave, skippedCount } = await deduplicateArticles(normalized)
+  const { toSave, skippedCount } = await deduplicateArticles(images.articles)
   console.log(`[pipeline] ${toSave.length} new article(s) to save, ${skippedCount} duplicate(s) skipped`)
 
   if (toSave.length === 0) {
