@@ -28,6 +28,11 @@
     "seed": "tsx prisma/seed.ts"
   },
   "pnpm": {
+    "onlyBuiltDependencies": [
+      "prisma",
+      "@prisma/client",
+      "@prisma/engines"
+    ],
     "overrides": {
       "postcss@8": "^8.5.26",
       "nanoid@3": "^3.3.18",
@@ -53,7 +58,7 @@
     }
   },
   "dependencies": {
-    "@prisma/client": "^5.22.0",
+    "@prisma/client": "6.19.0",
     "@radix-ui/react-avatar": "^1.1.1",
     "@radix-ui/react-dialog": "^1.1.2",
     "@radix-ui/react-dropdown-menu": "^2.1.2",
@@ -94,7 +99,7 @@
     "eslint": "^9.35.0",
     "eslint-config-next": "15.5.25",
     "jest": "^30.5.0",
-    "prisma": "^5.22.0",
+    "prisma": "6.19.0",
     "tailwindcss": "^4.1.9",
     "tsx": "^4.22.4",
     "typescript": "^5.7.2"
