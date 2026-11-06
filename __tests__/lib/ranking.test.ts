@@ -456,3 +456,75 @@ describe("rankArticles", () => {
     expect(high.rankScore).toBeGreaterThan(low.rankScore)
   })
 })
+
+describe("editorial priority", () => {
+  it("leaves a NORMAL article untouched", () => {
+    // Every article in production is NORMAL until an editor says otherwise, so
+    // the default has to be a true no-op or the lever would silently rescale
+    // the whole feed the day it shipped.
+    const plain = scoreArticle(input())
+    const normal = scoreArticle(input({ editorialPriority: "NORMAL" }))
+
+    expect(normal.finalScore).toBe(plain.finalScore)
+    expect(normal.editorialMultiplier).toBe(1)
+  })
+
+  it("promotes HIGH and URGENT, demotes LOW", () => {
+    const score = (priority: string) =>
+      scoreArticle(input({ editorialPriority: priority })).finalScore
+
+    expect(score("LOW")).toBeLessThan(score("NORMAL"))
+    expect(score("NORMAL")).toBeLessThan(score("HIGH"))
+    expect(score("HIGH")).toBeLessThan(score("URGENT"))
+  })
+
+  it("treats a missing or unknown priority as NORMAL", () => {
+    // The Prisma enum can grow; an unmapped value must not multiply by
+    // undefined and drop the article out of the feed entirely.
+    const baseline = scoreArticle(input()).finalScore
+
+    for (const priority of [undefined, null, "", "SPOTLIGHT"]) {
+      expect(scoreArticle(input({ editorialPriority: priority })).finalScore).toBe(baseline)
+    }
+  })
+
+  it("lets a pinned story outrank a fresher unpinned one for about a day", () => {
+    // This is the whole point of the lever: the newsroom picks the lead story
+    // and recency does not quietly take it back the moment anything newer is
+    // ingested. The 24h/48h boundaries are the documented behaviour.
+    const breaking = { publishedAt: NOW, importanceScore: 50 }
+    const pinned = (hours: number) => ({
+      publishedAt: hoursAgo(hours),
+      importanceScore: 50,
+      priority: "HIGH",
+    })
+
+    expect(rankArticles([breaking, pinned(12)], {})[0]).toMatchObject({ priority: "HIGH" })
+    expect(rankArticles([breaking, pinned(36)], {})[0]).not.toHaveProperty("priority")
+  })
+
+  it("hands the lead back once the pinned story has aged out", () => {
+    // A 'destaque' nobody clears must not freeze the front page for a week.
+    const fresh = { publishedAt: NOW, importanceScore: 50 }
+    const stale = { publishedAt: hoursAgo(96), importanceScore: 50, priority: "URGENT" }
+
+    expect(rankArticles([stale, fresh], {})[0]).not.toHaveProperty("priority")
+  })
+
+  it("keeps the composite score on the documented 0-100 scale", () => {
+    const best = scoreArticle(
+      input({
+        tags: ["ai"],
+        trendingKeywords: ["ai"],
+        sourcePriority: 100,
+        aiImportanceScore: 100,
+        userCategoryIds: ["cat-ai"],
+        articleCategoryId: "cat-ai",
+        editorialPriority: "URGENT",
+      }),
+    )
+
+    expect(best.finalScore).toBeLessThanOrEqual(100)
+    expect(best.finalScore).toBeGreaterThan(0)
+  })
+})
