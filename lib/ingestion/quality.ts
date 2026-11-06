@@ -15,6 +15,7 @@
  * as a number rather than as a silently empty feed.
  */
 
+import { hostOf, matchesDomain } from "./url-host"
 import type { RawArticle } from "./types"
 
 /**
@@ -104,23 +105,6 @@ function normalise(text: string): string {
     .toLowerCase()
     .normalize("NFD")
     .replace(/\p{Diacritic}/gu, "")
-}
-
-/** Hostname without `www.`, or null when the URL is unusable. */
-function hostOf(url: string): string | null {
-  try {
-    return new URL(url).hostname.toLowerCase().replace(/^www\./, "")
-  } catch {
-    return null
-  }
-}
-
-/**
- * True when the host is the allowed domain or a subdomain of it — so
- * `edition.cnn.com` passes for `cnn.com`, while `cnn.com.fake.net` does not.
- */
-function matchesDomain(host: string, domain: string): boolean {
-  return host === domain || host.endsWith(`.${domain}`)
 }
 
 function isAllowedSource(article: RawArticle): boolean {
