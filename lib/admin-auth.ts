@@ -39,7 +39,7 @@ import jwt from "jsonwebtoken"
 // TYPE-ONLY on purpose. A runtime `import { UserRole }` would pull the generated
 // Prisma client into all six admin server components just to read an enum;
 // `import type` disappears at compile time and costs nothing.
-import type { UserRole } from "@prisma/client"
+import type { UserRole } from "@/lib/generated/prisma"
 
 /**
  * Shortest secret this module will accept. A short HMAC secret is brute-forcible

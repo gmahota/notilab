@@ -50,3 +50,8 @@ yarn.lock
 # a checked-in copy goes stale the moment a tool changes, while
 # GET /api/agent/openapi is generated per request and cannot drift.
 docs/agent-api.openapi.json
+
+# Prisma 7 generates its client into lib/generated/prisma/ at install time.
+# Keep only the committed barrel that re-exports it and defaults the adapter.
+/lib/generated/*
+!/lib/generated/prisma.ts
