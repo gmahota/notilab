@@ -13,10 +13,20 @@
  * them; a check that depends on somebody remembering to run it is not a check,
  * so the three destructive `db:*` scripts now run this first.
  *
- * It fails CLOSED. If it cannot prove the target is not production — because
- * PRODUCTION_DATABASE_HOST is not configured — it refuses, exactly as
- * lib/admin-auth.ts refuses to sign a token without a real JWT_SECRET. The
- * alternative is a guard that waves through the one case it exists to catch.
+ * It is OPT-IN, by decision (2026-11-09, project owner): while NotiLab is a lab
+ * project, losing the database is an acceptable cost and a guard that blocks
+ * every destructive command until a variable is configured is in the way. So an
+ * unidentified target — no PRODUCTION_DATABASE_HOST — is allowed through with a
+ * warning, and only a target that matches a configured production host is
+ * refused.
+ *
+ * This is a deliberate reversal of how the guard first shipped, which failed
+ * closed on the same reasoning lib/admin-auth.ts uses for a missing JWT_SECRET.
+ * The difference that justifies it: a missing JWT_SECRET means anyone can mint
+ * an admin session, while an unidentified database means somebody might lose
+ * data they have said they can afford to lose. Setting the variable is what
+ * turns enforcement on, and is the one thing to do before this stops being a
+ * lab — nothing else has to change.
  *
  * The production hostname is deliberately NOT hardcoded here. This repository
  * is public, and naming the production endpoint in it tells anyone reading
@@ -97,26 +107,34 @@ if (!guarding) {
 
 if (verdict === "not production") process.exit(0)
 
-if (confirmed) {
+/**
+ * Allowed, with a warning. Enforcement is opt-in: with no production host
+ * configured there is nothing to compare against, and by decision this project
+ * would rather be able to run than be protected from a loss it has accepted.
+ * The warning goes to stderr so it is visible without being parsed as output.
+ */
+if (verdict === "unknown") {
   console.error(
-    `\nProceeding against ${verdict === "unknown" ? "an unidentified database" : "PRODUCTION"} because the write was confirmed.`,
+    `
+WARNING: cannot tell whether this is production, and allowing the command.
+
+PRODUCTION_DATABASE_HOST is not set, so there is nothing to compare the host
+above against. On this project a local database and the production one have
+historically been the same database, so this command may be writing to
+production right now. Set that variable in .env (see .env.example) to turn the
+refusal on.
+`,
   )
   process.exit(0)
 }
 
+if (confirmed) {
+  console.error(`\nProceeding against PRODUCTION because the write was confirmed.`)
+  process.exit(0)
+}
+
 console.error(
-  verdict === "unknown"
-    ? `
-REFUSING: cannot tell whether this is production.
-
-PRODUCTION_DATABASE_HOST is not set, so this script has nothing to compare the
-host above against, and on this project a local database and the production one
-have historically been the same database. Set it in .env (see .env.example), or
-confirm the write explicitly:
-
-  CONFIRM_PRODUCTION_WRITE=1 pnpm <the command you just ran>
-`
-    : `
+  `
 REFUSING: DATABASE_URL points at PRODUCTION.
 
 This command writes, and there is no undo. Point .env at your Neon dev branch

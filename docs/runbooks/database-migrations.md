@@ -67,21 +67,27 @@ In the Neon console, on the `notilab` project:
    costs nothing until it diverges.
 2. Copy its **pooled** and **unpooled** connection strings.
 3. In your `.env`, point `DATABASE_URL` at the branch, not at `main`.
-4. Set `PRODUCTION_DATABASE_HOST` in your `.env` to the production endpoint —
-   the `ep-…` stem is enough, since Neon's pooled and unpooled hostnames for one
-   branch differ only by `-pooler`. It is not committed anywhere: this
-   repository is **public**, and naming the production endpoint in it tells a
-   reader exactly which host to point a stolen credential at. Take the value
-   from the Vercel production environment.
+4. Optionally set `PRODUCTION_DATABASE_HOST` in your `.env` to the production
+   endpoint — the `ep-…` stem is enough, since Neon's pooled and unpooled
+   hostnames for one branch differ only by `-pooler`. It is not committed
+   anywhere: this repository is **public**, and naming the production endpoint
+   in it tells a reader exactly which host to point a stolen credential at. Take
+   the value from the Vercel production environment.
+
+   **This is what turns the refusal below on, and it is opt-in by decision
+   (2026-11-09): while NotiLab is a lab project, losing the database is an
+   accepted cost and a guard that blocks everything until a variable is set is
+   in the way.** Unset, the destructive commands warn and run.
 5. Confirm where you are pointed before running anything that writes:
 
 ```bash
 pnpm db:target
 ```
 
-It prints the database, the host, and whether that host is production. If it
-says `production`, stop. If it says `unknown`, step 4 has not been done and the
-guards below cannot protect you.
+It prints the database, the host, and whether that host is production. `unknown`
+means step 4 has not been done, so nothing below will stop you — the host line
+is then the only thing standing between you and production, and you are reading
+it yourself.
 
 The gate lives in `prisma.config.ts`, which every invocation of the Prisma CLI
 loads whatever the shape of the command line, so it covers a hand-typed
@@ -104,10 +110,10 @@ committed migrations forward and it is the documented way to reach production.
 It does print the target first, because running it against the wrong database
 is still a mistake worth seeing before it happens.
 
-The refusal fails closed: an unidentified database is treated as production,
-because the case this exists to catch is the one where somebody believed they
-were local. Writing to production on purpose stays possible, and stays
-explicit:
+The refusal only fires once `PRODUCTION_DATABASE_HOST` is set. Until then an
+unidentified target is allowed through with a warning on stderr — the opt-in
+decision above. Once it is set, writing to production on purpose stays possible,
+and stays explicit:
 
 ```bash
 CONFIRM_PRODUCTION_WRITE=1 pnpm db:seed
