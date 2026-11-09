@@ -3,7 +3,7 @@
 // Source of truth lives under docs/prompts/claude/agents/ — never hand-edit the
 // .claude/agents/ copies directly. See docs/prompts/claude/update-agents.md.
 
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -37,13 +37,22 @@ for (const file of AGENT_FILES) {
   const sourcePath = join(SOURCE_DIR, file);
   const targetPath = join(TARGET_DIR, file);
 
-  if (!existsSync(sourcePath)) {
+  // Read first and handle the failure, rather than asking whether the file
+  // exists and then reading it: between those two calls the answer can change.
+  let sourceContent;
+  try {
+    sourceContent = readFileSync(sourcePath, 'utf8');
+  } catch {
     missingSource.push(file);
     continue;
   }
 
-  const sourceContent = readFileSync(sourcePath, 'utf8');
-  const targetContent = existsSync(targetPath) ? readFileSync(targetPath, 'utf8') : null;
+  let targetContent = null;
+  try {
+    targetContent = readFileSync(targetPath, 'utf8');
+  } catch {
+    // No copy yet (or unreadable) — it gets written below.
+  }
 
   if (targetContent === sourceContent) {
     unchanged.push(file);

@@ -16,6 +16,7 @@
  */
 
 import { executeToolCall } from "@/lib/agent/execute"
+import { safeLogToken } from "@/lib/log-safe"
 import { fingerprint } from "@/lib/agent/canonical"
 import { AGENT_API_VERSION } from "@/lib/agent/envelope"
 import type { AgentIdentity } from "@/lib/agent/auth"
@@ -371,7 +372,7 @@ export async function handleMcpMessage(
     }
   } catch (err) {
     console.error(
-      `[mcp/server] Unhandled error on ${request.method} (request ${ctx.requestId})`,
+      `[mcp/server] Unhandled error on ${safeLogToken(request.method)} (request ${ctx.requestId})`,
       err,
     )
     if (isNotification) return null

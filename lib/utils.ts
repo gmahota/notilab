@@ -47,10 +47,11 @@ export function getAnonSessionId(): string | undefined {
   try {
     const existing = window.localStorage.getItem(SESSION_STORAGE_KEY)
     if (existing) return existing
-    const generated =
-      typeof crypto !== "undefined" && "randomUUID" in crypto
-        ? crypto.randomUUID()
-        : `anon-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    // No Math.random() fallback. Every browser that reaches this code has
+    // crypto.randomUUID, and a guessable id would be worse than none: the value
+    // is persisted and then trusted as the identifier for the whole session.
+    if (typeof crypto === "undefined" || !("randomUUID" in crypto)) return undefined
+    const generated = crypto.randomUUID()
     window.localStorage.setItem(SESSION_STORAGE_KEY, generated)
     return generated
   } catch {

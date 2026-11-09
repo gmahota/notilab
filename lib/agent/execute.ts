@@ -24,6 +24,7 @@
  */
 
 import { randomUUID } from "node:crypto"
+import { safeLogToken } from "../log-safe"
 import { AgentError, isAgentError } from "./errors"
 import { assertPermissions, type AgentIdentity } from "./auth"
 import { consumeRateLimit, type RateDecision } from "./rate-limit"
@@ -57,6 +58,15 @@ export type { AgentTransport }
  * agent cannot use as a tool parameter, on every transport.
  */
 const RESERVED_ARGUMENT_KEYS = new Set(["confirmationToken"])
+
+/**
+ * Argument names that must never be copied onto an object by assignment.
+ * A caller who sends `{"__proto__": {"isAdmin": true}}` is not naming a tool
+ * argument — they are trying to reach the prototype every later object in this
+ * request inherits from. Dropped rather than rejected: the schema below will
+ * fail the call anyway if the tool actually wanted that field.
+ */
+const PROTOTYPE_KEYS = new Set(["__proto__", "constructor", "prototype"])
 
 export interface ToolCallRequest {
   toolName: string
@@ -173,7 +183,7 @@ export async function executeToolCall(request: ToolCallRequest): Promise<ToolCal
       // Not audited to the database on purpose: writing a row per throttled
       // request would amplify exactly the load being throttled.
       console.warn(
-        `[agent/execute] rate limit hit by agent:${identity.id} on ${toolName} via ${transport}`,
+        `[agent/execute] rate limit hit by agent:${identity.id} on ${safeLogToken(toolName)} via ${transport}`,
       )
       throw new AgentError(
         "RATE_LIMITED",
@@ -206,6 +216,7 @@ export async function executeToolCall(request: ToolCallRequest): Promise<ToolCal
     if (typeof request.args === "object" && request.args !== null && !Array.isArray(request.args)) {
       const stripped: Record<string, unknown> = {}
       for (const [key, value] of Object.entries(request.args as Record<string, unknown>)) {
+        if (PROTOTYPE_KEYS.has(key)) continue
         if (RESERVED_ARGUMENT_KEYS.has(key)) {
           // An out-of-band token wins: a transport that had to route the token
           // around the schema knows better than an argument of the same name.
@@ -336,7 +347,7 @@ export async function executeToolCall(request: ToolCallRequest): Promise<ToolCal
 
     // Anything unplanned: full detail to the server log, nothing to the caller.
     console.error(
-      `[agent/execute] Unhandled error on ${toolName} (request ${requestId}, ${transport})`,
+      `[agent/execute] Unhandled error on ${safeLogToken(toolName)} (request ${requestId}, ${transport})`,
       err,
     )
     const wrapped = new AgentError("INTERNAL_ERROR", "The request could not be completed.")

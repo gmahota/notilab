@@ -11,6 +11,7 @@
     "test:watch": "jest --watch",
     "typecheck": "tsc --noEmit",
     "agents:sync": "node scripts/agents/sync-claude-agents.mjs",
+    "audit:maturity": "tsx scripts/audit/maturity/run.ts",
     "agent:openapi": "tsx --env-file-if-exists=.env scripts/agent/dump-openapi.ts",
     "agent:smoke": "tsx --env-file-if-exists=.env scripts/agent/smoke-test.ts",
     "mcp:smoke": "tsx --env-file-if-exists=.env scripts/mcp/smoke-test.ts",
@@ -51,7 +52,8 @@
       "sharp@<0.35.5": ">=0.35.5",
       "next@>=15.0.0 <15.5.27": ">=15.5.27",
       "next@>=10.0.0 <=15.5.27": ">=15.5.28",
-      "next@>=13.0.0 <=15.5.27": ">=15.5.28"
+      "next@>=13.0.0 <=15.5.27": ">=15.5.28",
+      "minimatch@>=7.0.0 <11.0.1": ">=11.0.1"
     }
   },
   "dependencies": {
