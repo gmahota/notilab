@@ -12,6 +12,7 @@
  */
 
 import { prisma } from "../prisma"
+import { safeLogToken } from "../log-safe"
 
 // ---------------------------------------------------------------------------
 // Event catalogue
@@ -75,7 +76,7 @@ export async function trackEvent(input: TrackEventInput): Promise<void> {
     })
   } catch (err) {
     // Never crash the calling request over analytics
-    console.error("[growth/events] Failed to track event:", input.event, err)
+    console.error("[growth/events] Failed to track event:", safeLogToken(input.event), err)
   }
 }
 
