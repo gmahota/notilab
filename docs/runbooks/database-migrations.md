@@ -67,14 +67,31 @@ In the Neon console, on the `notilab` project:
    costs nothing until it diverges.
 2. Copy its **pooled** and **unpooled** connection strings.
 3. In your `.env`, point `DATABASE_URL` at the branch, not at `main`.
-4. Confirm you are not on production before running anything that writes:
+4. Set `PRODUCTION_DATABASE_HOST` in your `.env` to the production endpoint —
+   the `ep-…` stem is enough, since Neon's pooled and unpooled hostnames for one
+   branch differ only by `-pooler`. It is not committed anywhere: this
+   repository is **public**, and naming the production endpoint in it tells a
+   reader exactly which host to point a stolen credential at. Take the value
+   from the Vercel production environment.
+5. Confirm where you are pointed before running anything that writes:
 
 ```bash
-node -e "try{process.loadEnvFile('.env')}catch{}; console.log(new URL(process.env.DATABASE_URL).hostname)"
+pnpm db:target
 ```
 
-The production endpoint is `ep-raspy-tree-anhfgdar-pooler.c-6.us-east-1.aws.neon.tech`.
-If that is the host, you are on production — stop.
+It prints the database, the host, and whether that host is production. If it
+says `production`, stop. If it says `unknown`, step 4 has not been done and the
+guards below cannot protect you.
+
+`db:push`, `db:seed` and `db:reset` each run that check first and **refuse**
+unless the target is provably not production. The refusal is deliberate and
+fails closed: an unidentified database is treated as production, because the
+case this exists to catch is the one where somebody believed they were local.
+Writing to production on purpose stays possible, and stays explicit:
+
+```bash
+CONFIRM_PRODUCTION_WRITE=1 pnpm db:seed
+```
 
 Delete the branch when the work merges. A stale branch keeps diverging from
 `main` and is worse than no branch at all, because it looks current.

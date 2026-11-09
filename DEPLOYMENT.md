@@ -64,7 +64,8 @@ npm install
 
 ### 2. Configure the Database
 
-> **Read `docs/runbooks/database-migrations.md` first.** On this project
+> **Set `PRODUCTION_DATABASE_HOST` in your `.env` and read
+> `docs/runbooks/database-migrations.md` first.** On this project
 > `DATABASE_URL` has historically pointed at the same Neon database the
 > deployed site uses, so `db push`, `db:reset` and the seed are production
 > writes. The runbook covers the Neon branch to point `.env` at and how a

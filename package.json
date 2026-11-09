@@ -15,15 +15,16 @@
     "agent:smoke": "tsx --env-file-if-exists=.env scripts/agent/smoke-test.ts",
     "mcp:smoke": "tsx --env-file-if-exists=.env scripts/mcp/smoke-test.ts",
     "admin:provision": "tsx --env-file-if-exists=.env scripts/admin/provision-admin.ts",
-    "db:push": "prisma db push",
+    "db:push": "node scripts/db/target.mjs --guard && prisma db push",
     "db:studio": "prisma studio",
     "db:generate": "prisma generate",
-    "db:seed": "tsx --env-file-if-exists=.env prisma/seed.ts",
-    "db:reset": "prisma db push --force-reset && pnpm run db:seed",
+    "db:seed": "node scripts/db/target.mjs --guard && tsx --env-file-if-exists=.env prisma/seed.ts",
+    "db:reset": "node scripts/db/target.mjs --guard && prisma db push --force-reset && tsx --env-file-if-exists=.env prisma/seed.ts",
     "setup": "chmod +x scripts/setup.sh && ./scripts/setup.sh",
     "check": "tsx --env-file-if-exists=.env scripts/health-check.ts",
     "postinstall": "prisma generate",
-    "ingest:dry-run": "tsx --env-file-if-exists=.env scripts/ingestion-dry-run.ts"
+    "ingest:dry-run": "tsx --env-file-if-exists=.env scripts/ingestion-dry-run.ts",
+    "db:target": "node scripts/db/target.mjs"
   },
   "pnpm": {
     "overrides": {
