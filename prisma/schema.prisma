@@ -36,7 +36,12 @@ model User {
   createdNews News[] @relation("NewsAuthor")
   reviewedNews News[] @relation("NewsReviewer")
   streak       UserStreak?
-  
+
+  // Auth.js v5 session layer. Relation fields only — no column is added to
+  // `users` by these, which is what keeps the migration additive.
+  accounts    Account[]
+  sessions    Session[]
+
   @@map("users")
 }
 
@@ -540,4 +545,67 @@ enum WorkflowStage {
   APPROVAL
   PUBLISHED
   REJECTED
+}
+
+// ---------------------------------------------------------------------------
+// Auth.js v5 session layer (roadmap #41)
+//
+// Shapes required by @auth/prisma-adapter. The field names are the adapter's
+// contract, snake_case included (`refresh_token`, `expires_at`): renaming them
+// breaks the adapter at runtime, not at compile time, so they stay as the
+// adapter writes them. Table names follow this schema's own convention via
+// @@map, which the adapter neither sees nor cares about.
+//
+// Additive by construction: three new tables, two relation fields on `User`
+// (which add no column), and no change to anything that already exists.
+// ---------------------------------------------------------------------------
+
+/// One external identity linked to a `User`. Unused while magic-link is the
+/// only reader sign-in; present because the adapter requires it and because
+/// adding a provider later must not need another production migration.
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+/// A live session. Database-backed rather than a self-contained cookie so that
+/// signing out, or disabling an account, revokes access immediately — the
+/// reason the identity decision chose the adapter over a stateless token.
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+/// Single-use magic-link token. Deleted on redemption by the adapter, so rows
+/// here are either unredeemed or expired, never history.
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
 }
