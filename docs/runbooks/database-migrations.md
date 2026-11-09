@@ -83,11 +83,31 @@ It prints the database, the host, and whether that host is production. If it
 says `production`, stop. If it says `unknown`, step 4 has not been done and the
 guards below cannot protect you.
 
-`db:push`, `db:seed` and `db:reset` each run that check first and **refuse**
-unless the target is provably not production. The refusal is deliberate and
-fails closed: an unidentified database is treated as production, because the
-case this exists to catch is the one where somebody believed they were local.
-Writing to production on purpose stays possible, and stays explicit:
+The gate lives in `prisma.config.ts`, which every invocation of the Prisma CLI
+loads whatever the shape of the command line, so it covers a hand-typed
+`pnpm exec prisma migrate dev` as well as the `db:*` scripts. These four
+**refuse** unless the target is provably not production:
+
+| Command | Why |
+|---|---|
+| `prisma migrate dev` | offers to reset the database the moment it meets drift |
+| `prisma migrate reset` | resets by design |
+| `prisma db push` | drops whatever the schema no longer declares |
+| `prisma db execute` | arbitrary SQL |
+
+`pnpm db:seed` carries the same check (it is a `tsx` script, not a Prisma
+command). `prisma generate` is untouched, including on postinstall and in CI
+where there is no `DATABASE_URL` at all.
+
+`prisma migrate deploy` is deliberately **not** gated: it only applies
+committed migrations forward and it is the documented way to reach production.
+It does print the target first, because running it against the wrong database
+is still a mistake worth seeing before it happens.
+
+The refusal fails closed: an unidentified database is treated as production,
+because the case this exists to catch is the one where somebody believed they
+were local. Writing to production on purpose stays possible, and stays
+explicit:
 
 ```bash
 CONFIRM_PRODUCTION_WRITE=1 pnpm db:seed
