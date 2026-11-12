@@ -16,6 +16,7 @@
     "agent:smoke": "tsx --env-file-if-exists=.env scripts/agent/smoke-test.ts",
     "mcp:smoke": "tsx --env-file-if-exists=.env scripts/mcp/smoke-test.ts",
     "cron:smoke": "tsx --env-file-if-exists=.env scripts/cron/smoke-test.ts",
+    "editorial:measure": "tsx --env-file-if-exists=.env scripts/editorial/measure-review-capacity.ts",
     "admin:provision": "tsx --env-file-if-exists=.env scripts/admin/provision-admin.ts",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
