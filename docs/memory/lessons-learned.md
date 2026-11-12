@@ -2,6 +2,15 @@
 
 Append-only. If something here is superseded, say so explicitly — don't delete the entry.
 
+## 2026-11-12 — The feed froze for seven days and nothing said so
+
+`CRON_SECRET` went missing from the Vercel production environment some time around 2026-11-05. Every route under `app/api/cron/*` refuses without it, so all six scheduled jobs stopped at once: no ingestion, no AI enrichment, no ranking recalculation, no digests, no messaging. The newest article stayed at 2026-11-05T14:23Z for a week. Confirmed from outside with an unauthenticated `GET /api/cron/sync-news`, which answered `500 {"error":"Server misconfiguration: CRON_SECRET not set"}`.
+
+- **The pipeline was never the suspect it looked like.** `pnpm ingest:dry-run` returned 98 articles with zero provider errors and 25 passing the quality gate, which ruled out keys, quotas and the providers in one command. When the feed stops, ask the deployment whether the job *ran* before investigating what the job *does*.
+- **Nothing in the repository could have caught it.** `pnpm check` validates `DATABASE_URL` only, and runs locally against whatever `.env` the operator has — never against production. A cron that returns 500 once a day produces no alert, no failed build and no notification. Added `pnpm cron:smoke` (`scripts/cron/smoke-test.ts`) and `.github/workflows/cron-health.yml`, which runs it daily at 09:00 UTC, two hours after the last cron has had its turn.
+- **The seven cron routes disagree about how to fail, which cost detection.** `sync-news` and `publish-scheduled` return a 500 naming the missing variable; the other five fold "secret not configured" and "caller unauthorized" into one 401 (`!process.env.CRON_SECRET || authHeader !== expected`). From outside, those five look identical whether the secret is set or absent, so the smoke test can only detect a missing secret through the two explicit ones. Unifying them on the explicit guard would make every probe mean one thing — not done here, deliberately, because it changes seven route handlers and deserves its own review.
+- **Status-code vocabulary is an observability decision, not a style choice.** The two routes that distinguished the failures are the reason this was diagnosable from outside in a single request.
+
 ## 2026-07-13 — Quality gate RED→GREEN: root causes and fixes
 
 Follow-up to the "Quality gate verification found the build currently broken" entry below — all five points there are now resolved; `pnpm lint` / `pnpm typecheck` / `pnpm build` pass. What actually fixed each:
