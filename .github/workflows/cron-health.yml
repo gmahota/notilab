@@ -1,0 +1,70 @@
+name: Cron Health
+
+# The six scheduled jobs in vercel.json fail silently. When CRON_SECRET went
+# missing from the Vercel production environment in November 2026, every one of
+# them returned 500 once a day for seven days and nothing anywhere said so —
+# the feed simply stopped moving until a human noticed.
+#
+# This runs after the last of them (send-messaging, 07:00 UTC) has had its turn,
+# so a failure here means a full cycle was missed, not that a job is mid-flight.
+#
+# DATABASE_URL is optional: without it the freshness check is skipped and the
+# registration and configuration checks still run. Add it as a repository
+# secret to catch the case where the routes are configured correctly but the
+# schedules are not firing at all.
+
+on:
+  schedule:
+    - cron: '0 9 * * *' # Daily 09:00 UTC, two hours after the last cron
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Deployment to probe (defaults to production)'
+        required: false
+        type: string
+  pull_request:
+    branches: [main]
+    paths:
+      - 'vercel.json'
+      - 'app/api/cron/**'
+      - 'scripts/cron/**'
+      - '.github/workflows/cron-health.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  # ─── CRON SMOKE TEST ────────────────────────────────────────────────────────
+  cron-smoke:
+    name: Cron Smoke Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # On a pull request the deployment under test is production, whose health
+      # is not what the branch changed. Only the local checks judge the diff —
+      # a cron route added without a schedule, or a schedule with no route.
+      - name: Check registration only (pull request)
+        if: github.event_name == 'pull_request'
+        run: pnpm cron:smoke --registration-only
+
+      - name: Probe the scheduled jobs
+        if: github.event_name != 'pull_request'
+        env:
+          # Unset until DATABASE_URL is added as a repository secret, which the
+          # freshness check handles by skipping itself.
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          CRON_BASE_URL: ${{ inputs.base_url }}
+        run: pnpm cron:smoke

@@ -185,9 +185,19 @@ The six cron routes are declared in `vercel.json`. Two points that aren't obviou
 to configure in the dashboard — Vercel reads the list from the file on every production deploy. An
 older deployment that lacks `vercel.json` runs with zero registered crons.
 
-**`CRON_SECRET` is required.** All routes under `app/api/cron/*` return 500 without it
-(see `app/api/cron/sync-news/route.ts`). Set it in Settings → Environment Variables; Vercel
+**`CRON_SECRET` is required.** Every route under `app/api/cron/*` refuses without it, so all
+six jobs stop at once. They do not refuse alike: `sync-news` and `publish-scheduled` return
+500 naming the missing variable, the other five return a plain 401 (they fold "not configured"
+and "not authorized" into one branch). Set it in Settings → Environment Variables; Vercel
 automatically injects `Authorization: Bearer $CRON_SECRET` on the invocations.
+
+**Check it from outside with `pnpm cron:smoke`.** It compares `vercel.json` against the routes
+on disk, then sends one unauthenticated request to each — nothing authenticates, so no job can
+be triggered — and reports what the status codes mean. With `DATABASE_URL` set it also fails
+when the newest article is older than 48h, which catches schedules that are configured
+correctly but not firing. `.github/workflows/cron-health.yml` runs it daily at 09:00 UTC.
+This exists because `CRON_SECRET` went missing in November 2026 and the feed sat frozen for
+seven days without anything reporting it — see `docs/memory/lessons-learned.md`.
 
 **Each route declares `maxDuration = 60`.** The default function limit is short and
 `sync-news` spends ~11s just waiting between provider queries; without this the execution is
