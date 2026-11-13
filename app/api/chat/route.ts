@@ -71,6 +71,29 @@ function degradedResponse(articles: ContextArticle[], reason: string) {
   })
 }
 
+/**
+ * Whether NotiBot may call a model at all.
+ *
+ * `/api/chat` is the only AI call an anonymous visitor can trigger, which makes
+ * it the only one whose cost is driven by traffic rather than by our own cron
+ * schedule. While NotiLab is being designed there is no appetite for that bill,
+ * so the model is **off unless explicitly switched on** — the opposite default
+ * from every other flag in this project, and deliberately so: forgetting to set
+ * a variable should cost nothing, not something.
+ *
+ * Off, the route answers from `degradedResponse` with real retrieved headlines.
+ * No prose is composed and nothing is invented; the answer says plainly that it
+ * is not composing one. The earlier incarnation of this feature faked
+ * computation behind a randomised delay and asserted figures no source backed,
+ * and this is explicitly not that.
+ *
+ * Set `NOTIBOT_ENABLED=1` once a provider spend cap is in place.
+ */
+function notibotModelEnabled(): boolean {
+  const flag = process.env.NOTIBOT_ENABLED?.trim().toLowerCase()
+  return flag === "1" || flag === "true" || flag === "yes"
+}
+
 export async function POST(request: NextRequest) {
   let body: ChatBody
   try {
@@ -103,6 +126,15 @@ export async function POST(request: NextRequest) {
         sources: [],
         grounded: false,
       })
+    }
+
+    // Checked before hasAIProvider(): a deployment can hold provider keys for
+    // ingestion and article enrichment and still want NotiBot not to spend.
+    if (!notibotModelEnabled()) {
+      return degradedResponse(
+        articles,
+        "O NotiBot está em modo de demonstração e não compõe respostas por agora. Os artigos abaixo são reais e saíram da nossa base.",
+      )
     }
 
     if (!hasAIProvider()) {
