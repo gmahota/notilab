@@ -83,7 +83,7 @@
     "framer-motion": "^12.38.0",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^1.14.0",
-    "next": "15.5.28",
+    "next": "15.5.29",
     "pg": "^8.22.0",
     "react": "19.2.7",
     "react-day-picker": "^9.14.0",
