@@ -1,229 +1,234 @@
-# NotiLab - Painel Administrativo
+# NotiLab — Admin Panel
 
-## Visão Geral
+## Overview
 
-O painel administrativo do NotiLab é um sistema completo de gestão de conteúdo e marketing digital, projetado para suportar diferentes roles e workflows de uma redação moderna.
+The NotiLab admin panel is a complete content-management and digital-marketing system, designed to support the different roles and workflows of a modern newsroom.
 
-## Acesso ao Sistema
+## System Access
 
-### URL de Acesso
-- **Painel Admin**: `/admin`
-- **Login Admin**: `/admin/login`
+### Access URLs
+- **Admin panel**: `/admin`
+- **Admin login**: `/admin/login`
 
-### Credenciais de Teste
-\`\`\`
-Email: admin@notilab.com
-Password: admin123
-Role: SUPERVISOR
-\`\`\`
+### Test Credentials
 
-## Roles e Permissões
+> ⚠️ **Security notice (2026-09-04).** The credentials this section used to list (`admin@notilab.com` / `admin123`) do **not** match the code. `app/api/admin/auth/route.ts` authenticates against a hardcoded three-entry array in which all three accounts share the published bcrypt test-vector hash for the string `password`, with no `NODE_ENV` gate — so those accounts work in production, and the password is `password`, not `admin123`. `lib/admin-auth.ts` additionally falls back to the literal `"your-secret-key"` when `JWT_SECRET` is unset, which means admin tokens can be forged.
+>
+> This is a live defect tracked as **ROADMAP #23**, not a documentation error to paper over. The real credentials are deliberately not restated here. Once #23 lands, staff accounts move to the database and this section should describe the seeding process instead.
 
-### 1. **REDATOR**
-- Criar e editar rascunhos de notícias
-- Usar ferramentas de IA para geração de conteúdo
-- Submeter artigos para revisão
-- Acesso ao sistema de pesquisa automática
+## Roles and Permissions
 
-### 2. **REVISOR**
-- Revisar artigos submetidos
-- Aprovar ou rejeitar conteúdo
-- Adicionar comentários e feedback
-- Editar conteúdo durante revisão
+### 1. **REDATOR** (Writer)
+- Create and edit news drafts
+- Use AI tools for content generation
+- Submit articles for review
+- Access the automated research system
+
+### 2. **REVISOR** (Reviewer)
+- Review submitted articles
+- Approve or reject content
+- Add comments and feedback
+- Edit content during review
 
 ### 3. **SUPERVISOR**
-- Acesso completo ao sistema
-- Gestão de utilizadores e permissões
-- Aprovação final de conteúdo
-- Acesso a todas as métricas e analytics
+- Full system access
+- User and permission management
+- Final content approval
+- Access to all metrics and analytics
 
 ### 4. **MARKETING**
-- Ferramentas de marketing digital
-- Gestão de campanhas e newsletters
-- Analytics de engagement
-- A/B testing e otimização
+- Digital marketing tools
+- Campaign and newsletter management
+- Engagement analytics
+- A/B testing and optimisation
 
-### 5. **CRIADOR_CONTEUDO**
-- Criação de conteúdo multimédia
-- Gestão de imagens e assets
-- Templates e layouts
-- Colaboração com redatores
+### 5. **CRIADOR_CONTEUDO** (Content Creator)
+- Multimedia content creation
+- Image and asset management
+- Templates and layouts
+- Collaboration with writers
 
-## Funcionalidades Principais
+## Core Features
 
-### 🏠 Dashboard Principal
-- **Métricas em tempo real**: Usuários ativos, notícias publicadas, visualizações
-- **Gráficos interativos**: Analytics de usuários e conteúdo
-- **Feed de atividade**: Últimas ações no sistema
-- **Tarefas pendentes**: Por role e prioridade
+### 🏠 Main Dashboard
+- **Real-time metrics**: active users, published articles, views
+- **Interactive charts**: user and content analytics
+- **Activity feed**: latest actions in the system
+- **Pending tasks**: by role and priority
 
-### 📝 Sistema de Gestão de Conteúdo (CMS)
-- **Editor rico**: Formatação avançada com preview
-- **Gestão de categorias**: Cores personalizáveis e organização
-- **Upload de imagens**: Drag & drop com otimização automática
-- **Tags e metadados**: SEO e organização
-- **Agendamento**: Publicação programada
+### 📝 Content Management System (CMS)
+- **Rich editor**: advanced formatting with preview
+- **Category management**: customisable colours and organisation
+- **Image upload**: drag & drop with automatic optimisation
+- **Tags and metadata**: SEO and organisation
+- **Scheduling**: programmed publication
 
-### 🤖 Gerador de Notícias com IA
-- **Análise de tendências**: Tópicos em alta automaticamente
-- **Pesquisador automático**: Busca de fontes e referências
-- **Templates profissionais**: Diferentes estilos de artigo
-- **Geração personalizada**: Baseada em prompts específicos
-- **Análise de qualidade**: Métricas de SEO e legibilidade
+### 🤖 AI News Generator
+- **Trend analysis**: trending topics detected automatically
+- **Automated researcher**: finds sources and references
+- **Professional templates**: different article styles
+- **Custom generation**: driven by specific prompts
+- **Quality analysis**: SEO and readability metrics
 
-### 🔄 Sistema de Workflow
-- **Kanban visual**: Arrastar e soltar entre estágios
-- **Fila de revisão**: Organizada por prioridade e prazo
-- **Sistema de comentários**: Feedback estruturado
-- **Histórico completo**: Rastreamento de todas as mudanças
-- **Notificações**: Alertas automáticos por role
+### 🔄 Workflow System
+- **Visual kanban**: drag and drop between stages
+- **Review queue**: organised by priority and deadline
+- **Comment system**: structured feedback
+- **Full history**: every change tracked
+- **Notifications**: automatic alerts per role
 
-### 📊 Ferramentas de Marketing
-- **Analytics completo**: Métricas de engagement e conversão
-- **Gestão de campanhas**: Email marketing e automação
-- **Social media**: Agendamento e análise de posts
-- **SEO tools**: Otimização e monitoramento
-- **A/B testing**: Testes de conversão e otimização
-- **Lead management**: CRM integrado com scoring
+### 📊 Marketing Tools
+- **Complete analytics**: engagement and conversion metrics
+- **Campaign management**: email marketing and automation
+- **Social media**: post scheduling and analysis
+- **SEO tools**: optimisation and monitoring
+- **A/B testing**: conversion tests and optimisation
+- **Lead management**: integrated CRM with scoring
 
-## Navegação do Sistema
+## System Navigation
 
-### Sidebar Principal
+### Main Sidebar
 \`\`\`
 📊 Dashboard
-📝 Gestão de Notícias
-🏷️ Categorias
-🤖 Gerador IA
+📝 News Management
+🏷️ Categories
+🤖 AI Generator
 🔄 Workflow
-👥 Utilizadores (Supervisor)
+👥 Users (Supervisor)
 📈 Marketing
-⚙️ Configurações
+⚙️ Settings
 \`\`\`
 
-### Atalhos de Teclado
-- `Ctrl + N`: Nova notícia
-- `Ctrl + S`: Salvar rascunho
+### Keyboard Shortcuts
+- `Ctrl + N`: New article
+- `Ctrl + S`: Save draft
 - `Ctrl + P`: Preview
-- `Ctrl + Enter`: Submeter para revisão
+- `Ctrl + Enter`: Submit for review
 
-## Workflow de Conteúdo
+## Content Workflow
 
-### 1. **Criação** (Redator)
-- Usar gerador IA ou criar manualmente
-- Adicionar imagens e formatação
-- Configurar metadados e SEO
-- Salvar como rascunho
+### 1. **Creation** (Writer)
+- Use the AI generator or write manually
+- Add images and formatting
+- Configure metadata and SEO
+- Save as a draft
 
-### 2. **Revisão** (Revisor)
-- Receber notificação de novo conteúdo
-- Revisar qualidade e precisão
-- Adicionar comentários se necessário
-- Aprovar ou solicitar alterações
+### 2. **Review** (Reviewer)
+- Receive a notification of new content
+- Review quality and accuracy
+- Add comments where needed
+- Approve or request changes
 
-### 3. **Aprovação Final** (Supervisor)
-- Revisão final do conteúdo
-- Verificação de compliance
-- Agendamento de publicação
-- Publicação no site
+### 3. **Final Approval** (Supervisor)
+- Final content review
+- Compliance check
+- Schedule publication
+- Publish to the site
 
 ### 4. **Marketing** (Marketing)
-- Criar campanhas promocionais
-- Agendar posts nas redes sociais
-- Configurar newsletters
-- Monitorar performance
+- Create promotional campaigns
+- Schedule social media posts
+- Configure newsletters
+- Monitor performance
 
-## Integrações e APIs
+## Integrations and APIs
 
-### IA e Automação
-- **OpenAI GPT**: Geração de conteúdo
-- **Análise de sentimento**: Classificação automática
-- **Extração de keywords**: SEO automático
-- **Resumos inteligentes**: TL;DR automático
+### AI and Automation
+- **OpenAI GPT**: content generation
+- **Sentiment analysis**: automatic classification
+- **Keyword extraction**: automatic SEO
+- **Smart summaries**: automatic TL;DR
 
-### Redes Sociais
-- **Twitter/X**: Posts automáticos
-- **Facebook**: Campanhas integradas
-- **LinkedIn**: Conteúdo profissional
-- **Instagram**: Stories e posts
+### Social Networks
+- **Twitter/X**: automatic posts
+- **Facebook**: integrated campaigns
+- **LinkedIn**: professional content
+- **Instagram**: stories and posts
 
 ### Analytics
-- **Google Analytics**: Integração completa
-- **Métricas customizadas**: KPIs específicos
-- **Relatórios automáticos**: Envio por email
-- **Dashboards personalizados**: Por role
+- **Google Analytics**: full integration
+- **Custom metrics**: specific KPIs
+- **Automatic reports**: sent by email
+- **Custom dashboards**: per role
 
-## Configurações Avançadas
+## Advanced Settings
 
-### Personalização
-- **Temas**: Dark/Light mode
-- **Idiomas**: PT, EN, ES
-- **Notificações**: Email, push, in-app
-- **Workflows**: Customização por categoria
+### Personalisation
+- **Themes**: dark/light mode
+- **Languages**: PT, EN, ES
+- **Notifications**: email, push, in-app
+- **Workflows**: customisable per category
 
-### Segurança
-- **Autenticação JWT**: Tokens seguros
-- **Roles granulares**: Permissões específicas
-- **Auditoria completa**: Log de todas as ações
-- **Backup automático**: Dados protegidos
+### Security
+- **JWT authentication**: signed tokens
+- **Granular roles**: specific permissions
+- **Full audit trail**: every action logged
+- **Automatic backup**: data protected
 
-## Métricas e KPIs
+> ⚠️ See the security notice under **Test Credentials** above. Two of the four
+> claims in this subsection are currently weaker in practice than they read:
+> JWT signing falls back to a published literal, and the role check in
+> `lib/admin-auth.ts` treats every listed role as sufficient for any admin
+> route — there is no per-route role granularity today.
 
-### Conteúdo
-- **Artigos publicados**: Por período e autor
-- **Taxa de aprovação**: Workflow efficiency
-- **Tempo médio**: Criação até publicação
-- **Engagement**: Visualizações, likes, shares
+## Metrics and KPIs
 
-### Utilizadores
-- **Produtividade**: Artigos por redator
-- **Qualidade**: Taxa de aprovação
-- **Colaboração**: Comentários e feedback
-- **Performance**: Métricas individuais
+### Content
+- **Published articles**: by period and author
+- **Approval rate**: workflow efficiency
+- **Average time**: creation to publication
+- **Engagement**: views, likes, shares
+
+### Users
+- **Productivity**: articles per writer
+- **Quality**: approval rate
+- **Collaboration**: comments and feedback
+- **Performance**: individual metrics
 
 ### Marketing
-- **ROI**: Retorno sobre investimento
-- **Conversões**: Taxa de conversão
-- **Alcance**: Impressões e reach
-- **Engagement**: Interações e tempo
+- **ROI**: return on investment
+- **Conversions**: conversion rate
+- **Reach**: impressions and reach
+- **Engagement**: interactions and time on page
 
-## Suporte e Manutenção
+## Support and Maintenance
 
-### Backup e Recuperação
-- **Backup automático**: Diário às 02:00
-- **Versionamento**: Histórico de mudanças
-- **Recuperação**: Point-in-time recovery
-- **Exportação**: Dados em JSON/CSV
+### Backup and Recovery
+- **Automatic backup**: daily at 02:00
+- **Versioning**: change history
+- **Recovery**: point-in-time recovery
+- **Export**: data in JSON/CSV
 
-### Monitoramento
-- **Health checks**: Status do sistema
-- **Performance**: Métricas de velocidade
-- **Erros**: Log centralizado
-- **Alertas**: Notificações automáticas
+### Monitoring
+- **Health checks**: system status
+- **Performance**: speed metrics
+- **Errors**: centralised log
+- **Alerts**: automatic notifications
 
-### Atualizações
-- **Deploy automático**: CI/CD pipeline
-- **Rollback**: Reversão segura
-- **Feature flags**: Ativação gradual
-- **Testes**: Ambiente de staging
+### Updates
+- **Automatic deploy**: CI/CD pipeline
+- **Rollback**: safe reversion
+- **Feature flags**: gradual rollout
+- **Tests**: staging environment
 
 ## Troubleshooting
 
-### Problemas Comuns
-1. **Login não funciona**: Verificar credenciais e role
-2. **Upload falha**: Verificar tamanho e formato
-3. **IA não responde**: Verificar API keys
-4. **Workflow travado**: Verificar permissões
+### Common Problems
+1. **Login not working**: check credentials and role
+2. **Upload fails**: check file size and format
+3. **AI not responding**: check API keys
+4. **Workflow stuck**: check permissions
 
-### Logs e Debug
+### Logs and Debugging
 - **Admin logs**: `/admin/logs`
 - **API status**: `/admin/health`
 - **Performance**: `/admin/metrics`
-- **Errors**: Console do navegador
+- **Errors**: browser console
 
-## Contato e Suporte
+## Contact and Support
 
-Para suporte técnico ou dúvidas sobre o sistema:
+For technical support or questions about the system:
 - **Email**: admin@notilab.com
 - **Slack**: #notilab-admin
-- **Documentação**: `/admin/docs`
+- **Documentation**: `/admin/docs`
 - **Status**: status.notilab.com

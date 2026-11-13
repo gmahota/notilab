@@ -4,7 +4,8 @@ on:
   push:
     branches: [main, develop]
   pull_request:
-    branches: [main]
+    # Was [main] only, so a PR targeting develop ran no security workflow at all.
+    branches: [main, develop]
   schedule:
     - cron: '0 8 * * 1'   # Every Monday 08:00 UTC
   workflow_dispatch:
@@ -17,6 +18,16 @@ permissions:
 
 jobs:
   # ─── CODEQL SAST ────────────────────────────────────────────────────────────
+  # NOT a blocking check, despite how it reads. `codeql-action/analyze` has no
+  # `fail-on` input: it uploads results to code scanning and exits 0 whatever it
+  # found. A green tick here means "analysis completed", never "no alerts".
+  # Turning alerts into a merge blocker requires enabling the code-scanning
+  # branch-protection rule in repository settings — configuration that does not
+  # live in this repo and cannot be asserted from it.
+  #
+  # It also would not have caught the IDOR family regardless. Broken access
+  # control is a missing check, and no static analyser can know which endpoints
+  # were supposed to have one. See the route-authorization job below.
   codeql:
     name: CodeQL Static Analysis
     runs-on: ubuntu-latest
@@ -127,10 +138,11 @@ jobs:
           comment-summary-in-pr: always
 
   # ─── SECURITY HEADERS CHECK ─────────────────────────────────────────────────
+  # The push-to-main-only gate was removed. A check that runs only after a merge
+  # cannot block the merge, so for every pull request this job did not exist.
   security-headers:
     name: Security Headers Check
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
 
@@ -143,15 +155,42 @@ jobs:
             echo "::warning::Security headers not configured in next.config.ts. Consider adding CSP, X-Frame-Options, etc."
           fi
 
-      - name: Check for hardcoded secrets in source
-        run: |
-          echo "=== Scanning for potential secrets ==="
-          PATTERNS="password\s*=\s*['\"][^'\"]{8,}|api_key\s*=\s*['\"][^'\"]{10,}|secret\s*=\s*['\"][^'\"]{8,}"
-          if grep -rEi "$PATTERNS" --include="*.ts" --include="*.tsx" --include="*.js" app/ lib/ components/ 2>/dev/null | grep -v ".env" | grep -v "placeholder"; then
-            echo "::error::Potential hardcoded secrets detected!"
-            exit 1
-          fi
-          echo "✅ No hardcoded secrets detected"
+  # ─── HARDCODED SECRETS ──────────────────────────────────────────────────────
+  # Replaces an inline grep that could not fail. Its pattern required
+  # `password =`, so the vulnerable `password:` object property never matched,
+  # and it was gated to push-on-main so it never ran on a pull request. Both
+  # problems are fixed here: a real, locally testable script, run on every PR.
+  hardcoded-secrets:
+    name: Hardcoded Secret Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Scan for hardcoded secrets
+        run: node scripts/quality/check-hardcoded-secrets.mjs
+
+  # ─── ROUTE AUTHORIZATION MANIFEST ───────────────────────────────────────────
+  # The gap that let the IDOR family reach production: nothing in CI could tell
+  # "public by design" from "forgot the check", because a missing authorization
+  # check has no syntactic signature for a scanner to find. This does not detect
+  # vulnerabilities — it requires every route to have a *declared* posture, so
+  # omissions surface as a diff against a CODEOWNERS-owned file.
+  route-authorization:
+    name: Route Authorization Manifest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check every route has a declared authorization posture
+        run: node scripts/quality/check-route-authorization.mjs
 
   # ─── OWASP ZAP BASELINE (scheduled only) ────────────────────────────────────
   owasp-zap:
@@ -175,23 +214,34 @@ jobs:
   security-report:
     name: Security Summary
     runs-on: ubuntu-latest
-    needs: [dependency-audit, secret-scanning]
+    needs: [dependency-audit, secret-scanning, hardcoded-secrets, route-authorization]
     if: always()
     steps:
       - name: Security scan summary
         uses: actions/github-script@v7
         with:
           script: |
-            const auditStatus = '${{ needs.dependency-audit.result }}';
-            const secretStatus = '${{ needs.secret-scanning.result }}';
-            
+            const auditStatus     = '${{ needs.dependency-audit.result }}';
+            const secretStatus    = '${{ needs.secret-scanning.result }}';
+            const hardcodedStatus = '${{ needs.hardcoded-secrets.result }}';
+            const authzStatus     = '${{ needs.route-authorization.result }}';
+
+            const icon = (r) => r === 'success' ? '✅ Passed' : '❌ Failed';
+
             const body = `## 🔒 Security Scan Summary
-            
+
             | Check | Status |
             |-------|--------|
-            | Dependency Audit | ${auditStatus === 'success' ? '✅ Passed' : '❌ Failed'} |
-            | Secret Scanning  | ${secretStatus === 'success' ? '✅ Passed' : '❌ Failed'} |
-            
+            | Dependency Audit | ${icon(auditStatus)} |
+            | Secret Scanning (Gitleaks) | ${icon(secretStatus)} |
+            | Hardcoded Secrets | ${icon(hardcodedStatus)} |
+            | Route Authorization Manifest | ${icon(authzStatus)} |
+
+            > CodeQL is **not** listed here: \`codeql-action/analyze\` has no
+            > \`fail-on\` input and exits 0 regardless of what it finds. Whether a
+            > CodeQL alert blocks a merge is a branch-protection setting in the
+            > repository, not something this workflow can assert.
+
             *Run triggered by: ${{ github.actor }} on ${{ github.ref_name }}*`;
             
             if (context.eventName === 'pull_request') {

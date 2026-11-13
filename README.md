@@ -1,156 +1,162 @@
-# 🚀 NotiLab - Assistente de Notícias com IA
+# 🚀 NotiLab — AI News Assistant
 
-Uma plataforma moderna de notícias com inteligência artificial que oferece resumos personalizados, chat interativo e gamificação para uma experiência de consumo de notícias única.
+A modern AI-powered news platform offering personalised summaries, interactive chat and gamification for a distinctive news-reading experience.
 
-## ✨ Funcionalidades
+## ✨ Features
 
-- 🤖 **Chat IA (NotiBot)** - Assistente inteligente para explicar notícias
-- 📰 **Feed Personalizado** - Notícias adaptadas ao seu perfil
-- 🎮 **Gamificação** - Sistema de pontos, níveis e conquistas
-- 📱 **Integrações Sociais** - WhatsApp, Telegram, Twitter
-- 🔍 **Busca Inteligente** - Encontre notícias por tema ou categoria
-- 📊 **Analytics** - Acompanhe seu consumo de notícias
+- 🤖 **AI Chat (NotiBot)** — an intelligent assistant that explains the news
+- 📰 **Personalised Feed** — news adapted to your profile
+- 🎮 **Gamification** — points, levels and achievements
+- 📱 **Social Integrations** — WhatsApp, Telegram, Twitter
+- 🔍 **Smart Search** — find news by topic or category
+- 📊 **Analytics** — track your news consumption
 
-## 🛠️ Stack Tecnológica
+## 🛠️ Tech Stack
 
 - **Frontend**: Next.js 15, React 19, TypeScript
 - **UI**: Tailwind CSS, Radix UI, Lucide Icons
 - **Backend**: Prisma ORM, PostgreSQL
-- **IA**: OpenAI/Groq (opcional)
+- **AI**: OpenAI/Groq (optional)
 - **Deploy**: Vercel
 
-## 🚀 Início Rápido
+## 🚀 Quick Start
 
-### Pré-requisitos
+### Prerequisites
 
 - Node.js 18+
 - PostgreSQL
 - Git
 
-### Instalação
+### Installation
 
-1. **Clone o repositório**
+1. **Clone the repository**
 \`\`\`bash
-git clone <seu-repo>
+git clone <your-repo>
 cd notilab
 \`\`\`
 
-2. **Execute o setup automático**
+2. **Run the automated setup**
 \`\`\`bash
 pnpm setup
 \`\`\`
 
-3. **Configure as variáveis de ambiente**
+3. **Configure environment variables**
 \`\`\`bash
 cp .env.example .env
-# Edite o .env com suas configurações
+# Edit .env with your own settings
 \`\`\`
 
-4. **Inicie o desenvolvimento**
+4. **Start development**
 \`\`\`bash
 pnpm dev
 \`\`\`
 
-Acesse [http://localhost:3000](http://localhost:3000) para ver a aplicação.
+Open [http://localhost:3000](http://localhost:3000) to view the application.
 
-## 📋 Scripts Disponíveis
+## 📋 Available Scripts
 
 \`\`\`bash
-# Desenvolvimento
-pnpm dev             # Iniciar servidor de desenvolvimento
-pnpm build           # Build de produção
-pnpm start           # Iniciar produção
+# Development
+pnpm dev             # Start the development server
+pnpm build           # Production build
+pnpm start           # Start production
 
-# Banco de dados
-pnpm db:push         # Sincronizar schema
-pnpm db:studio       # Interface visual do Prisma
-pnpm db:seed         # Popular com dados iniciais
-pnpm db:reset        # Reset completo + seed
+# Database
+pnpm db:push         # Sync the schema
+pnpm db:studio       # Prisma visual interface
+pnpm db:seed         # Populate with seed data
+pnpm db:reset        # Full reset + seed
 
-# Utilitários
-pnpm setup           # Configuração inicial completa
-pnpm check           # Verificar saúde do sistema
-pnpm lint            # Verificar código
-pnpm typecheck       # Verificar tipos TypeScript
-pnpm agents:sync     # Sincronizar agentes Claude Code
+# Quality gate
+pnpm gate            # Run the whole gate (lint, typecheck, test, checks, build)
+pnpm lint            # Check code style
+pnpm typecheck       # Check TypeScript types
+pnpm test            # Run the Jest suite
+pnpm check:authorization  # Every API route has a declared authorization posture
+pnpm check:secrets   # Scan for hardcoded secrets
+
+# Utilities
+pnpm setup           # Complete initial setup
+pnpm check           # System health check
+pnpm agents:sync     # Sync the Claude Code agents
 \`\`\`
 
-## 🤖 Governança de IA (Claude, Copilot, Codex)
+## 🤖 AI Governance (Claude, Copilot, Codex)
 
-Este projeto segue um sistema de governança "AI-first" para assistentes de código:
+This project follows an "AI-first" governance system for coding assistants:
 
-- [`AGENTS.md`](AGENTS.md) — regras do repositório, válidas para qualquer assistente (Claude, Copilot, Codex, Cursor).
-- [`CLAUDE.md`](CLAUDE.md) — manual de operação específico do Claude Code, incluindo os 11 subagentes em `.claude/agents/`.
-- [`.github/copilot-instructions.md`](.github/copilot-instructions.md) — instruções específicas do GitHub Copilot.
-- [`docs/memory/`](docs/memory/) — conhecimento duradouro do projeto (arquitetura, regras de negócio, decisões).
-- [`docs/manager/qualidade/QUALITY_GATE.md`](docs/manager/qualidade/QUALITY_GATE.md) — o que precisa passar antes de um merge.
-- [`docs/manager/roadmap/ROADMAP.md`](docs/manager/roadmap/ROADMAP.md) — roadmap mantido manualmente.
-- [`docs/manager/daily-reports/`](docs/manager/daily-reports/) — registo diário de trabalho.
+- [`AGENTS.md`](AGENTS.md) — repository rules, applicable to any assistant (Claude, Copilot, Codex, Cursor).
+- [`CLAUDE.md`](CLAUDE.md) — the Claude Code operating manual, including the 11 subagents in `.claude/agents/`.
+- [`.github/copilot-instructions.md`](.github/copilot-instructions.md) — GitHub Copilot-specific instructions.
+- [`docs/memory/`](docs/memory/) — durable project knowledge (architecture, business rules, decisions).
+- [`docs/manager/quality/QUALITY_GATE.md`](docs/manager/quality/QUALITY_GATE.md) — what has to pass before a merge, and — just as importantly — what the gate does *not* cover.
+- [`docs/manager/roadmap/ROADMAP.md`](docs/manager/roadmap/ROADMAP.md) — hand-maintained roadmap.
+- [`docs/manager/daily-reports/`](docs/manager/daily-reports/) — daily work log.
 
-## 🗄️ Estrutura do Banco
+## 🗄️ Database Structure
 
-- **Users** - Perfis de utilizador com gamificação
-- **News** - Notícias com categorias e reações
-- **Categories** - Política, Desporto, Cultura, Economia, Leis
-- **ChatSessions** - Conversas com IA
-- **TrendingTopics** - Tópicos em alta
+- **Users** — user profiles with gamification
+- **News** — articles with categories and reactions
+- **Categories** — Politics, Sport, Culture, Economy, Law
+- **ChatSessions** — AI conversations
+- **TrendingTopics** — trending topics
 
-## 🎯 Perfis de Utilizador
+## 🎯 User Profiles
 
-- **👶 Jovem** - Linguagem simples, conteúdo viral
-- **💼 Executivo** - Resumos rápidos, foco em economia
-- **🎓 Estudante** - Explicações detalhadas, contexto histórico
-- **👴 Senior** - Interface simplificada, notícias tradicionais
+- **👶 Young** — simple language, viral content
+- **💼 Executive** — quick summaries, economy focus
+- **🎓 Student** — detailed explanations, historical context
+- **👴 Senior** — simplified interface, traditional news
 
-## 🔧 Configuração Avançada
+## 🔧 Advanced Configuration
 
-### Variáveis de Ambiente
+### Environment Variables
 
 \`\`\`env
-# Essenciais
+# Essential
 DATABASE_URL="postgresql://..."
 NEXTAUTH_SECRET="..."
 
-# IA (opcional)
+# AI (optional)
 OPENAI_API_KEY="..."
 GROQ_API_KEY="..."
 
-# Sociais (opcional)
+# Social (optional)
 WHATSAPP_TOKEN="..."
 TELEGRAM_BOT_TOKEN="..."
 \`\`\`
 
-### Integrações Sociais
+### Social Integrations
 
-Configure bots do WhatsApp e Telegram para receber resumos automáticos das notícias mais importantes do dia.
+Configure the WhatsApp and Telegram bots to receive automatic summaries of the day's most important news.
 
 ## 📱 Deploy
 
-### Vercel (Recomendado)
+### Vercel (recommended)
 
-1. Conecte seu repositório ao Vercel
-2. Configure as variáveis de ambiente
-3. Deploy automático a cada push
+1. Connect your repository to Vercel
+2. Configure the environment variables
+3. Automatic deploy on every push
 
 ### Docker
 
 \`\`\`bash
-# Em breve...
+# Coming soon...
 \`\`\`
 
-## 🤝 Contribuição
+## 🤝 Contributing
 
-1. Fork o projeto
-2. Crie uma branch (`git checkout -b feature/nova-funcionalidade`)
-3. Commit suas mudanças (`git commit -m 'Adiciona nova funcionalidade'`)
-4. Push para a branch (`git push origin feature/nova-funcionalidade`)
-5. Abra um Pull Request
+1. Fork the project
+2. Create a branch (`git checkout -b feature/new-feature`)
+3. Commit your changes (`git commit -m 'Add new feature'`)
+4. Push to the branch (`git push origin feature/new-feature`)
+5. Open a Pull Request
 
-## 📄 Licença
+## 📄 Licence
 
-Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para detalhes.
+This project is under the MIT licence. See the [LICENSE](LICENSE) file for details.
 
-## 🆘 Suporte
+## 🆘 Support
 
 - 📧 Email: suporte@notilab.com
 - 💬 Discord: [NotiLab Community](https://discord.gg/notilab)
@@ -158,4 +164,4 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para de
 
 ---
 
-Feito com ❤️ pela equipa NotiLab
+Made with ❤️ by the NotiLab team

@@ -43,7 +43,7 @@ NotiLab is an AI-powered news aggregation and notification platform (Next.js 15,
 
 - Prefer already-installed dependencies over adding new ones.
 - Before adding a new package, check it is actively maintained (no multi-year-stale packages) and has no known high/critical vulnerabilities (`pnpm audit`).
-- Do not add a testing framework, linter, or build tool without discussing it first — the quality gate baseline (`docs/manager/qualidade/QUALITY_GATE.md`) is deliberately scoped to what's installed today.
+- Do not add a testing framework, linter, or build tool without discussing it first — the quality gate baseline (`docs/manager/quality/QUALITY_GATE.md`) is deliberately scoped to what's installed today.
 
 ## TypeScript Rules
 
@@ -81,7 +81,7 @@ NotiLab's core product risk is publishing AI-generated news content that is wron
 
 - There is currently **no test suite** in this repository (no Jest/Vitest/Playwright, no `*.test.*` files). Do not claim tests pass — there are none to run.
 - When adding non-trivial logic (ranking, AI processing, auth), prefer adding at least a minimal smoke check over adding none; do not block a task on building a full test framework, but flag the gap in the relevant `docs/memory/lessons-learned.md` entry or PR description.
-- Before asserting anything "works", actually run it (`pnpm lint`, `pnpm typecheck`, `pnpm build`, manual exercise of the flow) — see `docs/manager/qualidade/QUALITY_GATE.md`.
+- Before asserting anything "works", actually run it (`pnpm lint`, `pnpm typecheck`, `pnpm build`, manual exercise of the flow) — see `docs/manager/quality/QUALITY_GATE.md`.
 
 ## Git and Pull Request Rules
 

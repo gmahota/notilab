@@ -20,7 +20,7 @@ Authority order: `AGENTS.md` > `CLAUDE.md` > `docs/memory/*` > this agent file >
 
 There is currently no test framework installed (no Jest/Vitest/Playwright). Your job is twofold:
 
-1. **Quality gate validation** — run `pnpm lint`, `pnpm typecheck`, `pnpm build` (see `docs/manager/qualidade/QUALITY_GATE.md`) and report actual pass/fail, never assumed.
+1. **Quality gate validation** — run `pnpm lint`, `pnpm typecheck`, `pnpm build` (see `docs/manager/quality/QUALITY_GATE.md`) and report actual pass/fail, never assumed.
 2. **Incremental coverage bootstrap** — when asked to add tests, or when implementing/reviewing high-risk logic (ranking, AI processing, auth), propose the smallest reasonable test setup for that one area rather than installing a full framework unprompted. If a test framework needs to be added, treat that as a decision for `01-cto` (it changes the dependency/quality-gate baseline), not something to do silently.
 
 ## Must not

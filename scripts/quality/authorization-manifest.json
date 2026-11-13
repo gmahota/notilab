@@ -1,0 +1,131 @@
+{
+  "$comment": [
+    "Authorization posture for every app/api route handler. Enforced by",
+    "scripts/quality/check-route-authorization.mjs (see that file's header for the",
+    "rules, and docs/manager/quality/QUALITY_GATE.md for how it fits the gate).",
+    "",
+    "A route belongs here only if it does NOT reach an authorization helper.",
+    "Routes that do are detected automatically and must not be listed — a",
+    "redundant entry is a hard failure, so this file cannot rot into a blanket",
+    "allowlist.",
+    "",
+    "publicRoutes   = intentionally unauthenticated. Requires a reason.",
+    "knownViolations = missing or unreviewed authorization, tracked for a fix.",
+    "                  Capped by maxKnownViolations so the list can only shrink."
+  ],
+
+  "publicRoutes": [
+    {
+      "route": "app/api/admin/auth/route.ts",
+      "sessionLifecycle": true,
+      "reason": "The staff login endpoint itself — it establishes the session, so it cannot require one. Its own defect (hardcoded credentials) is tracked separately in ROADMAP #23; this entry declares only that being unauthenticated is correct here."
+    },
+    {
+      "route": "app/api/admin/logout/route.ts",
+      "sessionLifecycle": true,
+      "reason": "Clears the admin-token cookie. Safe to call unauthenticated: the worst outcome is that a caller logs themselves out."
+    },
+    {
+      "route": "app/api/agent/capabilities/route.ts",
+      "reason": "Static discovery document describing what the agent API offers. Contains no tenant data and no per-caller information."
+    },
+    {
+      "route": "app/api/agent/health/route.ts",
+      "reason": "Liveness probe. Returns service status only, and is deliberately callable without credentials so uptime monitoring works."
+    },
+    {
+      "route": "app/api/chat/route.ts",
+      "reason": "Public NotiBot chat surface on the marketing site. Reads published articles only. NOTE: unauthenticated and calls a paid LLM, so it needs rate limiting — see knownViolations rationale for app/api/ai/explain/route.ts."
+    },
+    {
+      "route": "app/api/digest/subscribe/route.ts",
+      "reason": "Public newsletter opt-in and opt-out by email address. Unauthenticated by design; abuse is bounded by the double opt-in flow rather than by a session."
+    },
+    {
+      "route": "app/api/news/route.ts",
+      "reason": "Public news listing. Serves only published articles and is the primary read path for anonymous visitors."
+    },
+    {
+      "route": "app/api/news/[id]/route.ts",
+      "reason": "Public single-article read. Serves only published articles to anonymous visitors."
+    },
+    {
+      "route": "app/api/news/category/[slug]/route.ts",
+      "reason": "Public category listing. Serves only published articles to anonymous visitors."
+    },
+    {
+      "route": "app/api/news/feed/route.ts",
+      "reason": "Public ranked feed for the home page. Ranking inputs are aggregate, not per-user."
+    },
+    {
+      "route": "app/api/news/trending/route.ts",
+      "reason": "Public trending list computed from aggregate engagement counters. No per-user data is read or returned."
+    },
+    {
+      "route": "app/api/news/summarize-link/route.ts",
+      "reason": "Public paste-a-link summariser used from the landing page. NOTE: unauthenticated and LLM-backed, so it shares the rate-limiting concern recorded against app/api/ai/explain/route.ts."
+    },
+    {
+      "route": "app/api/reddit-news/route.ts",
+      "reason": "Public read-through of curated Reddit content. SSRF hardening and the blank-limit fix landed in PRs #106 and #108."
+    },
+    {
+      "route": "app/api/social/route.ts",
+      "reason": "Public read of the configured social links shown in the site footer. Returns published configuration only."
+    },
+    {
+      "route": "app/api/stats/route.ts",
+      "reason": "Public aggregate site counters (article totals, category counts). No per-user rows are read."
+    }
+  ],
+
+  "knownViolations": [
+    {
+      "route": "app/api/user/route.ts",
+      "trackedIn": "ROADMAP #22",
+      "reason": "IDOR: GET returns any user's email and full read history for a client-supplied ?userId, and PUT writes any user's profile and preferences. Confirmed live defect; the fix is owned by a separate task."
+    },
+    {
+      "route": "app/api/user/react/route.ts",
+      "trackedIn": "ROADMAP #22",
+      "reason": "IDOR: writes a reaction on behalf of any client-supplied userId with only a presence check. Confirmed live defect; the fix is owned by a separate task."
+    },
+    {
+      "route": "app/api/user/save/route.ts",
+      "trackedIn": "ROADMAP #22",
+      "reason": "IDOR: saves articles for, and lists the saved articles of, any client-supplied userId. Confirmed live defect; the fix is owned by a separate task."
+    },
+    {
+      "route": "app/api/growth/streak/route.ts",
+      "trackedIn": "ROADMAP #22",
+      "reason": "IDOR: reads and advances any client-supplied userId's streak, which is gamification state a caller should not be able to inflate for themselves or reset for others."
+    },
+    {
+      "route": "app/api/growth/events/route.ts",
+      "trackedIn": "ROADMAP #24",
+      "reason": "Accepts analytics events carrying a caller-supplied userId with no verification, so event history can be attributed to arbitrary users. Lower impact than the read-path IDORs but the same missing-check class."
+    },
+    {
+      "route": "app/api/growth/experiments/route.ts",
+      "trackedIn": "ROADMAP #24",
+      "reason": "Returns experiment assignment for a caller-supplied userId. Discloses which variant another user is in; needs a posture decision from 01-cto rather than an assumed-public label."
+    },
+    {
+      "route": "app/api/growth/share/[id]/route.ts",
+      "trackedIn": "ROADMAP #24",
+      "reason": "Reads and mutates share-link records that carry a userId. Public resolution of a share code is legitimate, but the mutating path has not been reviewed for who may call it."
+    },
+    {
+      "route": "app/api/growth/share/visit/route.ts",
+      "trackedIn": "ROADMAP #24",
+      "reason": "Unauthenticated write path recording share visits. Plausibly public by design, but it is an unauthenticated insert with no rate limit and has not been formally reviewed."
+    },
+    {
+      "route": "app/api/ai/explain/route.ts",
+      "trackedIn": "ROADMAP #24",
+      "reason": "Unauthenticated endpoint that calls a paid LLM provider with caller-supplied text. No auth and no rate limit means an anonymous caller can drive spend; needs either a session check or a quota before it can be declared public."
+    }
+  ],
+
+  "maxKnownViolations": 9
+}

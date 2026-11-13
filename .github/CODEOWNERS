@@ -1,6 +1,28 @@
 # NotiLab Code Owners
 # Each line is a file pattern followed by one or more owners.
 # Order matters — the last matching pattern takes precedence.
+#
+# ─── WHAT THIS FILE CAN AND CANNOT DO ────────────────────────────────────────
+# Read this before treating a CODEOWNERS entry as a security control.
+#
+# Every pattern below names @gmahota, who is also the author of essentially all
+# of this code. That means CODEOWNERS currently provides:
+#
+#   CAN:    a routing signal — a PR touching a listed path is visibly flagged as
+#           touching auth, schema, CI or AI surface area, and (with "Require
+#           review from Code Owners" enabled) shows up in that owner's queue.
+#   CANNOT: a second pair of eyes. GitHub does not request review from, or count
+#           approval by, the PR author. A PR that @gmahota opens against
+#           lib/admin-auth.ts satisfies its code-owner requirement with zero
+#           additional review. Both defects this file was audited over arrived
+#           exactly that way.
+#
+# So the patterns below are useful as *labels on blast radius*, and are worth
+# keeping accurate for that reason. They are not a review gate, and nothing in
+# docs/manager/quality/QUALITY_GATE.md should claim they are. Real second-review
+# pressure needs either a second human owner or a branch-protection rule
+# requiring an approving review from someone other than the author — a
+# repository setting that does not live in this file.
 
 # ─── Global default ─────────────────────────────────────────────────────────
 *                   @gmahota
@@ -14,6 +36,22 @@ prisma/migrations/  @gmahota
 # ─── Auth & Security (Security review required) ──────────────────────────────
 lib/admin-auth.ts   @gmahota
 app/api/admin/      @gmahota
+
+# Every API route handler. Previously only app/api/admin/ and app/api/ai/ were
+# named, so app/api/user/ — the IDOR family — matched nothing but the global `*`
+# and carried no signal that it was security-relevant at all.
+app/api/**/route.ts @gmahota
+
+# Per-user data plane. Listed separately and last so it wins over the pattern
+# above: these handlers read and write rows belonging to a specific end user, so
+# any diff here is an authorization change whether or not it looks like one.
+app/api/user/       @gmahota
+app/api/growth/     @gmahota
+
+# The quality gate's own enforcement code. A change here can only make the gate
+# weaker or stronger, never neutral — treat any diff as a baseline change under
+# docs/manager/quality/QUALITY_GATE.md § Baseline rule.
+scripts/quality/    @gmahota
 
 # ─── AI integrations ─────────────────────────────────────────────────────────
 lib/ai-service.ts   @gmahota
@@ -30,4 +68,4 @@ lib/*-service.ts    @gmahota
 AGENTS.md                              @gmahota
 CLAUDE.md                              @gmahota
 .claude/                               @gmahota
-docs/manager/qualidade/QUALITY_GATE.md @gmahota
+docs/manager/quality/QUALITY_GATE.md @gmahota

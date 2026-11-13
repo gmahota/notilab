@@ -10,4 +10,4 @@
 - **Growth experiment** — an A/B test (`GrowthExperiment`) with sticky per-user variant assignment (`ExperimentAssignment`).
 - **Workflow stage** vs **News status** — `ContentWorkflow.stage` is the human CMS/Kanban tracking state; `News.status` is the article's actual publication state. See `docs/memory/architecture.md` for how they relate.
 - **RBAC roles** — `USER`, `REDATOR` (writer), `REVISOR` (reviewer), `SUPERVISOR` (approver), `MARKETING`, `CRIADOR_CONTEUDO`, `ADMIN`, `SUPER_ADMIN` (see `UserRole` enum).
-- **Quality Gate** — the set of checks (`pnpm lint`, `pnpm typecheck`, `pnpm build`, security scans) that must pass before a change is considered mergeable. See `docs/manager/qualidade/QUALITY_GATE.md`.
+- **Quality Gate** — the set of checks (`pnpm lint`, `pnpm typecheck`, `pnpm build`, security scans) that must pass before a change is considered mergeable. See `docs/manager/quality/QUALITY_GATE.md`.

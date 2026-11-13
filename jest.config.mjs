@@ -16,7 +16,14 @@ const config = {
   // Every current test covers a lib/ module with no DOM involved. Switch a
   // component test to jsdom per-file with a `@jest-environment` docblock.
   testEnvironment: "node",
-  testMatch: ["<rootDir>/__tests__/**/*.test.ts", "<rootDir>/__tests__/**/*.test.tsx"],
+  // Relative, not <rootDir>-prefixed. Interpolating rootDir into a glob breaks
+  // wherever the absolute path contains a backslash or a leading-dot segment:
+  // in a Windows git worktree under .claude/worktrees/ the pattern becomes
+  // `...notilab.claude/worktrees/...`, micromatch reads . as an escaped dot,
+  // and jest reports "0 matches" for 11 suites that are sitting right there.
+  // A relative pattern is resolved against `roots` (which defaults to rootDir)
+  // and matches identically on Linux CI and Windows checkouts.
+  testMatch: ["**/__tests__/**/*.test.ts", "**/__tests__/**/*.test.tsx"],
   // Mapped by hand on purpose: next/jest derives the `@/*` alias from
   // tsconfig's `baseUrl`, and this tsconfig sets `paths` without one (valid
   // under moduleResolution: bundler), so the alias would not resolve here.

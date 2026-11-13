@@ -422,7 +422,7 @@ curl -s -H "Authorization: Bearer $NOTILAB_AGENT_API_KEY" \
   https://notilab.vercel.app/api/agent/capabilities
 ```
 
-"Mostra as notícias ainda não publicadas."
+"Show me the articles that have not been published yet."
 
 ```bash
 curl -s -X POST https://notilab.vercel.app/api/agent/tools/search_articles \

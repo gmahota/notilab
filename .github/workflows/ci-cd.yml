@@ -64,11 +64,45 @@ jobs:
       - name: TypeScript strict check
         run: pnpm exec tsc --noEmit
 
+  # ─── TEST ───────────────────────────────────────────────────────────────────
+  # Blocking as of this change. `pnpm test` (11 suites) existed and passed for
+  # some time while being wired into no workflow at all, so the suite could rot
+  # or be broken by a merge without CI noticing. QUALITY_GATE.md had recorded
+  # "no automated tests" long after the suite landed.
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm exec prisma generate
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL || 'postgresql://placeholder:placeholder@localhost:5432/notilab' }}
+
+      # --ci fails on a missing snapshot rather than writing one; passWithNoTests
+      # is deliberately NOT set, so a config change that stops matching any test
+      # file fails the job instead of reporting a green "0 tests" run.
+      - name: Run Jest
+        run: pnpm exec jest --ci
+
   # ─── BUILD ──────────────────────────────────────────────────────────────────
   build:
     name: Build Application
     runs-on: ubuntu-latest
-    needs: [lint, typecheck]
+    needs: [lint, typecheck, test]
     steps:
       - uses: actions/checkout@v4
 
