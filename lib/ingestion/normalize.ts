@@ -56,20 +56,49 @@ function extractTags(title: string, categorySlug: string): string[] {
 
 /**
  * Maps keyword patterns to category slugs (matches Prisma seed data).
- * Scope per docs/editor/content-focus.md: world football, Real Madrid, PT/EN/ES
- * top-team backstage, Mozambique politics, South Africa xenophobia. Order matters
- * (first match wins) and keywords are deliberately multiword — bare single words
- * like "goal", "porto", or "south africa" previously caused unrelated content to
- * be silently mislabeled via the "general" fallback.
+ * Scope per the 2026-11-12 maintainer decision: US celebrities, club football in
+ * England / Portugal / Spain / Italy plus PSG, and financial markets. Order
+ * matters (first match wins) and keywords are deliberately multiword — bare
+ * single words like "goal", "porto", or "inter" previously caused unrelated
+ * content to be silently mislabeled via the "general" fallback.
+ *
+ * `mocambique`, `africa-do-sul` and `filmes` stay listed below: no sync query
+ * feeds them any more, so they are inert for new ingestion, but keeping them
+ * means a stray article that genuinely is about those topics still lands
+ * somewhere truthful instead of in "general".
+ *
+ * Note this matcher lowercases but does NOT strip accents (unlike the relevance
+ * gate in quality.ts), so accented spellings are listed explicitly.
  */
 const CATEGORY_RULES: [string, string[]][] = [
   ["desporto",      ["real madrid", "barcelona", "atletico madrid", "atlético madrid",
                       "benfica", "fc porto", "sporting cp", "sporting clube",
                       "manchester city", "manchester united", "liverpool fc",
                       "chelsea fc", "arsenal fc", "tottenham",
+                      "juventus", "inter milan", "internazionale", "ac milan",
+                      "napoli", "as roma", "lazio",
+                      "paris saint-germain", "psg", "ligue 1", "serie a",
                       "premier league", "la liga", "laliga", "liga portugal",
-                      "champions league", "world cup", "copa do mundo", "fifa", "uefa",
+                      "champions league", "europa league", "world cup", "copa do mundo",
+                      "fifa", "uefa",
                       "football", "futebol", "soccer", "transfer window", "bastidores"]],
+  ["celebridades",  ["taylor swift", "beyoncé", "beyonce", "rihanna",
+                      // Bare "kardashian" on purpose: the query's mustMatch admits
+                      // it bare (providers.ts), so a Khloé or Kourtney story clears
+                      // the relevance gate. With only "kim kardashian" here it then
+                      // fell through to the fallback — the gate and the categoriser
+                      // have to admit the same people.
+                      "kardashian", "kylie jenner", "dwayne johnson", "zendaya",
+                      "selena gomez", "ariana grande", "travis kelce",
+                      "jennifer lopez", "timothée chalamet", "timothee chalamet",
+                      "red carpet", "tapete vermelho", "hollywood star",
+                      "celebrity news", "celebridade"]],
+  ["economia",      ["wall street", "s&p 500", "nasdaq", "dow jones",
+                      "federal reserve", "stock market", "stock markets",
+                      "treasury yields", "earnings report",
+                      "bolsa de valores", "mercados financeiros", "euronext",
+                      "taxas de juro", "inflação", "inflacao",
+                      "banco central europeu", "bce"]],
   ["mocambique",    ["moçambique", "mocambique", "mozambique", "maputo",
                       "frelimo", "renamo", "daniel chapo", "nyusi"]],
   ["africa-do-sul", ["xenophobia", "xenofobia", "afrophobia", "operation dudula",
@@ -85,12 +114,32 @@ const CATEGORY_RULES: [string, string[]][] = [
                       "comedy movie", "comedy series", "filme de comédia", "série de comédia"]],
 ]
 
+/**
+ * Where an article goes when no rule matches. Not a category in the editorial
+ * sense — an admission that the categoriser could not tell.
+ */
+export const FALLBACK_CATEGORY_SLUG = "general"
+
+/**
+ * Every slug `detectCategorySlug` can return, fallback included.
+ *
+ * `scripts/db/ensure-categories.ts` requires a `Category` row for each one. A
+ * slug the categoriser emits but the database lacks does not fail loudly: the
+ * article is silently demoted to the fallback, which is exactly the bug roadmap
+ * #15 fixed once already. Deriving the list here rather than restating it in the
+ * script is what keeps the two from drifting apart again.
+ */
+export const CATEGORY_SLUGS: readonly string[] = [
+  ...CATEGORY_RULES.map(([slug]) => slug),
+  FALLBACK_CATEGORY_SLUG,
+]
+
 export function detectCategorySlug(title: string, content: string): string {
   const text = ` ${title} ${content} `.toLowerCase()
   for (const [slug, keywords] of CATEGORY_RULES) {
     if (keywords.some((kw) => text.includes(kw))) return slug
   }
-  return "general"
+  return FALLBACK_CATEGORY_SLUG
 }
 
 // ─── Public ───────────────────────────────────────────────────────────────────

@@ -55,3 +55,8 @@ docs/agent-api.openapi.json
 # Keep only the committed barrel that re-exports it and defaults the adapter.
 /lib/generated/*
 !/lib/generated/prisma.ts
+
+# Local agent/MCP client credentials. mcp.json holds a NotiLab agent API key
+# (see lib/agent/auth.ts) — this repo is public, so a single `git add .` would
+# publish it irrevocably. Keep it local; share the shape via docs, not the file.
+mcp.json

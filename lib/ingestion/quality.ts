@@ -53,6 +53,16 @@ const ALLOWED_DOMAINS = [
   "abola.pt", "record.pt", "ojogo.pt", "espn.com", "espn.com.br",
   "theathletic.com", "skysports.com", "goal.com", "uefa.com", "fifa.com",
   "footballitalia.net", "fourfourtwo.com", "cadenaser.com",
+  // Italy / France football
+  "gazzetta.it", "corrieredellosport.it", "tuttosport.com", "ansa.it",
+  "lequipe.fr", "rmcsport.bfmtv.com", "lefigaro.fr",
+  // US celebrity and entertainment desks
+  "variety.com", "hollywoodreporter.com", "deadline.com", "people.com",
+  "ew.com", "billboard.com", "rollingstone.com", "vanityfair.com",
+  "usatoday.com",
+  // Financial markets
+  "cnbc.com", "wsj.com", "marketwatch.com", "barrons.com", "fortune.com",
+  "jornaldenegocios.pt", "dinheirovivo.pt", "expansion.com",
 ]
 
 /**
