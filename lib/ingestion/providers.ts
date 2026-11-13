@@ -25,58 +25,37 @@ const QUERY_DELAY_MS = 1_200
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 const NEWSAPI_BASE = "https://newsapi.org/v2"
 
-// Topics covered on every sync run. Keep this list ≤ 10 for free-tier safety.
+// Topics covered on every sync run. Keep this list <= 10 for free-tier safety.
 //
-// Scope: world politics and world football. Entertainment queries (Netflix,
-// Prime Video, doramas) were removed — they were the widest, least specific
-// queries and pulled in the worst noise, including a scene-release listing.
+// Scope (maintainer decision, 2026-11-12): US celebrities, club football in the
+// English, Portuguese, Spanish and Italian top flights plus PSG, and financial
+// markets. Politics is out by explicit instruction — the Hormuz, Ukraine/Russia,
+// Trump, Macron and Moçambique queries that used to occupy six of these ten
+// slots were removed, not merely reordered.
 //
 // `mustMatch` is the relevance gate (lib/ingestion/quality.ts): at least one of
 // these terms must appear in the article's title or lead, not merely somewhere
 // in the body. Without it, "World Cup" in an OR query matched an NFL blog's
-// link roundup and a crypto fan-token piece.
+// link roundup and a crypto fan-token piece. Terms are matched accent-blind and
+// as substrings, so a short word like "inter" is spelled out ("inter milan") to
+// keep it from matching "international".
 const SYNC_QUERIES: SyncQuery[] = [
-  // ── World politics ────────────────────────────────────────────────────────
+  // ── US celebrities ────────────────────────────────────────────────────────
   {
-    q: "(\"Strait of Hormuz\" OR Hormuz) AND (Iran OR shipping OR oil OR navy)",
+    q: "\"Taylor Swift\" OR Beyoncé OR Rihanna OR \"Kim Kardashian\" OR \"Dwayne Johnson\" OR Zendaya",
     lang: "en",
-    mustMatch: ["hormuz"],
+    mustMatch: ["taylor swift", "beyonce", "rihanna", "kardashian", "dwayne johnson", "zendaya"],
   },
   {
-    q: "(Ukraine OR Russia) AND (war OR ceasefire OR offensive OR \"peace talks\" OR strike)",
+    q: "(\"Selena Gomez\" OR \"Ariana Grande\" OR \"Travis Kelce\" OR \"Jennifer Lopez\" OR \"Timothée Chalamet\" OR \"Kylie Jenner\") AND (Hollywood OR music OR film OR tour OR \"red carpet\")",
     lang: "en",
-    mustMatch: ["ukraine", "russia", "russian", "ukrainian", "zelensky", "putin"],
+    mustMatch: ["selena gomez", "ariana grande", "travis kelce", "jennifer lopez", "timothee chalamet", "kylie jenner"],
   },
+  // ── Club football ─────────────────────────────────────────────────────────
   {
-    q: "(Ucrânia OR Rússia) AND (guerra OR tréguas OR negociações OR ataque)",
-    lang: "pt",
-    mustMatch: ["ucrania", "russia", "zelensky", "putin"],
-  },
-  {
-    q: "Trump AND (\"White House\" OR administration OR tariffs OR \"executive order\" OR Congress)",
+    q: "\"Premier League\" AND (Arsenal OR Liverpool OR Chelsea OR Tottenham OR \"Manchester City\" OR \"Manchester United\")",
     lang: "en",
-    mustMatch: ["trump"],
-  },
-  {
-    q: "Macron AND (France OR government OR Elysee OR parliament)",
-    lang: "en",
-    mustMatch: ["macron"],
-  },
-  {
-    q: "Moçambique AND (política OR governo OR eleições OR Frelimo OR Renamo)",
-    lang: "pt",
-    mustMatch: ["mocambique", "frelimo", "renamo", "maputo"],
-  },
-  // ── World football ────────────────────────────────────────────────────────
-  {
-    q: "\"Real Madrid\" OR Barcelona OR \"Atletico Madrid\"",
-    lang: "es",
-    mustMatch: ["real madrid", "barcelona", "atletico"],
-  },
-  {
-    q: "\"Champions League\" OR \"World Cup\" OR UEFA OR FIFA",
-    lang: "en",
-    mustMatch: ["champions league", "world cup", "uefa", "fifa"],
+    mustMatch: ["premier league", "arsenal", "liverpool", "chelsea", "tottenham", "manchester city", "manchester united"],
   },
   {
     q: "Benfica OR \"FC Porto\" OR \"Sporting CP\"",
@@ -84,9 +63,35 @@ const SYNC_QUERIES: SyncQuery[] = [
     mustMatch: ["benfica", "porto", "sporting"],
   },
   {
-    q: "\"Premier League\" AND (Arsenal OR Liverpool OR Chelsea OR Tottenham OR Manchester)",
+    q: "\"Real Madrid\" OR Barcelona OR \"Atlético Madrid\"",
+    lang: "es",
+    mustMatch: ["real madrid", "barcelona", "atletico"],
+  },
+  {
+    q: "\"Serie A\" AND (Juventus OR Inter OR Milan OR Napoli OR Roma OR Lazio)",
+    lang: "it",
+    mustMatch: ["serie a", "juventus", "napoli", "milan", "lazio", "inter milan", "internazionale", "as roma"],
+  },
+  {
+    q: "\"Paris Saint-Germain\" OR PSG OR \"Ligue 1\"",
+    lang: "fr",
+    mustMatch: ["paris saint-germain", "psg", "ligue 1"],
+  },
+  {
+    q: "\"Champions League\" OR \"Europa League\" OR UEFA",
     lang: "en",
-    mustMatch: ["premier league", "arsenal", "liverpool", "chelsea", "tottenham", "manchester"],
+    mustMatch: ["champions league", "europa league", "uefa"],
+  },
+  // ── Financial markets ─────────────────────────────────────────────────────
+  {
+    q: "(\"Wall Street\" OR \"S&P 500\" OR Nasdaq OR \"Dow Jones\" OR \"Federal Reserve\") AND (stocks OR markets OR earnings OR rates)",
+    lang: "en",
+    mustMatch: ["wall street", "s&p 500", "nasdaq", "dow jones", "federal reserve", "stock market", "stocks"],
+  },
+  {
+    q: "(bolsa OR mercados OR juros OR inflação OR Euronext) AND (ações OR investidores OR BCE OR economia)",
+    lang: "pt",
+    mustMatch: ["bolsa", "mercados", "juros", "inflacao", "euronext", "bce"],
   },
 ]
 

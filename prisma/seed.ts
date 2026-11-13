@@ -7,8 +7,9 @@ async function main() {
 
   // ========================
   // 1. CATEGORIES
-  // Active per docs/editor/content-focus.md (+ Addendum v1.1): desporto, mocambique,
-  // africa-do-sul, filmes, general. The rest are retired (kept for existing News rows'
+  // Active per the 2026-11-12 maintainer decision: desporto, celebridades, economia,
+  // general. `mocambique`, `africa-do-sul` and `filmes` are no longer fed by any sync
+  // query but stay routable; the rest are retired (kept for existing News rows'
   // referential integrity, not routed to).
   // ========================
   const categories = await Promise.all([
@@ -20,7 +21,11 @@ async function main() {
     prisma.category.upsert({
       where: { slug: "desporto" },
       update: {},
-      create: { name: "Desporto", slug: "desporto", description: "Futebol mundial, Real Madrid e bastidores das equipas top de Portugal, Inglaterra e Espanha", color: "#39FF14", icon: "trophy" },
+      // Description kept in step with lib/ingestion/category-catalog.ts, which is
+      // the source of truth for every slug the categoriser can emit. This seed
+      // also carries retired slugs the catalog does not, so it cannot simply
+      // derive the whole list — but where they overlap they must not disagree.
+      create: { name: "Desporto", slug: "desporto", description: "Futebol de clubes — Premier League, Liga Portugal, LaLiga, Serie A, PSG e provas da UEFA", color: "#39FF14", icon: "trophy" },
     }),
     prisma.category.upsert({
       where: { slug: "mocambique" },
@@ -36,6 +41,11 @@ async function main() {
       where: { slug: "filmes" },
       update: {},
       create: { name: "Cinema & Séries", slug: "filmes", description: "Crítica e notícias de cinema e séries — Netflix, Prime Video, Marvel; ação, comédia e doramas", color: "#7c3aed", icon: "clapperboard" },
+    }),
+    prisma.category.upsert({
+      where: { slug: "celebridades" },
+      update: {},
+      create: { name: "Celebridades", slug: "celebridades", description: "Celebridades norte-americanas — música, cinema e cultura pop", color: "#FF2E88", icon: "star" },
     }),
     prisma.category.upsert({
       where: { slug: "cultura" },

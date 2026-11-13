@@ -157,6 +157,26 @@ model ArticleAI {
   lastError        String?  // last failure reason
   processedAt      DateTime? // set on successful AI enrichment
 
+  // NotiLab's own retelling of the story, written in our voice — what the
+  // public reads once the rewrite step exists. Separate from News.content on
+  // purpose: the source's literal text is the evidence any fabrication claim is
+  // checked against, and overwriting it would make the rewrite non-idempotent,
+  // breaking the convergent re-run the retry logic depends on. See
+  // docs/editor/ingestion-editorial-workflow.md § 2.2 and
+  // docs/manager/strategy/ingestion-editorial-gate.md § 2(a).
+  //
+  // Their own counters, not the enrichment ones above: a rewrite that fails
+  // must not look like a failed translation, and vice versa.
+  //
+  // Phase 2 of the editorial gate. NOTHING READS THESE YET, by design — the
+  // columns are pushed before any deployed code touches them, because the
+  // reverse order has production querying a column that does not exist.
+  titleRewritten   String?
+  contentRewritten String?
+  rewriteAttempts  Int      @default(0)
+  rewriteError     String?
+  rewrittenAt      DateTime?
+
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   

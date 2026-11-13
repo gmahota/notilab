@@ -121,3 +121,124 @@ Two decisions taken together, because the second is only safe to take once the f
 - **`NOTILAB_AGENT_CONFIRMATION_SECRET` must now be set.** With it unset the HMAC falls back to a constant, which was harmless while no policy fired and is not any more.
 - **Escape hatch, per client rather than global**: `"skipCriticalConfirmation": true` on a roster entry. Opt-out, so a client configured by someone who never considered confirmation gets the gate. Intended for an unattended internal pipeline whose operator has accepted the risk; exempting one client does not affect any other.
 - **Known breakage accepted**: any client already driving `/api/agent` or `/api/mcp` through those four tools needs the two-call flow before it can publish again. Three existing tests asserted the old single-call behaviour and were updated rather than the decision softened. Over MCP the token travels in `_meta["notilab/confirmationToken"]`, not in `arguments`, because every tool advertises `additionalProperties: false` and a strict client would drop an undeclared argument — this closes what `docs/mcp.md` previously listed as limitation 4.
+
+
+## 2026-11-12 — Editorial scope replaced: celebrities, club football, markets
+
+**Decision (maintainer).** Ingestion is repointed from the 2026-07-14 pivot scope
+(world football, Real Madrid, PT/EN/ES top-team backstage, Mozambique politics,
+South Africa xenophobia) plus the v1.1 film vertical, to three verticals: **US
+celebrities, club football in the English / Portuguese / Spanish / Italian top
+flights plus PSG, and financial markets.** **Politics is out, in all forms** — the
+Hormuz, Ukraine/Russia, Trump, Macron and Moçambique queries that held six of the
+ten `SYNC_QUERIES` slots were removed, not reordered.
+
+Implemented in `lib/ingestion/providers.ts`, `normalize.ts`, `quality.ts` and
+`prisma/seed.ts`. Editorial meaning ruled by `02-editorial-content` on 2026-11-13
+and recorded as **v2** in `docs/editor/content-focus.md`; the scope itself was the
+maintainer's call and was not re-litigated.
+
+**Why it is recorded here.** The change had been written and left uncommitted with
+no decision entry, no policy update and no roadmap row, which meant the
+categoriser, the seed and the policy each stated a different scope. The 2026-11-12
+date is also one of the two cut-over boundaries the eventual archive sweep needs
+(the other is 2026-07-14).
+
+**What was decided, so it is not re-proposed:**
+
+- **`celebridades` is a new row, not a repurposed `cultura`.** `cultura` carries
+  legacy arts/music articles; reuse would retroactively relabel them. Same
+  reasoning Addendum v1.1 used to mint `filmes`.
+- **`economia` is a revival, not a mint.** The slug was retired by v1 and the row
+  never went away. Financial markets are a strict *subset* of its persisted
+  meaning, so narrowing it mislabels no legacy article — unlike the
+  `cultura`→`filmes` case, where the new meaning was not a subset.
+- **The unfed rule blocks stay.** `mocambique`, `africa-do-sul` and `filmes` keep
+  their `CATEGORY_RULES` keywords with no query feeding them. The classifier
+  labels what arrives; `SYNC_QUERIES` plus the policy state what we cover.
+  Removing a rule converts a genuinely on-topic stray into a silent `general`
+  mislabel — the bug roadmap #15 closed once already.
+- **A `Category` row is never deleted.** Deletion orphans `News.categoryId` and
+  destroys the provenance trail, and `model Category` has no soft-delete field.
+- **v1 § G survives verbatim.** It governs *handling* of Mozambique and South
+  Africa content, not whether we seek it, and it still binds strays, the published
+  legacy corpus, the rewrite step's § 2.4 test cases, and invariant #12. v2 adds
+  § G.5: a stray in those categories defaults to *do not advance*, archived by
+  age-out, and publishing one is an explicit SUPERVISOR exception — never
+  `REJECTED`, which is terminal.
+- **The orphaned corpus is deferred, not swept.** Do not mass-unpublish, do not
+  backfill, cut over by date — unchanged from the ingestion-gate strategy. Roadmap
+  #18's scope definition widens to v2 so the sweep runs **once** against one
+  definition rather than archiving the July batch and silently leaving the
+  Jul→Nov politics batch.
+- **The "~142 out-of-scope articles" figure is not carried forward.** It does not
+  reconcile with Phase 0's measured 72 rows / 70 PUBLISHED. Re-measure with
+  `pnpm editorial:measure` before sizing the sweep.
+
+**Two new liability profiles, and they are not football's.** `celebridades` is the
+first vertical whose subjects are named living individuals, so the failure mode
+moves from fabrication to defamation and privacy harm — and it is worse than
+under v1 because the planned rewrite step publishes in NotiLab's own voice rather
+than as attributed republication. `economia` is the first vertical a reader can
+*act* on, so a fabricated figure or an advice-shaped sentence is actionable rather
+than merely wrong. Both got concrete never-publish checklists in
+`content-focus.md` § H.1 / § H.2, written to be checkable at review rather than
+aspirational. Two items were ruled explicitly out of the editorial lane and left
+for the maintainer: the wording and jurisdiction of an `economia`
+not-investment-advice disclosure, and explicit owner acceptance of the
+`celebridades` defamation posture.
+
+**Taxonomy parity is now mechanical, not a convention.** `CATEGORY_SLUGS` is
+derived from `CATEGORY_RULES` in `lib/ingestion/normalize.ts`, and
+`scripts/db/ensure-categories.ts` refuses to write at all when
+`lib/ingestion/category-catalog.ts` has no row for a slug the categoriser can
+emit. The previous arrangement was a docblock asking the next person to keep two
+lists in step, and it had already drifted by three slugs. Verified read-only on
+2026-11-13: all seven routable categories already exist in the shared Neon
+instance, so the pivot needed no production write.
+
+**Known gap, left open deliberately:** `desporto` is evaluated before
+`celebridades` and carries bare `"football"`/`"soccer"`, so an NFL story about
+Travis Kelce is labelled European club football. American football is in scope in
+no category. The fix is a rule reordering or a narrowing of `desporto`'s bare
+keywords — a taxonomy decision, not a cleanup, so it was reported rather than
+taken. See `content-focus.md` § I-v2 item 8.
+
+## 2026-11-13 — Removing the `/api/user` IDOR instead of gating it
+
+Context: the repository is **public** (`gmahota/notilab`). The owner's standing rule is that a
+public project makes every weakness in it a published one, so the threat model for an unguarded
+route is "already documented for the attacker", not "might eventually be found".
+
+- **Decision**: `GET/PUT /api/user`, `POST /api/user/save` and `POST /api/user/react` are
+  **deleted**, not migrated to a session and not stubbed behind a 410. All three took `userId`
+  straight from the client, and `GET /api/user?userId=<id>` returned that user's **email**,
+  profile, 50 rows of read history and every reaction — unauthenticated, against the live Neon
+  database. Deletion was available because all three had **zero callers**: `lib/user-service.ts`
+  was their only client and nothing imported it.
+- **Why deletion rather than a session check**: the session does not exist yet. Roadmap #41/#42
+  (Auth.js adapter + `getSession`/`requireUser`) are blocked behind #40a migration delivery, and
+  the 2026-09-04 identity-mission entry already rejects shipping a login flow that depends on
+  tables production lacks.
+  Writing a bespoke identity check for three dead endpoints would have invented a second auth
+  model that #42 would then have to unpick — precisely what `CLAUDE.md` forbids implementation
+  agents from doing.
+- **This is not the half-migration this log warns against.** The earlier entry — "ships one
+  endpoint per PR rather than gradually, a half-migrated endpoint is indistinguishable from the
+  vulnerability" — is about endpoints left partly trusting client input. Removal leaves no path
+  at all, so there is nothing to half-trust. Roadmap #44's security AC (`GET /api/user?userId=`
+  no longer returns another user's data) is met now; its constructive half (`/api/me` on the
+  session) is untouched and still owed.
+- **Deliberately left live and still vulnerable**: `app/api/growth/streak` takes a client
+  `userId` too, but `components/streak-badge.tsx:50` actually consumes it. Deleting it would
+  break a shipped feature to close a far smaller hole — streak counters, no PII. It waits for
+  #44. Recorded here so the reduced scope of #50 is not mistaken for the whole of it.
+- **Supersedes** the 2026-09-04 note that deleting `lib/user-service.ts` is "a separate change":
+  it was the only caller of the routes being removed, so it could not survive them. Its sibling
+  `lib/social-service.ts` is still dead and still present (#51).
+- **Validated in session**: `pnpm typecheck` clean (after `rm -rf .next` — the stale generated
+  route types under `.next/types/` still referenced the deleted files and fail the first run),
+  `pnpm lint` 0 errors with warnings down 76 → 67, `pnpm test` 427/430 — the 3 failures are the
+  pre-existing MCP auth specs noted in roadmap #65, and `lib/mcp/**` was not touched.
+- **Reversible**: the four files are recoverable from git history if #44 wants them as a starting
+  shape, though `/api/me` is the agreed target and `user-service.ts` is explicitly not its model.
