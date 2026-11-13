@@ -70,7 +70,7 @@ Revisit only if the CMS genuinely needs raw items excluded from the "Rascunho" c
 
 Two independent reasons, both load-bearing:
 
-1. **Voice.** NotiLab publishes in Portuguese in its own register. `lib/ai-processing/` only *enriches* (`summary`, `tldr`, `whyItMatters`, `explainLikeIm10`, `titleTranslated`) — it has never rewritten the body.
+1. **Voice.** NotiLab publishes in **Mozambican Portuguese**, following the ***acordo ortográfico*** (owner's decisions, 2026-11-13), in its own register — defined in `docs/editor/writing-style.md`, whose remaining proposals still await the owner's correction. Both must be stated explicitly in the rewrite prompt: left implicit, the output follows the sources, which are mostly European Portuguese and inconsistent about the spelling. Neither applies to quotes or to `News.content`. `lib/ai-processing/` only *enriches* (`summary`, `tldr`, `whyItMatters`, `explainLikeIm10`, `titleTranslated`) — it has never rewritten the body.
 2. **Rights.** Publishing a source's full literal text is republication. Our own retelling, attributed and linked, is journalism. The rewrite is what makes publication defensible.
 
 The rewrite is a *rendering* of the source, in exactly the sense `ArticleAI` already means. It is not a new article and it is not an opinion.
