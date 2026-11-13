@@ -18,6 +18,7 @@ import { applyQualityGate } from "../lib/ingestion/quality"
 import { normalizeArticles } from "../lib/ingestion/normalize"
 import { applyImageRights } from "../lib/ingestion/image-rights"
 import { titleFingerprint } from "../lib/ingestion/deduplicate"
+import { clusterByStory, multiSourceClusters, storySimilarity, DEFAULT_THRESHOLD } from "../lib/ingestion/cluster"
 
 async function main() {
   const errors: string[] = []
@@ -74,5 +75,51 @@ async function main() {
   console.log(`\n── WHAT WOULD BE INCLUDED ──`)
   unique.slice(0, 30).forEach((a, i) => console.log(
     `${String(i + 1).padStart(2)}. [${a.publishedAt.toISOString().slice(0, 10)}] ${a.title.slice(0, 74)}\n    ${a.sourceName}`))
+
+  // Deliberately run on the pre-dedup set: dedup throws away the second and
+  // third outlet on a story, which is exactly what a writing step would want
+  // to read. Nothing here changes ingestion — see lib/ingestion/cluster.ts.
+  if (process.argv.includes("--clusters")) {
+    const flagIndex = process.argv.indexOf("--threshold")
+    const threshold = flagIndex === -1 ? DEFAULT_THRESHOLD : Number(process.argv[flagIndex + 1])
+
+    const clusters = clusterByStory(images.articles, { threshold })
+    const multi = multiSourceClusters(clusters)
+
+    console.log(`\n── STORY CLUSTERS (threshold ${threshold}) ──`)
+    console.log(
+      `${images.articles.length} articles → ${clusters.length} stories; ` +
+      `${multi.length} covered by more than one outlet`,
+    )
+    console.log(`dedup would discard ${images.articles.length - clusters.length} of these as duplicates`)
+
+    for (const cluster of multi.sort((a, b) => b.sources.length - a.sources.length).slice(0, 12)) {
+      console.log(`\n  [${cluster.sources.length} outlets] ${cluster.anchor.title.slice(0, 68)}`)
+      console.log(`      ${cluster.sources.join(" · ")}`)
+      for (const member of cluster.members.slice(1)) {
+        console.log(`      └ ${member.title.slice(0, 66)}`)
+      }
+    }
+
+    // Without this, a run that groups nothing says only "nothing grouped" —
+    // which cannot distinguish "the threshold is slightly high" from "these
+    // articles have nothing to do with each other". The scores say which.
+    const pairs: Array<{ score: number; a: string; b: string }> = []
+    for (let i = 0; i < images.articles.length; i++) {
+      for (let j = i + 1; j < images.articles.length; j++) {
+        pairs.push({
+          score: storySimilarity(images.articles[i], images.articles[j]),
+          a: images.articles[i].title,
+          b: images.articles[j].title,
+        })
+      }
+    }
+
+    console.log(`\n  closest pairs, whatever the threshold:`)
+    for (const pair of pairs.sort((x, y) => y.score - x.score).slice(0, 8)) {
+      console.log(`    ${pair.score.toFixed(2)}  ${pair.a.slice(0, 58)}`)
+      console.log(`          ${pair.b.slice(0, 58)}`)
+    }
+  }
 }
 main().catch(e => { console.error(e); process.exit(1) })
