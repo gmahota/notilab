@@ -14,6 +14,7 @@
     "db:reset": "prisma db push --force-reset && npm run db:seed",
     "setup": "chmod +x scripts/setup.sh && ./scripts/setup.sh",
     "check": "tsx scripts/health-check.ts",
+    "archive-out-of-scope": "tsx scripts/archive-out-of-scope-content.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {
