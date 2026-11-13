@@ -1,0 +1,2 @@
+- [Worktrees break lint and test](worktree-breaks-lint-and-test.md) — in `.claude/worktrees/*`, `pnpm lint` and `pnpm test` fail environmentally; workarounds + the two lint baselines.
+- [Admin auth deploy prerequisites](admin-auth-deploy-prerequisites.md) — JWT_SECRET must be set and an admin provisioned before the auth hardening ships, or total lockout.
