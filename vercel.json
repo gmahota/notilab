@@ -5,6 +5,10 @@
       "schedule": "0 20 * * *"
     },
     {
+      "path": "/api/cron/rewrite-articles",
+      "schedule": "0 21 * * *"
+    },
+    {
       "path": "/api/cron/process-ai-news",
       "schedule": "0 22 * * *"
     },
