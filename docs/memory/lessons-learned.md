@@ -2,6 +2,15 @@
 
 Append-only. If something here is superseded, say so explicitly — don't delete the entry.
 
+## 2026-11-12 — The feed froze for seven days and nothing said so
+
+`CRON_SECRET` went missing from the Vercel production environment some time around 2026-11-05. Every route under `app/api/cron/*` refuses without it, so all six scheduled jobs stopped at once: no ingestion, no AI enrichment, no ranking recalculation, no digests, no messaging. The newest article stayed at 2026-11-05T14:23Z for a week. Confirmed from outside with an unauthenticated `GET /api/cron/sync-news`, which answered `500 {"error":"Server misconfiguration: CRON_SECRET not set"}`.
+
+- **The pipeline was never the suspect it looked like.** `pnpm ingest:dry-run` returned 98 articles with zero provider errors and 25 passing the quality gate, which ruled out keys, quotas and the providers in one command. When the feed stops, ask the deployment whether the job *ran* before investigating what the job *does*.
+- **Nothing in the repository could have caught it.** `pnpm check` validates `DATABASE_URL` only, and runs locally against whatever `.env` the operator has — never against production. A cron that returns 500 once a day produces no alert, no failed build and no notification. Added `pnpm cron:smoke` (`scripts/cron/smoke-test.ts`) and `.github/workflows/cron-health.yml`, which runs it daily at 09:00 UTC, two hours after the last cron has had its turn.
+- **The seven cron routes disagree about how to fail, which cost detection.** `sync-news` and `publish-scheduled` return a 500 naming the missing variable; the other five fold "secret not configured" and "caller unauthorized" into one 401 (`!process.env.CRON_SECRET || authHeader !== expected`). From outside, those five look identical whether the secret is set or absent, so the smoke test can only detect a missing secret through the two explicit ones. Unifying them on the explicit guard would make every probe mean one thing — not done here, deliberately, because it changes seven route handlers and deserves its own review.
+- **Status-code vocabulary is an observability decision, not a style choice.** The two routes that distinguished the failures are the reason this was diagnosable from outside in a single request.
+
 ## 2026-07-13 — Quality gate RED→GREEN: root causes and fixes
 
 Follow-up to the "Quality gate verification found the build currently broken" entry below — all five points there are now resolved; `pnpm lint` / `pnpm typecheck` / `pnpm build` pass. What actually fixed each:
@@ -38,6 +47,17 @@ Lesson: dependency bumps (via Dependabot or otherwise) that change a tool's CLI 
 ## 2026-09-04 — Scanning for Portuguese leftovers: word lists and accent grep both under-count
 
 Part of the language-convention sweep (roadmap #23–#32). Three successive scans of the same codebase found increasing numbers of violations: a Portuguese *word list* grep found 1 comment, an accent-character grep found 14, and a third manual pass found 3 more — including two in `prisma/schema.prisma`. Unaccented Portuguese (e.g. `// Implementar uso do template`, `buscados:`, `PORTA DE QUALIDADE`) is structurally invisible to a diacritic-based grep, and a word list only ever finds words someone thought to include. The reliable method is to **enumerate every comment/string and read it**, not to grep for suspicion — a targeted grep is a fine first pass but cannot be the last one. A half-translated file is worse than an untranslated one: one operator-facing script ended up with mixed-language output in a single report because its scope was set from the accent-grep pass alone.
+
+## 2026-11-05 — The feed had five ranking dimensions and was ordering on one
+
+Reported as "the system is not choosing the main story of the day". It was: the lead slot was simply the most recently published article, and the only reason it looked like a ranking was that the scores differed in the second decimal.
+
+Checked against production data, four of the five dimensions were constant across every article in the feed window: `TrendingTopic` is empty, so `trendBoost` was 0 for all 46 published articles (25–30 % of the formula contributing nothing); `rankArticles()` is called with no `sourceScores`, so `sourceTrust` was the 50 fallback for all; `importanceScore` falls back to 50 when both the AI and ingestion scores are 0, which they were; and `userAffinity` returns 50 for anonymous visitors. The composite reduced to `recency × 0.30 + 22.5`, and the top two stories were 0.46 points apart — the 32 minutes between them.
+
+Two lessons, and the second is the one worth keeping:
+
+1. A weighted formula silently degenerates to whichever dimension still varies. The weights all summed to 1.0, the tests all passed, every dimension was implemented correctly — and the feed was still a `publishedAt DESC` sort. Weight profiles are not evidence that a signal is live; only data is. A ranking change should be validated against real rows, not only against fixtures.
+2. `News.priority` — the "destaque" flag — was wired end to end through the CMS editor, the editorial service, the agent tool and the MCP tool description, and was read by *nothing* in `lib/ranking.ts`. An editor could set it, see it saved, see the badge in the admin list, and have zero effect on the public feed. A control that writes a value nobody reads is worse than a missing control: it spends the operator's trust and gives nothing back. When adding a field that exists to influence behaviour, land the consumer in the same change as the producer.
 
 ## Reference project note
 

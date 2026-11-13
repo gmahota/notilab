@@ -19,7 +19,7 @@
  * from stdin. It is never printed, logged, or echoed back.
  */
 
-import { PrismaClient, UserRole } from "@prisma/client"
+import { PrismaClient, UserRole } from "../../lib/generated/prisma"
 import { createInterface } from "node:readline"
 import { hashAdminPassword, BCRYPT_COST, MIN_ADMIN_PASSWORD_LENGTH } from "../../lib/admin-password"
 

@@ -1,6 +1,27 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
+/** Longest address RFC 5321 allows on the wire. */
+const MAX_EMAIL_LENGTH = 254
+
+/**
+ * Deliberately permissive, and deliberately not a regular expression.
+ * The previous check, two unbounded character classes either side of a literal
+ * dot, backtracks for a long time on a crafted address — on a route anyone can
+ * POST to. The same shape checked by hand is linear: a length cap, no
+ * whitespace, exactly one "@", and a dot inside the domain. Whether the address
+ * actually exists is decided by the digest send, not here.
+ */
+function isPlausibleEmail(value: string): boolean {
+  if (value.length === 0 || value.length > MAX_EMAIL_LENGTH) return false
+  if (/\s/.test(value)) return false
+  const at = value.indexOf("@")
+  if (at <= 0 || at !== value.lastIndexOf("@")) return false
+  const domain = value.slice(at + 1)
+  const dot = domain.indexOf(".")
+  return dot > 0 && dot < domain.length - 1
+}
+
 export async function POST(request: Request) {
   try {
     const { email, frequency, categories } = await request.json()
@@ -9,9 +30,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Email is required" }, { status: 400 })
     }
 
-    // Basic email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(email)) {
+    if (!isPlausibleEmail(email)) {
       return NextResponse.json({ error: "Invalid email format" }, { status: 400 })
     }
 

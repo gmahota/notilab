@@ -24,12 +24,18 @@
  */
 
 import { randomUUID } from "node:crypto"
+import { safeLogToken } from "../log-safe"
 import { AgentError, isAgentError } from "./errors"
 import { assertPermissions, type AgentIdentity } from "./auth"
 import { consumeRateLimit, type RateDecision } from "./rate-limit"
 import { getTool, listToolNames } from "./registry"
 import { parseInput } from "./schema"
-import { recordAgentAction, type AgentTransport, type FieldChange } from "./audit"
+import {
+  recordAgentAction,
+  type AgentTransport,
+  type ConfirmationAudit,
+  type FieldChange,
+} from "./audit"
 import {
   claimIdempotencyKey,
   completeIdempotencyKey,
@@ -53,6 +59,15 @@ export type { AgentTransport }
  */
 const RESERVED_ARGUMENT_KEYS = new Set(["confirmationToken"])
 
+/**
+ * Argument names that must never be copied onto an object by assignment.
+ * A caller who sends `{"__proto__": {"isAdmin": true}}` is not naming a tool
+ * argument — they are trying to reach the prototype every later object in this
+ * request inherits from. Dropped rather than rejected: the schema below will
+ * fail the call anyway if the tool actually wanted that field.
+ */
+const PROTOTYPE_KEYS = new Set(["__proto__", "constructor", "prototype"])
+
 export interface ToolCallRequest {
   toolName: string
   /** Untrusted argument object exactly as the caller sent it. Never trusted. */
@@ -68,6 +83,18 @@ export interface ToolCallRequest {
   now?: Date
   /** Supplied by the caller for correlation; generated when absent. */
   requestId?: string
+  /**
+   * The token from a previous CONFIRMATION_REQUIRED answer, when the transport
+   * carries it out of band.
+   *
+   * HTTP does not need this — the Agent API takes `confirmationToken` inside the
+   * body, which the reserved-key strip below handles. MCP does: every tool's
+   * advertised `inputSchema` sets `additionalProperties: false`, so a strict
+   * client drops any argument that is not a declared field, and the token would
+   * never arrive. MCP therefore reads it from `_meta` and passes it here. See
+   * lib/mcp/server.ts.
+   */
+  confirmationToken?: string
 }
 
 export interface ToolCallMeta {
@@ -111,6 +138,7 @@ export async function executeToolCall(request: ToolCallRequest): Promise<ToolCal
   let idempotencyRecordId: string | null = null
   let idempotencyKey: string | undefined
   let rate: RateDecision | undefined
+  let confirmationAudit: ConfirmationAudit | undefined
 
   const meta = (extra: Partial<ToolCallMeta> = {}): ToolCallMeta => ({
     requestId,
@@ -144,6 +172,7 @@ export async function executeToolCall(request: ToolCallRequest): Promise<ToolCal
       errorCode: error.code,
       errorMessage: error.message,
       idempotencyKey,
+      confirmation: confirmationAudit,
     })
   }
 
@@ -154,7 +183,7 @@ export async function executeToolCall(request: ToolCallRequest): Promise<ToolCal
       // Not audited to the database on purpose: writing a row per throttled
       // request would amplify exactly the load being throttled.
       console.warn(
-        `[agent/execute] rate limit hit by agent:${identity.id} on ${toolName} via ${transport}`,
+        `[agent/execute] rate limit hit by agent:${identity.id} on ${safeLogToken(toolName)} via ${transport}`,
       )
       throw new AgentError(
         "RATE_LIMITED",
@@ -181,14 +210,17 @@ export async function executeToolCall(request: ToolCallRequest): Promise<ToolCal
     assertPermissions(identity, tool.permissions)
 
     // ── Is the request well-formed ───────────────────────────────────────────
-    let presentedConfirmation: string | undefined
+    let presentedConfirmation: string | undefined = request.confirmationToken?.trim() || undefined
     let toolArgs: unknown = request.args
 
     if (typeof request.args === "object" && request.args !== null && !Array.isArray(request.args)) {
       const stripped: Record<string, unknown> = {}
       for (const [key, value] of Object.entries(request.args as Record<string, unknown>)) {
+        if (PROTOTYPE_KEYS.has(key)) continue
         if (RESERVED_ARGUMENT_KEYS.has(key)) {
-          if (key === "confirmationToken" && typeof value === "string") {
+          // An out-of-band token wins: a transport that had to route the token
+          // around the schema knows better than an argument of the same name.
+          if (key === "confirmationToken" && typeof value === "string" && !presentedConfirmation) {
             presentedConfirmation = value
           }
           continue
@@ -207,12 +239,19 @@ export async function executeToolCall(request: ToolCallRequest): Promise<ToolCal
     validatedInput = parsed.value as Record<string, unknown>
 
     // ── Does a human need to say yes ─────────────────────────────────────────
-    const decision = tool.confirmation?.(parsed.value) ?? { required: false }
+    // The policy sees the calling identity so a credential an operator has
+    // deliberately exempted can pass — see AgentIdentity.skipCriticalConfirmation.
+    const decision = tool.confirmation?.(parsed.value, { agent: identity }) ?? { required: false }
     if (decision.required) {
       const expected = confirmationTokenFor(identity.id, tool.name, parsed.value)
       const approved =
         presentedConfirmation !== undefined &&
         confirmationTokenMatches(expected, presentedConfirmation)
+
+      // Recorded either way. "This agent was asked to confirm and did" and "this
+      // agent was refused for lack of a token" are both things an operator
+      // reviewing a publish needs to be able to see.
+      confirmationAudit = { required: true, satisfied: approved }
 
       if (!approved) {
         const error = new AgentError(
@@ -275,6 +314,7 @@ export async function executeToolCall(request: ToolCallRequest): Promise<ToolCal
         input: parsed.value,
         changes: result.audit?.changes as Record<string, FieldChange> | undefined,
         idempotencyKey,
+        confirmation: confirmationAudit,
       })
     }
 
@@ -307,7 +347,7 @@ export async function executeToolCall(request: ToolCallRequest): Promise<ToolCal
 
     // Anything unplanned: full detail to the server log, nothing to the caller.
     console.error(
-      `[agent/execute] Unhandled error on ${toolName} (request ${requestId}, ${transport})`,
+      `[agent/execute] Unhandled error on ${safeLogToken(toolName)} (request ${requestId}, ${transport})`,
       err,
     )
     const wrapped = new AgentError("INTERNAL_ERROR", "The request could not be completed.")
