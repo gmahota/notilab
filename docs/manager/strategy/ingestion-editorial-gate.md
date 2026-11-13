@@ -137,7 +137,40 @@ Add `imageStatus`/`imageCheckedAt` **only** if the newsroom needs to re-evaluate
 | 6 | Publication-window fix: digest / messaging / feed select on publication time rather than source `publishedAt`. | 04-backend-api, 02-editorial-content sign-off | 5 (see caveat) |
 | 7 | `docs/memory/decisions.md` entry; `architecture.md` ingestion flow; note in `business-rules.md` that the lifecycle invariant is now enforced rather than aspirational. | 10-docs-memory | 5 |
 
-**Caveat on Phase 6 ordering:** if Phase 0 shows that review latency will routinely exceed 24 hours — which it will if review happens in working hours and ingestion runs at 20:00 — **Phase 6 becomes a prerequisite of Phase 5, not a follow-up.** Decide this with the Phase 0 numbers in hand.
+**Caveat on Phase 6 ordering:** if Phase 0 shows that review latency will routinely exceed 24 hours — which it will if review happens in working hours and ingestion runs at 20:00 — **Phase 6 becomes a prerequisite of Phase 5, not a follow-up.** Decide this with the Phase 0 numbers in hand. **Settled below: it does.**
+
+## Phase 0 — results (measured 2026-11-12)
+
+Run with `pnpm editorial:measure` (`scripts/editorial/measure-review-capacity.ts`), read-only. Re-run it before sizing anything; the sample below rests on three active days.
+
+| | |
+|---|---|
+| Corpus | 72 rows — 70 PUBLISHED, 2 ARCHIVED |
+| Intake, last 30d | 46 articles across **3 active days** (04-11, 05-11, 12-11) |
+| Intake per active day | **15.3** (the per-calendar-day figure, 1.5, is meaningless — the crons were dead 05-11 → 12-11) |
+| Median age at ingestion | **14.5h** |
+| `ArticleAI` unprocessed | 36, **0 failed**, median age 0.2h |
+| News rows with no `ArticleAI` row | 6 |
+| Reviewer rate to hold the queue flat | **16 articles/day** |
+
+### The Phase 6 ordering question is settled: it becomes a prerequisite of Phase 5
+
+`publishedAt` is the source's date, so an article is already a median **14.5h old when it lands**. The digest window is 24h from `publishedAt`, leaving 9.5h — but the real deadline is tighter, because `generate-digest` runs at 02:00 and ingestion at 20:00. **An article must be approved within the six hours between 20:00 and 02:00, all of them overnight.** Review in working hours misses every daily digest, every day. 7% of articles are already outside the window on arrival.
+
+So Phase 6 ships before Phase 5, or the gate silently kills the digest on day one.
+
+### Capacity has no headroom
+
+Intake runs at 15.3/active day against the 15/day enrichment ceiling assumed in R3 — a net **+0.3/day**. Any increase in `SYNC_QUERIES` or loosening of the quality gate makes the queue grow without a reviewer touching it.
+
+### `NewsSource.priority` cannot order the review queue — nothing is linked to it
+
+`02-editorial-content` rejected a source-trust publication exemption and proposed instead that `priority` order the REVISOR's queue. Measurement says that is not buildable today:
+
+- **All 72 news rows have `sourceId = null`.** All three `NewsSource` rows report 0 articles.
+- The three configured rows are **providers** (`GNews`, `NewsAPI`, `NotiLab Internal`), not outlets. Articles carry 18 distinct `sourceName` values — `A Bola`, `Record`, `Reuters`, `Euronews`. Even linked, `priority` would score the provider, not the publication.
+
+This is also a standing violation of `docs/memory/business-rules.md` § Provenance (`sourceId` "must always be preserved — this is the provenance trail"). Linking ingestion to `NewsSource`, and deciding whether those rows model providers or outlets, is prerequisite work for any priority-ordered queue in Phase 4. Owner: `05-database` with `02-editorial-content` on the modelling question.
 
 **What validates each phase:**
 
