@@ -40,6 +40,7 @@ import jwt from "jsonwebtoken"
 // Prisma client into all six admin server components just to read an enum;
 // `import type` disappears at compile time and costs nothing.
 import type { UserRole } from "@/lib/generated/prisma"
+import { isStaffRole } from "@/lib/auth/tiers"
 
 /**
  * Shortest secret this module will accept. A short HMAC secret is brute-forcible
@@ -63,27 +64,21 @@ const TOKEN_ALGORITHM = "HS256" as const
 const TOKEN_TTL = "8h"
 
 /**
- * Which roles may reach the admin console at all.
+ * Which roles may reach the admin console: the `staff` tier of
+ * `lib/auth/tiers.ts`, which is now the single place that answers it.
  *
- * Typed as `Record<UserRole, boolean>` rather than as a list of admin roles so
- * that adding a member to the Prisma `UserRole` enum breaks `pnpm typecheck`
- * here until someone decides, explicitly, whether the new role is
- * administrative. A `readonly UserRole[]` would silently default that answer to
- * "no", and a `satisfies` clause would not complain about the omission at all.
+ * The matrix used to live here as a local `Record<UserRole, boolean>`. It moved
+ * because the reader session needs the same answer, and a second copy beside a
+ * second consumer is a copy that eventually disagrees — the exact argument the
+ * comment on `isAdminRole` already makes about the login route. The properties
+ * that mattered are unchanged: it is still a total `Record` over the Prisma
+ * enum, so adding a role still fails `pnpm typecheck` until somebody decides
+ * which tier it belongs to, and membership is still every role except `USER`.
  *
- * Membership is unchanged from the previous implementation: every role except
- * USER. Narrowing it is an editorial decision, not a security one.
+ * `import type` on `UserRole` is preserved for the reason given above, and
+ * `tiers.ts` keeps the same discipline — importing it costs these six server
+ * components nothing at runtime beyond one frozen object.
  */
-const ADMIN_ROLE: Record<UserRole, boolean> = {
-  USER: false,
-  REDATOR: true,
-  REVISOR: true,
-  SUPERVISOR: true,
-  MARKETING: true,
-  CRIADOR_CONTEUDO: true,
-  ADMIN: true,
-  SUPER_ADMIN: true,
-}
 
 export interface AdminUser {
   id: string
@@ -144,7 +139,7 @@ function isNonEmptyString(value: unknown): value is string {
  * eventually disagree with this one.
  */
 export function isAdminRole(value: unknown): value is UserRole {
-  return typeof value === "string" && ADMIN_ROLE[value as UserRole] === true
+  return typeof value === "string" && isStaffRole(value as UserRole)
 }
 
 /**
@@ -178,13 +173,13 @@ function toAdminUser(payload: unknown): AdminUser | null {
 /**
  * True when `user` holds one of `allowed`.
  *
- * `ADMIN_ROLE` is re-checked so that naming a non-administrative role in
+ * The staff tier is re-checked so that naming a non-administrative role in
  * `allowed` cannot grant anything: a caller that writes `["USER"]`, by accident
  * or by copy-paste, gets false rather than a session.
  */
 export function hasAdminRole(user: AdminUser | null, allowed: readonly UserRole[]): boolean {
   if (!user) return false
-  return allowed.includes(user.role) && ADMIN_ROLE[user.role] === true
+  return allowed.includes(user.role) && isStaffRole(user.role)
 }
 
 /**
