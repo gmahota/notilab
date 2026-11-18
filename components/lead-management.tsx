@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Users, Mail, Phone, Calendar, TrendingUp, Filter, Download, UserPlus } from "lucide-react"
 
 export function LeadManagement() {
-  const [leads, setLeads] = useState([
+  const [leads] = useState([
     {
       id: 1,
       name: "João Silva",

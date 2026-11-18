@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import type { AdminUser } from "@/lib/admin-auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -15,10 +16,10 @@ import { AITemplates } from "./ai-templates"
 import { Sparkles, Search, TrendingUp, FileText, Zap, Brain, Target, RefreshCw, Download, Send } from "lucide-react"
 
 interface AINewsGeneratorProps {
-  user: any
+  user: AdminUser
 }
 
-export function AINewsGenerator({ user }: AINewsGeneratorProps) {
+export function AINewsGenerator(_props: AINewsGeneratorProps) {
   const [activeTab, setActiveTab] = useState("generator")
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)

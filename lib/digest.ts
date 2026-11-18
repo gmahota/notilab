@@ -185,7 +185,7 @@ function buildArticleHTML(article: DigestArticle): string {
 export function buildDigestContent(
   articles: DigestArticle[],
   frequency: DigestFrequency,
-  periodStart: Date,
+  _periodStart: Date,
 ): DigestContent {
   const now = new Date()
   const dateLabel = now.toLocaleDateString("en-GB", {

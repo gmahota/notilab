@@ -24,7 +24,7 @@ import {
 
 export function SocialMediaManager() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
-  const [posts, setPosts] = useState([
+  const [posts] = useState([
     {
       id: 1,
       platform: "Twitter",

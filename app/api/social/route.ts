@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
 }
 
 async function handleSocialShare(request: NextRequest) {
-  const { platform, content, userId }: SocialShareRequest = await request.json()
+  const { platform, content }: SocialShareRequest = await request.json()
 
   // Mock social sharing - in production, integrate with actual APIs
   const shareData = {
@@ -90,7 +90,7 @@ async function handleSocialShare(request: NextRequest) {
 }
 
 async function handleNotification(request: NextRequest) {
-  const { type, title, message, channels, userId }: NotificationRequest = await request.json()
+  const { channels }: NotificationRequest = await request.json()
 
   // Mock notification sending
   const results = []

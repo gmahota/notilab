@@ -6,8 +6,18 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Zap, Copy, Edit, Star } from "lucide-react"
 
+interface AITemplate {
+  id: string
+  name: string
+  description: string
+  category: string
+  rating: number
+  uses: number
+  structure: Record<string, string>
+}
+
 export function AITemplates() {
-  const templates = [
+  const templates: AITemplate[] = [
     {
       id: "breaking-news",
       name: "Breaking News",
@@ -66,9 +76,9 @@ export function AITemplates() {
     },
   ]
 
-  const [selectedTemplate, setSelectedTemplate] = useState<any>(null)
+  const [selectedTemplate, setSelectedTemplate] = useState<AITemplate | null>(null)
 
-  const handleUseTemplate = (template: any) => {
+  const handleUseTemplate = (template: AITemplate) => {
     setSelectedTemplate(template)
     // TODO: implement template usage
     console.log("Using template:", template)

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import type { AdminUser } from "@/lib/admin-auth"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -12,7 +13,7 @@ import { WorkflowStats } from "./workflow-stats"
 import { GitBranch, Clock, CheckCircle, AlertTriangle, Users } from "lucide-react"
 
 interface WorkflowManagerProps {
-  user: any
+  user: AdminUser
 }
 
 export function WorkflowManager({ user }: WorkflowManagerProps) {

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import type { AdminUser } from "@/lib/admin-auth"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -14,7 +15,7 @@ import { LeadManagement } from "./lead-management"
 import { Megaphone, TrendingUp, Mail, Share2, Search, BarChart3, TestTube, Users } from "lucide-react"
 
 interface MarketingDashboardProps {
-  user: any
+  user: AdminUser
 }
 
 export function MarketingDashboard({ user }: MarketingDashboardProps) {

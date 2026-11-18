@@ -12,8 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Search, TrendingUp, Globe, CheckCircle, AlertCircle } from "lucide-react"
 
 export function SEOTools() {
-  const [seoScore, setSeoScore] = useState(78)
-  const [keywords, setKeywords] = useState(["notícias", "IA", "tecnologia", "política"])
+  const [seoScore] = useState(78)
+  const [keywords] = useState(["notícias", "IA", "tecnologia", "política"])
 
   return (
     <div className="space-y-6">
