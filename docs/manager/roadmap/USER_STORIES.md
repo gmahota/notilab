@@ -118,14 +118,25 @@ visitors included. There is no reader login.
 The code is already written and uncommitted. These stories make it legible and
 land it; they do not re-decide the scope.
 
-> **Status 2026-11-13: A1 and A2 done, A3 partial.** Tracked as roadmap #75–#77,
-> with the gaps they surfaced as #78–#83. The dry-run ran: the noise channel is
-> closed (0 rejections by shape, 0 by relevance) but **A3's volume criterion
-> fails** — 23 articles/run against a 16/day reviewable rate — and three
-> off-scope items cleared every gate from allowlisted outlets. Measurement:
-> `docs/manager/strategy/scope-v2-intake-measurement.md`. Everything below is
-> kept as written; the acceptance criteria are what the rows were validated
-> against.
+> **Status 2026-11-13: Epic A done.** Roadmap #75–#77 and #82, with the gaps they
+> surfaced open as #78–#81, #83 and #84. The noise channel is closed (0
+> rejections by shape, 0 by relevance across two runs) and intake was cut from 23
+> to 10 articles/run — under both the 16/day reviewable rate and the 15/day
+> enrichment ceiling — by dropping 3 of the 10 queries. Measurement, before and
+> after: `docs/manager/strategy/scope-v2-intake-measurement.md`.
+>
+> **Then the allowlist was widened (#84)** to un-dark the Premier League and US
+> markets queries, which had been keeping **zero** of the 10 each fetched. Both
+> now produce (markets 0→6, Premier League 0→1) — and intake went back to
+> **21/run**, over both ceilings, so #82 is open again. The widening also
+> imported two new problems: a metaphor ("the Taylor Swift of tech") that no gate
+> can reject (#85), and one source group at 38% of the feed (#86).
+>
+> **The honest state: coverage is fixed, volume is not, and the two trade off.**
+> Intake, scope and source mix are now one decision, not three.
+>
+> Everything below is kept as written; the acceptance criteria are what the rows
+> were validated against.
 
 ### A1 — Ratify the 2026-11-12 scope in the editorial policy
 **P0 · S · owner: `02-editorial-content`**

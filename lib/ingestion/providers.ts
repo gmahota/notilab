@@ -39,17 +39,34 @@ const NEWSAPI_BASE = "https://newsapi.org/v2"
 // link roundup and a crypto fan-token piece. Terms are matched accent-blind and
 // as substrings, so a short word like "inter" is spelled out ("inter milan") to
 // keep it from matching "international".
+//
+// Cut from 10 to 7 on 2026-11-13, by maintainer decision, because the measured
+// intake was 23 articles/run against the 16/day a reviewer can clear and the
+// 15/day enrichment ceiling (docs/manager/strategy/scope-v2-intake-measurement.md;
+// strategy R3(a): this list is the only lever that actually bounds the queue).
+// What went, and why that query and not another:
+//
+//   - The second celebrity query (Selena Gomez / Ariana Grande / Travis Kelce /
+//     Jennifer Lopez / Chalamet / Kylie Jenner). It returned a near-duplicate
+//     pair of the same Ariana Grande story from one outlet, and it carries
+//     "travis kelce", whose NFL coverage mis-routes to `desporto` (roadmap #78).
+//     Query 1 keeps the vertical fed.
+//   - PSG / Ligue 1. v2's scope says "plus PSG", but the query pulled the whole
+//     league: both items it contributed were Lens and Le Havre, neither PSG.
+//     A query that does not fetch what the scope names is the cheapest to drop.
+//   - Champions League / Europa League / UEFA. Redundant rather than off-scope —
+//     European ties arrive through the club queries already, which is how three
+//     Benfica European items came in while this query contributed almost nothing.
+//
+// This narrows COVERAGE, not scope: content-focus.md § A-v2 still names the
+// people and competitions above as in scope, and CATEGORY_RULES still routes
+// them. A stray still lands truthfully; we just no longer go looking.
 const SYNC_QUERIES: SyncQuery[] = [
   // ── US celebrities ────────────────────────────────────────────────────────
   {
     q: "\"Taylor Swift\" OR Beyoncé OR Rihanna OR \"Kim Kardashian\" OR \"Dwayne Johnson\" OR Zendaya",
     lang: "en",
     mustMatch: ["taylor swift", "beyonce", "rihanna", "kardashian", "dwayne johnson", "zendaya"],
-  },
-  {
-    q: "(\"Selena Gomez\" OR \"Ariana Grande\" OR \"Travis Kelce\" OR \"Jennifer Lopez\" OR \"Timothée Chalamet\" OR \"Kylie Jenner\") AND (Hollywood OR music OR film OR tour OR \"red carpet\")",
-    lang: "en",
-    mustMatch: ["selena gomez", "ariana grande", "travis kelce", "jennifer lopez", "timothee chalamet", "kylie jenner"],
   },
   // ── Club football ─────────────────────────────────────────────────────────
   {
@@ -60,7 +77,11 @@ const SYNC_QUERIES: SyncQuery[] = [
   {
     q: "Benfica OR \"FC Porto\" OR \"Sporting CP\"",
     lang: "pt",
-    mustMatch: ["benfica", "porto", "sporting"],
+    // Not bare "porto"/"sporting": the gate matches substrings, so "sporting
+    // director" and "sporting chance" passed, as did Porto the city and
+    // "oporto". Same fix as "inter" → "inter milan". "benfica" stays bare — it
+    // names nothing else.
+    mustMatch: ["benfica", "fc porto", "sporting cp"],
   },
   {
     q: "\"Real Madrid\" OR Barcelona OR \"Atlético Madrid\"",
@@ -71,16 +92,6 @@ const SYNC_QUERIES: SyncQuery[] = [
     q: "\"Serie A\" AND (Juventus OR Inter OR Milan OR Napoli OR Roma OR Lazio)",
     lang: "it",
     mustMatch: ["serie a", "juventus", "napoli", "milan", "lazio", "inter milan", "internazionale", "as roma"],
-  },
-  {
-    q: "\"Paris Saint-Germain\" OR PSG OR \"Ligue 1\"",
-    lang: "fr",
-    mustMatch: ["paris saint-germain", "psg", "ligue 1"],
-  },
-  {
-    q: "\"Champions League\" OR \"Europa League\" OR UEFA",
-    lang: "en",
-    mustMatch: ["champions league", "europa league", "uefa"],
   },
   // ── Financial markets ─────────────────────────────────────────────────────
   {

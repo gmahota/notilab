@@ -63,6 +63,34 @@ const ALLOWED_DOMAINS = [
   // Financial markets
   "cnbc.com", "wsj.com", "marketwatch.com", "barrons.com", "fortune.com",
   "jornaldenegocios.pt", "dinheirovivo.pt", "expansion.com",
+  // Added 2026-11-13 to un-dark two verticals: the Premier League and US-markets
+  // queries each fetched 10 articles per run and kept ZERO, because the allowlist
+  // removed their whole yield (roadmap #84,
+  // docs/manager/strategy/scope-v2-intake-measurement.md). Each line below says
+  // what the outlet is, because "grow it when a legitimate outlet is rejected"
+  // only works if the reason is auditable later.
+  //
+  // English club football — the two Reach plc regionals ARE what the query
+  // returns, and they run bylined, dedicated club desks. They are also the
+  // rumour-heaviest outlets here: transfer speculation is their staple. Admitted
+  // on the understanding that § H-style attribution rules and the review gate
+  // bind the content — not because the outlet is above suspicion.
+  "liverpoolecho.co.uk",          // Reach plc, Liverpool FC desk
+  "manchestereveningnews.co.uk",  // Reach plc, Man City / Man Utd desks
+  // Tier-1 English football desks absent from this list by oversight. Neither
+  // appeared in the 2026-11-13 yield, so neither fixes the dark vertical today;
+  // added because their rejection would be wrong whenever they do appear.
+  "telegraph.co.uk",
+  "standard.co.uk",               // Evening Standard, London football
+  // Markets. NOTE what this does and does not fix: the US-markets query's actual
+  // yield is Indian and Brazilian business press covering Wall Street, not US
+  // tier-1 press — cnbc/wsj/marketwatch/bloomberg/ft are already allowlisted and
+  // the provider is not returning them on the free tier. These two are genuine
+  // business dailies and § H.2 binds the content whatever the outlet's
+  // nationality, but this is SECOND-HAND coverage of US markets. If that is not
+  // wanted, the fix is the query, not the allowlist.
+  "economictimes.indiatimes.com", // The Economic Times, Indian business daily
+  "financialexpress.com",         // The Financial Express, Indian business daily
 ]
 
 /**
