@@ -27,44 +27,30 @@ import { prisma } from "@/lib/prisma"
 import { AgentError } from "@/lib/agent/errors"
 import { normalizeSlug, slugify } from "@/lib/slug"
 
+import {
+  ALLOWED_TRANSITIONS,
+  ARTICLE_PRIORITIES,
+  ARTICLE_STATUSES,
+  canTransition,
+  stageForStatus,
+  type ArticlePriority,
+  type ArticleStatus,
+} from "./transitions"
+
 // ── Domain vocabulary ───────────────────────────────────────────────────────
 
-export const ARTICLE_STATUSES = [
-  "DRAFT",
-  "PENDING_REVIEW",
-  "APPROVED",
-  "PUBLISHED",
-  "REJECTED",
-  "ARCHIVED",
-] as const
-export type ArticleStatus = (typeof ARTICLE_STATUSES)[number]
-
-export const ARTICLE_PRIORITIES = ["LOW", "NORMAL", "HIGH", "URGENT"] as const
-export type ArticlePriority = (typeof ARTICLE_PRIORITIES)[number]
-
-/**
- * Legal status moves. Read as: from → the set it may become.
- *
- * REJECTED and ARCHIVED have no outgoing edges. `business-rules.md` calls them
- * terminal, and that file outranks a task prompt (AGENTS.md § Authority Order),
- * so the Agent API cannot resurrect an article. The consequence — an agent
- * cannot undo its own archive — is real and is written up in
- * docs/agent-api.md § Limitations rather than quietly designed around.
- */
-const ALLOWED_TRANSITIONS: Record<ArticleStatus, readonly ArticleStatus[]> = {
-  DRAFT: ["PENDING_REVIEW", "REJECTED", "ARCHIVED"],
-  PENDING_REVIEW: ["APPROVED", "REJECTED", "DRAFT"],
-  APPROVED: ["PUBLISHED", "DRAFT", "REJECTED", "ARCHIVED"],
-  // Unpublishing returns an article to APPROVED, not to DRAFT: it was reviewed,
-  // and it stays republishable without a second trip through the workflow.
-  PUBLISHED: ["APPROVED", "ARCHIVED"],
-  REJECTED: [],
-  ARCHIVED: [],
+// The lifecycle vocabulary lives in ./transitions so that ./permissions can
+// read the transition table without importing this module. Re-exported here
+// because every existing caller imports these names from this file, and a
+// refactor that moves a symbol should not also move every import of it.
+export {
+  ALLOWED_TRANSITIONS,
+  ARTICLE_PRIORITIES,
+  ARTICLE_STATUSES,
+  canTransition,
+  stageForStatus,
 }
-
-export function canTransition(from: ArticleStatus, to: ArticleStatus): boolean {
-  return ALLOWED_TRANSITIONS[from]?.includes(to) ?? false
-}
+export type { ArticlePriority, ArticleStatus }
 
 // ── Read shapes ─────────────────────────────────────────────────────────────
 
