@@ -214,3 +214,130 @@ describe("applyQualityGate — gate order", () => {
     expect(report.rejected).toEqual({ source: 1, shape: 1, relevance: 1 })
   })
 })
+
+describe("source gate — hostname edge cases", () => {
+  it("rejects a sourceUrl that is not a URL at all", () => {
+    const report = applyQualityGate([article({ sourceUrl: "not a url" })])
+    expect(report.kept).toHaveLength(0)
+    expect(report.rejected.source).toBe(1)
+  })
+
+  it("falls back to the provider's display name when the URL has no hostname", () => {
+    // `hostOf` returns null here, and recording an empty string would make the
+    // rejected-domain log useless for the one job it has — tuning the allowlist.
+    const report = applyQualityGate([
+      article({ sourceUrl: "not a url", sourceName: "Some Blog" }),
+    ])
+    expect(report.rejectedSources).toEqual(["Some Blog"])
+  })
+
+  it("rejects a subdomain of a blocked host", () => {
+    const report = applyQualityGate([
+      article({ sourceUrl: "https://uk.dailymail.co.uk/story" }),
+    ])
+    expect(report.kept).toHaveLength(0)
+    expect(report.rejected.source).toBe(1)
+  })
+
+  it("reports no dropped hostnames when every source was accepted", () => {
+    expect(applyQualityGate([article()]).rejectedSources).toEqual([])
+  })
+})
+
+describe("shape gate — remaining title patterns", () => {
+  it.each([
+    "Live updates on the election results 2026",
+    "Weekend open thread",
+    "Trailer drops in 2160p",
+  ])("rejects %j", (title) => {
+    expect(applyQualityGate([article({ title })]).rejected.shape).toBe(1)
+  })
+
+  it("rejects a body one character short of the floor", () => {
+    const body = "y".repeat(199)
+    expect(
+      applyQualityGate([article({ content: body, description: body })]).rejected.shape,
+    ).toBe(1)
+  })
+
+  it("rejects a body that is long but only whitespace", () => {
+    // The floor is measured after trim(), or a provider padding with newlines
+    // would walk straight through the gate.
+    const body = " ".repeat(500)
+    expect(
+      applyQualityGate([article({ content: body, description: body })]).rejected.shape,
+    ).toBe(1)
+  })
+
+  it("measures the description when the provider sends no content", () => {
+    const report = applyQualityGate([
+      article({ content: "", description: `Match report. ${LEAD}` }),
+    ])
+    expect(report.kept).toHaveLength(1)
+  })
+})
+
+describe("relevance gate — which body the lead is read from", () => {
+  it("reads the description, not the content, when both are present", () => {
+    // Note the asymmetry with the shape gate, which measures `content ||
+    // description` while this one reads `description || content`. A term that
+    // appears only in the content does not make the article relevant.
+    expect(
+      isRelevant(
+        article({
+          title:       "Match report",
+          description: `Nothing relevant here. ${LEAD}`,
+          content:     `Arsenal won at Anfield. ${LEAD}`,
+          mustMatch:   ["arsenal"],
+        }),
+      ),
+    ).toBe(false)
+  })
+
+  it("falls back to the content when the description is empty", () => {
+    expect(
+      isRelevant(
+        article({
+          title:       "Match report",
+          description: "",
+          content:     `Arsenal won at Anfield. ${LEAD}`,
+          mustMatch:   ["arsenal"],
+        }),
+      ),
+    ).toBe(true)
+  })
+
+  it("accepts a term that ends just inside the 400-character lead", () => {
+    expect(
+      isRelevant(
+        article({
+          title:       "Council budget approved",
+          description: `${"z".repeat(390)} arsenal and more`,
+          mustMatch:   ["arsenal"],
+        }),
+      ),
+    ).toBe(true)
+  })
+
+  it("accepts when any one of several terms matches", () => {
+    expect(
+      isRelevant(
+        article({
+          title:       "Chelsea beat Spurs",
+          description: `Match report. ${LEAD}`,
+          mustMatch:   ["arsenal", "chelsea"],
+        }),
+      ),
+    ).toBe(true)
+  })
+})
+
+describe("applyQualityGate — empty batch", () => {
+  it("returns a zeroed report rather than throwing", () => {
+    expect(applyQualityGate([])).toEqual({
+      kept: [],
+      rejected: { source: 0, shape: 0, relevance: 0 },
+      rejectedSources: [],
+    })
+  })
+})
