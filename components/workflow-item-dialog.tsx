@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import type { AdminUser } from "@/lib/admin-auth"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
@@ -17,12 +18,24 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { WorkflowComments } from "./workflow-comments"
 import { CheckCircle, XCircle, ArrowRight, Clock, User, Calendar, MessageSquare } from "lucide-react"
 
+export interface WorkflowItem {
+  id: string
+  title: string
+  author: string
+  assignedTo?: string | null
+  priority: string
+  dueDate: string
+  category: string
+  comments: number
+  status?: string
+}
+
 interface WorkflowItemDialogProps {
-  item: any
+  item: WorkflowItem | null
   open: boolean
   onOpenChange: (open: boolean) => void
-  user: any
-  onUpdate: (item: any) => void
+  user: AdminUser
+  onUpdate: (item: WorkflowItem) => void
 }
 
 export function WorkflowItemDialog({ item, open, onOpenChange, user, onUpdate }: WorkflowItemDialogProps) {
@@ -60,7 +73,7 @@ export function WorkflowItemDialog({ item, open, onOpenChange, user, onUpdate }:
     }
   }
 
-  const getNextStatus = (currentStatus: string) => {
+  const getNextStatus = (currentStatus: string | undefined) => {
     const workflow = {
       DRAFT: "WRITING",
       WRITING: "REVIEW",
@@ -70,7 +83,7 @@ export function WorkflowItemDialog({ item, open, onOpenChange, user, onUpdate }:
     return workflow[currentStatus as keyof typeof workflow]
   }
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string | undefined) => {
     const colors = {
       DRAFT: "bg-gray-600",
       WRITING: "bg-blue-600",

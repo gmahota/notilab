@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import type { AdminUser } from "@/lib/admin-auth"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -9,10 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Search, Clock, CheckCircle, XCircle, ArrowRight } from "lucide-react"
 
 interface WorkflowHistoryProps {
-  user: any
+  user: AdminUser
 }
 
-export function WorkflowHistory({ user }: WorkflowHistoryProps) {
+export function WorkflowHistory(_props: WorkflowHistoryProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [filterAction, setFilterAction] = useState("all")
 
@@ -141,7 +142,7 @@ export function WorkflowHistory({ user }: WorkflowHistoryProps) {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {filteredHistory.map((item, index) => (
+            {filteredHistory.map((item) => (
               <div key={item.id} className="flex items-start space-x-4 pb-4 border-b border-gray-800 last:border-b-0">
                 <div className="flex-shrink-0">
                   <div className="w-8 h-8 rounded-full bg-gray-800 flex items-center justify-center">

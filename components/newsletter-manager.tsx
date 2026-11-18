@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import type { AdminUser } from "@/lib/admin-auth"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -8,10 +9,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Mail, Send, Users, Eye, MousePointer, Calendar, Plus } from "lucide-react"
 
 interface NewsletterManagerProps {
-  user: any
+  user: AdminUser
 }
 
-export function NewsletterManager({ user }: NewsletterManagerProps) {
+export function NewsletterManager(_props: NewsletterManagerProps) {
   const [newsletters] = useState([
     {
       id: "1",

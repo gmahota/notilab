@@ -36,7 +36,7 @@ export function AdminLogin() {
         const data = await response.json()
         setError(data.error || "Credenciais inválidas")
       }
-    } catch (err) {
+    } catch {
       setError("Erro de conexão")
     } finally {
       setLoading(false)

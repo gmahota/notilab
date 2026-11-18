@@ -8,10 +8,20 @@ import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
 import { Search, Globe, ExternalLink, BookOpen, Clock, Star, Zap } from "lucide-react"
 
+interface ResearchResult {
+  title: string
+  source: string
+  url: string
+  summary: string
+  relevance: number
+  publishedAt: string
+  category: string
+}
+
 export function NewsResearcher() {
   const [query, setQuery] = useState("")
   const [researching, setResearching] = useState(false)
-  const [results, setResults] = useState<any[]>([])
+  const [results, setResults] = useState<ResearchResult[]>([])
 
   const handleResearch = async () => {
     setResearching(true)

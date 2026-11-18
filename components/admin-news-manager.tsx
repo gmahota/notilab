@@ -15,7 +15,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { NewsEditor } from "./news-editor"
+import { NewsEditor, type NewsDraft } from "./news-editor"
+import type { AdminUser } from "@/lib/admin-auth"
 import {
   Plus,
   Search,
@@ -30,24 +31,17 @@ import {
   AlertTriangle,
 } from "lucide-react"
 
-interface AdminUser {
-  id: string
-  email: string
-  name: string
-  role: string
-}
-
 interface AdminNewsManagerProps {
   user: AdminUser
 }
 
 export function AdminNewsManager({ user }: AdminNewsManagerProps) {
   const [showEditor, setShowEditor] = useState(false)
-  const [editingNews, setEditingNews] = useState<any>(null)
+  const [editingNews, setEditingNews] = useState<NewsDraft | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [categoryFilter, setCategoryFilter] = useState("all")
-  const [news, setNews] = useState([
+  const [news] = useState([
     {
       id: "1",
       title: "IA revoluciona diagnósticos médicos em Portugal",
@@ -117,7 +111,7 @@ export function AdminNewsManager({ user }: AdminNewsManagerProps) {
     return matchesSearch && matchesStatus && matchesCategory
   })
 
-  const handleEdit = (newsItem: any) => {
+  const handleEdit = (newsItem: NewsDraft) => {
     setEditingNews(newsItem)
     setShowEditor(true)
   }
@@ -136,7 +130,7 @@ export function AdminNewsManager({ user }: AdminNewsManagerProps) {
           setShowEditor(false)
           setEditingNews(null)
         }}
-        onSave={(savedNews) => {
+        onSave={() => {
           // Update news list
           setShowEditor(false)
           setEditingNews(null)

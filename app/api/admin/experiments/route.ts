@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { checkAdminAuth } from "@/lib/admin-auth"
-import { listExperimentSummaries, getExperimentResults } from "@/lib/admin/experiment-results"
+import { listExperimentSummaries } from "@/lib/admin/experiment-results"
 import { createExperiment } from "@/lib/growth/experiments"
 
 export const dynamic = "force-dynamic"

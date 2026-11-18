@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { TestTube, TrendingUp, Users, Target, Play, Pause } from "lucide-react"
 
 export function ABTesting() {
-  const [tests, setTests] = useState([
+  const [tests] = useState([
     {
       id: 1,
       name: "Homepage Hero Text",

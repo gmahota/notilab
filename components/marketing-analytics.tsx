@@ -19,11 +19,20 @@ import {
 } from "recharts"
 import { TrendingUp, Users, Eye, MousePointer, Share2 } from "lucide-react"
 
-interface MarketingAnalyticsProps {
-  stats: any
+export interface MarketingStats {
+  totalSubscribers: number
+  monthlyGrowth: number
+  emailOpenRate: number
+  socialEngagement: number
+  seoScore: number
+  conversionRate: number
 }
 
-export function MarketingAnalytics({ stats }: MarketingAnalyticsProps) {
+interface MarketingAnalyticsProps {
+  stats: MarketingStats
+}
+
+export function MarketingAnalytics(_props: MarketingAnalyticsProps) {
   const trafficData = [
     { name: "Jan", visitors: 4000, pageviews: 12000, conversions: 120 },
     { name: "Fev", visitors: 3000, pageviews: 9800, conversions: 98 },

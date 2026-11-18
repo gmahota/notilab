@@ -149,7 +149,7 @@ export class AIService {
     title: string
     summary: string
     content: string
-    aiAnalysis: any
+    aiAnalysis: unknown
     suggestions: string[]
   }> {
     try {

@@ -82,7 +82,7 @@ export class SocialService {
     }
   }
 
-  async getSocialAnalytics(): Promise<any> {
+  async getSocialAnalytics(): Promise<unknown> {
     try {
       const response = await fetch("/api/social?action=analytics")
       if (!response.ok) {
@@ -95,7 +95,7 @@ export class SocialService {
     }
   }
 
-  async connectPlatform(platform: string, credentials: any): Promise<boolean> {
+  async connectPlatform(platform: string, credentials: Record<string, unknown>): Promise<boolean> {
     try {
       const response = await fetch(`/api/social/connect/${platform}`, {
         method: "POST",
@@ -126,7 +126,7 @@ export class SocialService {
   }
 
   // WhatsApp specific methods
-  async sendWhatsAppMessage(message: string, recipients?: string[]): Promise<boolean> {
+  async sendWhatsAppMessage(message: string, _recipients?: string[]): Promise<boolean> {
     return this.shareToSocial("whatsapp", {
       title: "",
       summary: message,
@@ -136,7 +136,7 @@ export class SocialService {
   }
 
   // Telegram specific methods
-  async sendTelegramMessage(message: string, chatId?: string): Promise<boolean> {
+  async sendTelegramMessage(message: string, _chatId?: string): Promise<boolean> {
     return this.shareToSocial("telegram", {
       title: "",
       summary: message,
@@ -146,7 +146,7 @@ export class SocialService {
   }
 
   // Twitter specific methods
-  async postTweet(content: string, mediaUrls?: string[]): Promise<boolean> {
+  async postTweet(content: string, _mediaUrls?: string[]): Promise<boolean> {
     return this.shareToSocial("twitter", {
       title: "",
       summary: content,

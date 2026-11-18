@@ -1,23 +1,24 @@
 "use client"
 
 import { useState } from "react"
+import type { AdminUser } from "@/lib/admin-auth"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { WorkflowItemDialog } from "./workflow-item-dialog"
+import { WorkflowItemDialog, type WorkflowItem } from "./workflow-item-dialog"
 import { User, Calendar, Eye, MessageSquare } from "lucide-react"
 
 interface WorkflowKanbanProps {
-  user: any
+  user: AdminUser
   filters: {
     assignee: string
     status: string
   }
 }
 
-export function WorkflowKanban({ user, filters }: WorkflowKanbanProps) {
-  const [selectedItem, setSelectedItem] = useState<any>(null)
+export function WorkflowKanban({ user }: WorkflowKanbanProps) {
+  const [selectedItem, setSelectedItem] = useState<WorkflowItem | null>(null)
   const [showDialog, setShowDialog] = useState(false)
 
   const columns = [
@@ -108,7 +109,7 @@ export function WorkflowKanban({ user, filters }: WorkflowKanbanProps) {
     },
   ]
 
-  const handleItemClick = (item: any) => {
+  const handleItemClick = (item: WorkflowItem) => {
     setSelectedItem(item)
     setShowDialog(true)
   }
