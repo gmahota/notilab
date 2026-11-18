@@ -26,7 +26,6 @@
 import { prisma } from "@/lib/prisma"
 import { AgentError } from "@/lib/agent/errors"
 import { normalizeSlug, slugify } from "@/lib/slug"
-
 import {
   ALLOWED_TRANSITIONS,
   ARTICLE_PRIORITIES,
@@ -36,13 +35,16 @@ import {
   type ArticlePriority,
   type ArticleStatus,
 } from "./transitions"
+import { canClearReview, canRoleTransition } from "./permissions"
+import { checkImageRights } from "@/lib/ingestion/image-rights"
+import type { UserRole } from "@/lib/generated/prisma"
 
 // ── Domain vocabulary ───────────────────────────────────────────────────────
 
 // The lifecycle vocabulary lives in ./transitions so that ./permissions can
-// read the transition table without importing this module. Re-exported here
-// because every existing caller imports these names from this file, and a
-// refactor that moves a symbol should not also move every import of it.
+// read the transition table without importing this module — which imports
+// ./permissions, and would otherwise close the cycle. Re-exported here because
+// every existing caller imports these names from this file.
 export {
   ALLOWED_TRANSITIONS,
   ARTICLE_PRIORITIES,
@@ -642,9 +644,142 @@ export async function setArticleImage(
 
 // ── Lifecycle ───────────────────────────────────────────────────────────────
 
+/**
+ * The human making the move.
+ *
+ * Optional on `TransitionOptions`, and the asymmetry is deliberate. Supplying
+ * an actor turns on three things at once — the per-edge role check, the
+ * submission preconditions, and the `AdminAction` audit row — because all
+ * three are properties of *a person acting in the CMS*. The Agent API and the
+ * scheduler cron pass no actor: they are gated by their own permission scopes
+ * and write their own audit trail, and both already sit behind the same
+ * `ALLOWED_TRANSITIONS` table, which is the part that must hold for everyone.
+ */
+export interface TransitionActor {
+  id: string
+  name: string
+  role: UserRole
+}
+
 export interface TransitionOptions {
   /** Only honoured by the PUBLISHED transition. */
   publishedAt?: Date
+  /** The signed-in human. See TransitionActor — its presence changes behaviour. */
+  actor?: TransitionActor
+  /** Free text from the reviewer, kept on the workflow row and in the audit. */
+  note?: string
+}
+
+/**
+ * Why an article may not yet be submitted for review.
+ *
+ * Returned rather than thrown so the CMS can render every unmet condition at
+ * once — a reviewer told to fix one thing, who then hits the next refusal, is
+ * a reviewer who stops trusting the queue.
+ */
+export interface SubmissionBlocker {
+  code:
+    | "NO_REWRITE"
+    | "REWRITE_FAILED"
+    | "MISSING_PROVENANCE"
+    | "IMAGE_NOT_ALLOWED"
+    | "NO_AUTHOR"
+  /** Portuguese, actionable, naming what to do — not what went wrong. */
+  message: string
+}
+
+/**
+ * The § 3.3 gate: what must hold before an ingested article may be submitted.
+ *
+ * Only ingested articles are held to the rewrite condition, and the test for
+ * "ingested" is the presence of an `ArticleAI` row: `lib/ingestion/ai-queue.ts`
+ * creates one for every collected article, and `createArticle` creates none.
+ * An article written by a human or by the Agent API is already NotiLab's own
+ * text, so demanding a rewrite of it would be asking us to rewrite ourselves.
+ */
+export async function submissionBlockers(id: string): Promise<SubmissionBlocker[]> {
+  const row = (await prisma.news.findUnique({
+    where: { id },
+    select: {
+      sourceUrl: true,
+      sourceName: true,
+      imageUrl: true,
+      authorId: true,
+      articleAI: {
+        select: { contentRewritten: true, rewrittenAt: true, rewriteError: true },
+      },
+    },
+  })) as {
+    sourceUrl: string | null
+    sourceName: string | null
+    imageUrl: string | null
+    authorId: string | null
+    articleAI: {
+      contentRewritten: string | null
+      rewrittenAt: Date | null
+      rewriteError: string | null
+    } | null
+  } | null
+
+  if (!row) throw new AgentError("ARTICLE_NOT_FOUND", `No article with id "${id}".`)
+
+  const blockers: SubmissionBlocker[] = []
+
+  if (!row.sourceUrl?.trim() || !row.sourceName?.trim()) {
+    blockers.push({
+      code: "MISSING_PROVENANCE",
+      message: "O artigo perdeu a fonte (ligação ou nome). Não pode seguir para revisão.",
+    })
+  }
+
+  // Only articles that came through ingestion carry an ArticleAI row.
+  if (row.articleAI) {
+    const hasRewrite = Boolean(
+      row.articleAI.rewrittenAt && row.articleAI.contentRewritten?.trim(),
+    )
+    if (!hasRewrite) {
+      // A failed attempt and a never-attempted article need different actions
+      // from the editor, so they are different blockers.
+      blockers.push(
+        row.articleAI.rewriteError
+          ? {
+              code: "REWRITE_FAILED",
+              message:
+                "A redacção automática falhou. Escreva o texto à mão ou arquive o artigo.",
+            }
+          : {
+              code: "NO_REWRITE",
+              message:
+                "Ainda não existe texto da NotiLab para este artigo — só o texto da fonte.",
+            },
+      )
+    }
+  }
+
+  // § 4: a rejected image is never a blocker — the article runs without one.
+  // What *is* refused is a persisted URL that the allowlist would not accept,
+  // which can only mean the row predates the rule or was written around it.
+  const image = row.imageUrl?.trim()
+  if (
+    image &&
+    image !== "/placeholder.svg" &&
+    checkImageRights(image, row.sourceUrl ?? "").url === null
+  ) {
+    blockers.push({
+      code: "IMAGE_NOT_ALLOWED",
+      message:
+        "A imagem não vem de um domínio licenciado. Remova-a — publicar sem imagem é uma escolha normal.",
+    })
+  }
+
+  if (!row.authorId) {
+    blockers.push({
+      code: "NO_AUTHOR",
+      message: "Falta o autor. Um artigo em revisão tem de ter alguém responsável por ele.",
+    })
+  }
+
+  return blockers
 }
 
 /**
@@ -684,6 +819,39 @@ export async function transitionArticle(
     )
   }
 
+  const actor = options.actor
+
+  // ── The person ──────────────────────────────────────────────────────────
+  //
+  // Checked per edge against an explicit role list. Never `role >= SUPERVISOR`
+  // — see the note at the top of ./permissions for why that comparison hands
+  // publish rights to the marketing team.
+  if (actor && !canRoleTransition(actor.role, current.status, target)) {
+    throw new AgentError(
+      "FORBIDDEN",
+      `O papel ${actor.role} não pode mover um artigo de ${current.status} para ${target}.`,
+      { role: actor.role, currentStatus: current.status, target },
+    )
+  }
+
+  // ── The § 3.3 gate ──────────────────────────────────────────────────────
+  //
+  // Submission is where an ingested article stops being raw source text and
+  // becomes something we stand behind, so it is the one edge with conditions
+  // beyond the transition table.
+  if (actor && target === "PENDING_REVIEW" && current.status === "DRAFT") {
+    const blockers = await submissionBlockers(id)
+    if (blockers.length > 0) {
+      throw new AgentError(
+        "VALIDATION_FAILED",
+        `Este artigo ainda não pode seguir para revisão: ${blockers
+          .map((b) => b.message)
+          .join(" ")}`,
+        { blockers },
+      )
+    }
+  }
+
   const data: Record<string, unknown> = { status: target }
   const changes: Record<string, { before: unknown; after: unknown }> = {
     status: { before: current.status, after: target },
@@ -700,7 +868,140 @@ export async function transitionArticle(
     }
   }
 
-  await prisma.news.update({ where: { id }, data: data as never })
+  // No actor — the Agent API or the scheduler cron. Unchanged behaviour, and
+  // deliberately a single statement: those callers keep their own audit trail,
+  // and widening this path would mean every mocked test grows a transaction.
+  if (!actor) {
+    await prisma.news.update({ where: { id }, data: data as never })
+    return { article: await getArticle(id), changes, alreadyInState: false }
+  }
+
+  // ── Accountability ──────────────────────────────────────────────────────
+  //
+  // `reviewerId` records who vouched for the article. It is written once, by
+  // whoever first takes responsibility — the REVISOR who clears the review, or
+  // the SUPERVISOR who approves where no separate review happened. It is never
+  // overwritten afterwards, because the question it answers is "who cleared
+  // this", not "who touched it last".
+  const stampsReviewer = target === "APPROVED" || target === "REJECTED"
+  if (stampsReviewer) {
+    const existing = (await prisma.news.findUnique({
+      where: { id },
+      select: { reviewerId: true },
+    })) as { reviewerId: string | null } | null
+
+    if (!existing?.reviewerId) {
+      data.reviewerId = actor.id
+      changes.reviewerId = { before: null, after: actor.id }
+    }
+  }
+
+  const stage = stageForStatus(target, { hasRewrite: true })
+
+  // One transaction. An audit row that can be lost independently of the status
+  // change it describes is not an audit trail — invariant 10 says *every*
+  // transition names its actor, and "every" has to survive a failed write.
+  await prisma.$transaction([
+    prisma.news.update({ where: { id }, data: data as never }),
+
+    prisma.adminAction.create({
+      data: {
+        userId: actor.id,
+        action: `TRANSITION_${target}`,
+        resource: "NEWS",
+        resourceId: id,
+        details: {
+          from: current.status,
+          to: target,
+          actorName: actor.name,
+          actorRole: actor.role,
+          // Recorded explicitly so a later audit can tell a two-person review
+          // from a supervisor who did both halves — the row looks identical
+          // otherwise, and the difference is the whole point of the two roles.
+          reviewerStampedHere: Boolean(data.reviewerId),
+          note: options.note ?? null,
+          changes,
+        } as never,
+      },
+    }),
+
+    ...(stage
+      ? [
+          prisma.contentWorkflow.upsert({
+            where: { newsId: id },
+            create: { newsId: id, stage, assignedTo: actor.id, notes: options.note ?? null },
+            update: { stage, assignedTo: actor.id, notes: options.note ?? null },
+          }),
+        ]
+      : []),
+  ])
 
   return { article: await getArticle(id), changes, alreadyInState: false }
+}
+
+/**
+ * The `REVIEW → APPROVAL` handoff — the REVISOR's act.
+ *
+ * It moves no status, which is exactly why it needs to exist as its own
+ * function: `News.status` stays `PENDING_REVIEW` across both halves of the
+ * review, so the transition table cannot express it. What it records is that
+ * a reviewer has read the article and is passing it to an approver.
+ *
+ * This is the structural reason REVISOR and SUPERVISOR are two roles. A
+ * REVISOR who could reach APPROVED alone would make the second role decorative.
+ */
+export async function clearReview(
+  id: string,
+  actor: TransitionActor,
+  note?: string,
+): Promise<{ stage: string; reviewerId: string }> {
+  const row = (await prisma.news.findUnique({
+    where: { id },
+    select: { status: true, reviewerId: true },
+  })) as { status: string; reviewerId: string | null } | null
+
+  if (!row) throw new AgentError("ARTICLE_NOT_FOUND", `No article with id "${id}".`)
+
+  if (row.status !== "PENDING_REVIEW") {
+    throw new AgentError(
+      "INVALID_STATUS_TRANSITION",
+      `Só se pode concluir a revisão de um artigo em revisão. Este está em ${row.status}.`,
+      { currentStatus: row.status },
+    )
+  }
+
+  if (!canClearReview(actor.role)) {
+    throw new AgentError("FORBIDDEN", `O papel ${actor.role} não pode concluir uma revisão.`, {
+      role: actor.role,
+    })
+  }
+
+  const reviewerId = row.reviewerId ?? actor.id
+
+  await prisma.$transaction([
+    prisma.news.update({ where: { id }, data: { reviewerId } as never }),
+
+    prisma.contentWorkflow.upsert({
+      where: { newsId: id },
+      create: { newsId: id, stage: "APPROVAL", assignedTo: null, notes: note ?? null },
+      update: { stage: "APPROVAL", assignedTo: null, notes: note ?? null },
+    }),
+
+    prisma.adminAction.create({
+      data: {
+        userId: actor.id,
+        action: "CLEAR_REVIEW",
+        resource: "NEWS",
+        resourceId: id,
+        details: {
+          actorName: actor.name,
+          actorRole: actor.role,
+          stage: { from: "REVIEW", to: "APPROVAL" },
+          note: note ?? null,
+        } as never,
+      },
+    }),
+  ])
+
+  return { stage: "APPROVAL", reviewerId }
 }
