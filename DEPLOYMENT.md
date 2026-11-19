@@ -227,7 +227,7 @@ arrive in the morning in Maputo (UTC+2):
 
 | Cron | UTC | Maputo | Why |
 |---|---|---|---|
-| `sync-news` | 20:00 | 22:00 | previous night's ingestion; 12 GNews requests/day, within the free tier |
+| `sync-news` | 12:00 | 14:00 | early-afternoon ingestion, leaving the rest of the day for review before the digest; 12 GNews requests/day, within the free tier |
 | `process-ai-news` | 22:00 | 00:00 | enriches what sync brought in |
 | `recalculate-ranking` | 00:00 | 02:00 | needs the AI importance scores |
 | `generate-digest` | 02:00 | 04:00 | builds the edition from the ranked feed |
