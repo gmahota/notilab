@@ -168,7 +168,16 @@ function detailRow(overrides: Record<string, unknown> = {}) {
 beforeEach(() => {
   resetRateLimits()
   nextRpcId = 0
-  for (const key of ["NOTILAB_MCP_IDEMPOTENCY_WINDOW_MS"]) delete env[key]
+  // Clear the whole NOTILAB_MCP_* surface, not just the variables this file
+  // sets. next/jest loads .env exactly as `next build` does (see the docblock
+  // in jest.config.mjs), so a developer with NOTILAB_MCP_CLIENTS_JSON populated
+  // keeps a client configured through `delete env.NOTILAB_MCP_API_KEY`, and the
+  // three "MCP is disabled" cases below answer 401 instead of 503 — red locally,
+  // green in CI, which is the opposite of useful. The roster is whatever this
+  // block sets and nothing else.
+  for (const key of Object.keys(env)) {
+    if (key.startsWith("NOTILAB_MCP_")) delete env[key]
+  }
   env.NOTILAB_MCP_API_KEY = MCP_KEY
   env.NOTILAB_MCP_AGENT_ID = "abacus-mcp"
   env.NOTILAB_MCP_PERMISSIONS = "editorial"
