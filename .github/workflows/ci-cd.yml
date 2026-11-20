@@ -64,11 +64,40 @@ jobs:
       - name: TypeScript strict check
         run: pnpm exec tsc --noEmit
 
+  # ─── TEST ───────────────────────────────────────────────────────────────────
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run Jest
+        run: pnpm test
+        env:
+          # Deliberately NOT secrets.DATABASE_URL. Every suite mocks
+          # @/lib/prisma, and local and production share one Neon database —
+          # a real URL here would put a test run one unmocked import away
+          # from production data. An unroutable placeholder keeps PrismaClient
+          # constructible and keeps the suite honest about being offline.
+          DATABASE_URL: 'postgresql://placeholder:placeholder@localhost:5432/notilab'
+
   # ─── BUILD ──────────────────────────────────────────────────────────────────
   build:
     name: Build Application
     runs-on: ubuntu-latest
-    needs: [lint, typecheck]
+    needs: [lint, typecheck, test]
     steps:
       - uses: actions/checkout@v7
 
