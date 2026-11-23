@@ -42,6 +42,9 @@ afterEach(() => {
 function loadModule(): typeof import("@/lib/base-url") {
   let mod!: typeof import("@/lib/base-url")
   jest.isolateModules(() => {
+    // require() is deliberate: isolateModules needs a synchronous re-load of
+    // the module against the env this test just set, which import cannot do.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     mod = require("@/lib/base-url") as typeof import("@/lib/base-url")
   })
   return mod
