@@ -242,3 +242,45 @@ route is "already documented for the attacker", not "might eventually be found".
   pre-existing MCP auth specs noted in roadmap #65, and `lib/mcp/**` was not touched.
 - **Reversible**: the four files are recoverable from git history if #44 wants them as a starting
   shape, though `/api/me` is the agreed target and `user-service.ts` is explicitly not its model.
+
+## 2026-11-23 — Ignoring GHSA-7589-6fvf-x4pw rather than forcing `effect` or lowering the gate
+
+Context: on 2026-11-20 `Dependency Vulnerability Audit` went red on every open PR and would
+have gone red on the next `main` push. The finding is a **high**-severity ReDoS in
+`effect@3.20.0` (`Schema.TemplateLiteral` compiled regex), patched in `>=3.22.1`. Nothing in
+this repository changed: PR #177's branch is `main` plus one commit touching no lockfile, and
+`main` ran the same check green on 2026-11-18 against a byte-identical dependency graph. Only
+the advisory database moved.
+
+- **Decision**: the GHSA id is listed in `package.json` under `pnpm.auditConfig.ignoreGhsas`.
+  The gate stays at `--audit-level=high`; exactly one advisory is named, not a severity band.
+- **Why not the override pattern this repo already uses**: it was tried first and **breaks
+  Prisma**. `"effect@<3.22.1": ">=3.22.1"` installs cleanly and then `prisma generate` dies with
+  `TypeError: Cannot read properties of undefined (reading 'right')` — `@prisma/config@7.9.0` is
+  built against effect 3.20.0 and does not survive the minor bump. Reverted, lockfile restored,
+  `prisma generate` confirmed working again before anything was committed.
+- **Why not a Prisma bump**: there is no release to bump to. Every stable Prisma through
+  **7.10.1** still pins `effect@3.20.0` in `@prisma/config` (checked 2026-11-20 and again
+  2026-11-23). The fix has to come from upstream.
+- **Why the exposure is acceptable meanwhile**: `prisma` is a **devDependency**, and
+  `@prisma/client@7.9.0`'s only dependency is `@prisma/client-runtime-utils` — it does *not*
+  depend on `prisma`. The `. > @prisma/client > prisma > @prisma/config > effect` path in the
+  audit output is pnpm walking the workspace graph, not a runtime edge. `effect` reaches the
+  Prisma CLI at build time only, never the deployed runtime, and nothing under `app/`, `lib/`
+  or `components/` imports it. The vulnerable call takes a template-literal schema we do not
+  write and no request-path input reaches.
+- **What this is not**: not a precedent for clearing findings by suppression. One id, named,
+  because the only alternatives were breaking the ORM or lowering the gate for everything. A
+  comment at the audit step in `.github/workflows/security.yml` points here, since JSON cannot
+  carry the reasoning next to the id.
+- **Retirement condition** (roadmap #87): when `@prisma/config` ships `effect >= 3.22.1`, bump
+  Prisma and **delete the id**. A suppression with no expiry is how a gate rots, and this one
+  has to leave with the dependency that forced it.
+- **Validated in session** (2026-11-23): `pnpm audit --audit-level=high` exits 0 reporting
+  "1 high (1 ignored)"; `prisma generate` clean; `pnpm typecheck` clean. `pnpm test` is
+  542/545 on this branch — the three failures are the `__tests__/lib/mcp/server.test.ts` auth
+  cases of #81, which this branch inherits because it is cut from `main` and the fix is in
+  PR #177, not yet merged. Nothing here touches `lib/mcp/**`. The lockfile is untouched —
+  `auditConfig` does not affect resolution.
+- **Reversible**: delete the three lines from `package.json` and the gate is exactly as strict
+  as before.

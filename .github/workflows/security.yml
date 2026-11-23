@@ -60,6 +60,11 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Advisories this gate deliberately ignores live in package.json under
+      # pnpm.auditConfig.ignoreGhsas, one GHSA id each, every one with a dated
+      # entry in docs/memory/decisions.md saying why and what retires it. JSON
+      # carries no comments, so that log is the justification — do not add an
+      # id without one, and do not lower --audit-level to clear a finding.
       - name: Run pnpm audit (high severity)
         run: pnpm audit --audit-level=high
         continue-on-error: false
