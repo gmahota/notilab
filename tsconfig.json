@@ -18,6 +18,14 @@
         "name": "next"
       }
     ],
+    "types": [
+      "jest",
+      "jsonwebtoken",
+      "node",
+      "pg",
+      "react",
+      "react-dom"
+    ],
     "paths": {
       "@/*": ["./*"]
     }
