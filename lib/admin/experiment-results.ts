@@ -19,7 +19,6 @@
 
 import { prisma } from "../prisma"
 import { listExperiments } from "../growth/experiments"
-import type { ExperimentConfig } from "../growth/experiments"
 
 // ---------------------------------------------------------------------------
 // PrismaExt

@@ -9,7 +9,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { MessageCircle, ExternalLink, Lightbulb, BookOpen, Clock, Newspaper } from "lucide-react"
+import { MessageCircle, Lightbulb, BookOpen, Clock, Newspaper } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 
@@ -44,7 +44,6 @@ export function ShareLandingClient({
   explain,
   articleUrl,
   chatUrl,
-  explainUrl,
 }: ShareLandingClientProps) {
   const [visitId, setVisitId] = useState<string | null>(null)
   const [showExplain, setShowExplain] = useState(false)

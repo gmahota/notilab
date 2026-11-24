@@ -37,6 +37,27 @@ async function main() {
     console.log(`  ${q.rejectedSources.slice(0, 28).join(", ")}`)
   }
 
+  // Per-query contribution. `mustMatch` is carried through from the SyncQuery
+  // that fetched each article, so it identifies the query without threading an
+  // id through the pipeline. Without this the only lever that bounds intake
+  // (strategy R3a) has to be cut on guesswork about which query produced what.
+  const perQuery = new Map<string, { fetched: number; kept: number }>()
+  for (const a of raw) {
+    const key = a.mustMatch.join(" | ") || "(no terms)"
+    const row = perQuery.get(key) ?? { fetched: 0, kept: 0 }
+    row.fetched++
+    perQuery.set(key, row)
+  }
+  for (const a of q.kept) {
+    const key = a.mustMatch.join(" | ") || "(no terms)"
+    const row = perQuery.get(key)
+    if (row) row.kept++
+  }
+  console.log(`\nPER QUERY (kept/fetched), highest contributor first:`)
+  for (const [key, row] of [...perQuery].sort((a, b) => b[1].kept - a[1].kept)) {
+    console.log(`  ${String(row.kept).padStart(3)}/${String(row.fetched).padEnd(4)} ${key.slice(0, 92)}`)
+  }
+
   // Same pass the pipeline runs, so the image hosts printed here are exactly
   // the ones that would lose their picture in a real run. Nothing is written.
   const images = applyImageRights(normalizeArticles(q.kept))

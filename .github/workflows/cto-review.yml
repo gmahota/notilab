@@ -126,7 +126,7 @@ jobs:
         with:
           version: 9
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '20'
           cache: 'pnpm'
@@ -134,22 +134,31 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Every count below excludes `--exclude-dir=generated`, i.e. lib/generated/,
+      # the Prisma client that `postinstall` regenerates on every CI run. Without
+      # it the `any` metric read 73 where the hand-written code under app/, lib/
+      # and components/ holds 2 — and both of those are prose inside comments
+      # that happen to spell `: any`. A number nobody can move by doing the work
+      # is not a quality signal; it is noise that trains reviewers to ignore the
+      # report. The console.log and tech-debt counts are unaffected today (23 and
+      # 15 either way); they carry the exclusion so they cannot acquire the same
+      # defect as the generated client grows.
       - name: Check console.log in production code
         id: console-check
         run: |
           COUNT=$(grep -rn "console\.log" --include="*.ts" --include="*.tsx" \
-            app/ lib/ components/ 2>/dev/null | grep -v "//.*console" | wc -l || echo 0)
+            --exclude-dir=generated app/ lib/ components/ 2>/dev/null | grep -v "//.*console" | wc -l || echo 0)
           echo "console_count=$COUNT" >> $GITHUB_OUTPUT
           if [ "$COUNT" -gt 0 ]; then
             echo "::warning::Found $COUNT console.log statement(s). Remove before merging to main."
-            grep -rn "console\.log" --include="*.ts" --include="*.tsx" app/ lib/ components/ | grep -v "//.*console" || true
+            grep -rn "console\.log" --include="*.ts" --include="*.tsx" --exclude-dir=generated app/ lib/ components/ | grep -v "//.*console" || true
           fi
 
       - name: Count technical debt markers
         id: tech-debt
         run: |
           COUNT=$(grep -rn "TODO\|FIXME\|HACK\|XXX\|@deprecated" \
-            --include="*.ts" --include="*.tsx" \
+            --include="*.ts" --include="*.tsx" --exclude-dir=generated \
             app/ lib/ components/ 2>/dev/null | wc -l || echo 0)
           echo "debt_count=$COUNT" >> $GITHUB_OUTPUT
           echo "Technical debt items: $COUNT"
@@ -158,7 +167,7 @@ jobs:
         id: any-check
         run: |
           COUNT=$(grep -rn ": any\b\|as any\b" --include="*.ts" --include="*.tsx" \
-            app/ lib/ components/ 2>/dev/null | wc -l || echo 0)
+            --exclude-dir=generated app/ lib/ components/ 2>/dev/null | wc -l || echo 0)
           echo "any_count=$COUNT" >> $GITHUB_OUTPUT
           if [ "$COUNT" -gt 10 ]; then
             echo "::warning::Found $COUNT 'any' type usages. Prefer explicit types."
@@ -203,7 +212,7 @@ jobs:
         with:
           version: 9
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '20'
           cache: 'pnpm'
@@ -237,7 +246,7 @@ jobs:
         with:
           version: 9
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '20'
           cache: 'pnpm'

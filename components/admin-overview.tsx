@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -97,7 +97,6 @@ function formatRelativeTime(date: Date): string {
 // ---------------------------------------------------------------------------
 
 export function AdminOverview({ stats, userName }: AdminOverviewProps) {
-  const aiHealthy = stats.ai.failed === 0
   const aiWarning = stats.ai.failed > 0 && stats.ai.failed < 10
   const aiCritical = stats.ai.failed >= 10
 

@@ -19,13 +19,14 @@ import { useCallback, useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import type { AdminUser } from "@/lib/admin-auth"
 import { ReviewPanel } from "@/components/editorial/review-panel"
 import { STAGE_LABELS, QUEUE_LABELS } from "@/lib/editorial/labels"
 import type { WorkflowStage } from "@/lib/generated/prisma"
 import { AlertTriangle, ImageOff, Loader2, User } from "lucide-react"
 
 interface WorkflowKanbanProps {
-  user: { id: string; name: string; role: string }
+  user: AdminUser
   filters: {
     assignee: string
     status: string
@@ -85,7 +86,7 @@ function initials(name: string): string {
     .toUpperCase()
 }
 
-export function WorkflowKanban({ user, filters }: WorkflowKanbanProps) {
+export function WorkflowKanban({ filters }: WorkflowKanbanProps) {
   const [board, setBoard] = useState<Record<string, BoardItem[]>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import type { AdminUser } from "@/lib/admin-auth"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -19,10 +20,10 @@ import {
 import { Plus, Play, Pause, BarChart3, Target, Calendar, DollarSign } from "lucide-react"
 
 interface CampaignManagerProps {
-  user: any
+  user: AdminUser
 }
 
-export function CampaignManager({ user }: CampaignManagerProps) {
+export function CampaignManager(_props: CampaignManagerProps) {
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [campaigns] = useState([
     {

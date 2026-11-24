@@ -3,7 +3,6 @@
 import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Sparkles, Loader2, Link2, Copy, Check, Share2, MessageCircle, AlertCircle } from "lucide-react"
-import { Badge } from "@/components/ui/badge"
 
 interface LinkAnalysis {
   title: string

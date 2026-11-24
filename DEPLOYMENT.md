@@ -63,15 +63,24 @@ npm install
 \`\`\`
 
 ### 2. Configure the Database
+
+> **Set `PRODUCTION_DATABASE_HOST` in your `.env` and read
+> `docs/runbooks/database-migrations.md` first.** On this project
+> `DATABASE_URL` has historically pointed at the same Neon database the
+> deployed site uses, so `db push`, `db:reset` and the seed are production
+> writes. The runbook covers the Neon branch to point `.env` at and how a
+> migration reaches production (CI does not apply migrations — the deploy jobs
+> have no `VERCEL_TOKEN`).
+
 \`\`\`bash
 # Generate the Prisma client
-npx prisma generate
+pnpm db:generate
 
-# Run migrations
-npx prisma db push
+# Apply the committed migrations — never `db push`, which leaves no migration record
+pnpm exec prisma migrate deploy
 
-# Initial seed (optional)
-npm run seed
+# Initial seed (optional, and a write: check which database you are pointed at)
+pnpm db:seed
 \`\`\`
 
 ### 3. Run the Project
@@ -218,7 +227,7 @@ arrive in the morning in Maputo (UTC+2):
 
 | Cron | UTC | Maputo | Why |
 |---|---|---|---|
-| `sync-news` | 20:00 | 22:00 | previous night's ingestion; 12 GNews requests/day, within the free tier |
+| `sync-news` | 12:00 | 14:00 | early-afternoon ingestion, leaving the rest of the day for review before the digest; 12 GNews requests/day, within the free tier |
 | `process-ai-news` | 22:00 | 00:00 | enriches what sync brought in |
 | `recalculate-ranking` | 00:00 | 02:00 | needs the AI importance scores |
 | `generate-digest` | 02:00 | 04:00 | builds the edition from the ranked feed |

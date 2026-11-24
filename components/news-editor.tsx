@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import type { AdminUser } from "@/lib/admin-auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import Image from "next/image"
@@ -12,11 +13,29 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch"
 import { ArrowLeft, Save, Eye, Send, Upload, Sparkles, Tag, Calendar, Globe, ImageIcon } from "lucide-react"
 
+export interface NewsDraft {
+  id?: string
+  title?: string
+  content?: string
+  summary?: string
+  imageUrl?: string
+  sourceUrl?: string
+  sourceName?: string
+  categoryId?: string
+  tags?: string[]
+  priority?: string
+  trending?: boolean
+  publishedAt?: string | Date | null
+  status?: string
+  author?: string
+  updatedAt?: Date
+}
+
 interface NewsEditorProps {
-  news?: any
-  user: any
+  news?: NewsDraft | null
+  user: AdminUser
   onClose: () => void
-  onSave: (news: any) => void
+  onSave: (news: NewsDraft) => void
 }
 
 export function NewsEditor({ news, user, onClose, onSave }: NewsEditorProps) {

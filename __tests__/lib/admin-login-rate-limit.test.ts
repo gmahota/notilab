@@ -134,12 +134,22 @@ describe("the password policy", () => {
     expect(bcrypt.getRounds(TIMING_EQUALIZER_HASH)).toBe(BCRYPT_COST)
   })
 
-  it("matches no password anyone could submit", async () => {
-    // Including the one behind the three deleted mock accounts.
-    for (const guess of ["password", "", "admin", "notilab", "Password123!"]) {
-      await expect(bcrypt.compare(guess, TIMING_EQUALIZER_HASH)).resolves.toBe(false)
-    }
-  })
+  it(
+    "matches no password anyone could submit",
+    async () => {
+      // Including the one behind the three deleted mock accounts.
+      for (const guess of ["password", "", "admin", "notilab", "Password123!"]) {
+        await expect(bcrypt.compare(guess, TIMING_EQUALIZER_HASH)).resolves.toBe(false)
+      }
+    },
+    // Five bcrypt comparisons at BCRYPT_COST = 12 are deliberately expensive —
+    // that cost is the point of the hash. Unloaded they fit inside Jest's 5s
+    // default; sharing a CPU with the rest of the suite's workers they do not,
+    // so this timed out as soon as the suite grew. The budget is raised rather
+    // than the cost lowered or the loop trimmed: both of those would weaken the
+    // assertion to make a scheduling problem go away.
+    30_000,
+  )
 
   it("requires a password long enough to survive having no lockout", () => {
     expect(MIN_ADMIN_PASSWORD_LENGTH).toBeGreaterThanOrEqual(12)

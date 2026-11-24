@@ -38,6 +38,7 @@ import {
 import { ReviewPanel } from "@/components/editorial/review-panel"
 import { STATUS_LABELS, QUEUE_LABELS, stageLabel } from "@/lib/editorial/labels"
 import { ARTICLE_STATUSES, type ArticleStatus } from "@/lib/editorial/transitions"
+import type { AdminUser } from "@/lib/admin-auth"
 import {
   AlertTriangle,
   CheckCircle,
@@ -48,13 +49,6 @@ import {
   PenLine,
   Search,
 } from "lucide-react"
-
-interface AdminUser {
-  id: string
-  email: string
-  name: string
-  role: string
-}
 
 interface QueueItem {
   id: string

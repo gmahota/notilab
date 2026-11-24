@@ -10,7 +10,7 @@ interface WorkflowCommentsProps {
   itemId: string
 }
 
-export function WorkflowComments({ itemId }: WorkflowCommentsProps) {
+export function WorkflowComments(_props: WorkflowCommentsProps) {
   const [comments] = useState([
     {
       id: "1",

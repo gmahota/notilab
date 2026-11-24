@@ -42,7 +42,7 @@ Verified against the working tree on 2026-11-13, not inferred from docs.
 
 | Pipeline | Entry | Schedule |
 |---|---|---|
-| Ingestion (GNews / NewsAPI / RSS / Reddit) | `app/api/cron/sync-news`, `lib/ingestion/*` | `0 20 * * *` |
+| Ingestion (GNews / NewsAPI / RSS / Reddit) | `app/api/cron/sync-news`, `lib/ingestion/*` | `0 12 * * *` |
 | AI enrichment (`summary`/`tldr`/`whyItMatters`/`explainLikeIm10`) | `app/api/cron/process-ai-news`, `lib/ai-processing/*` | `0 22 * * *` |
 | Ranking / trending recalculation | `app/api/cron/recalculate-ranking`, `lib/ranking.ts`, `lib/trends.ts` | `0 0 * * *` |
 | Digest generation and send | `app/api/cron/generate-digest`, `send-digest`, `lib/digest.ts` | `0 2`, `0 5` |
@@ -118,14 +118,25 @@ visitors included. There is no reader login.
 The code is already written and uncommitted. These stories make it legible and
 land it; they do not re-decide the scope.
 
-> **Status 2026-11-13: A1 and A2 done, A3 partial.** Tracked as roadmap #75–#77,
-> with the gaps they surfaced as #78–#83. The dry-run ran: the noise channel is
-> closed (0 rejections by shape, 0 by relevance) but **A3's volume criterion
-> fails** — 23 articles/run against a 16/day reviewable rate — and three
-> off-scope items cleared every gate from allowlisted outlets. Measurement:
-> `docs/manager/strategy/scope-v2-intake-measurement.md`. Everything below is
-> kept as written; the acceptance criteria are what the rows were validated
-> against.
+> **Status 2026-11-13: Epic A done.** Roadmap #75–#77 and #82, with the gaps they
+> surfaced open as #78–#81, #83 and #84. The noise channel is closed (0
+> rejections by shape, 0 by relevance across two runs) and intake was cut from 23
+> to 10 articles/run — under both the 16/day reviewable rate and the 15/day
+> enrichment ceiling — by dropping 3 of the 10 queries. Measurement, before and
+> after: `docs/manager/strategy/scope-v2-intake-measurement.md`.
+>
+> **Then the allowlist was widened (#84)** to un-dark the Premier League and US
+> markets queries, which had been keeping **zero** of the 10 each fetched. Both
+> now produce (markets 0→6, Premier League 0→1) — and intake went back to
+> **21/run**, over both ceilings, so #82 is open again. The widening also
+> imported two new problems: a metaphor ("the Taylor Swift of tech") that no gate
+> can reject (#85), and one source group at 38% of the feed (#86).
+>
+> **The honest state: coverage is fixed, volume is not, and the two trade off.**
+> Intake, scope and source mix are now one decision, not three.
+>
+> Everything below is kept as written; the acceptance criteria are what the rows
+> were validated against.
 
 ### A1 — Ratify the 2026-11-12 scope in the editorial policy
 **P0 · S · owner: `02-editorial-content`**
@@ -150,7 +161,7 @@ As an operator, I want every slug the categoriser can emit to exist as a
 `Category` row, so that no article is silently demoted to `general`.
 
 **AC**
-- `celebridades` and `economia` exist in the live `Category` table before the next 20:00 sync.
+- `celebridades` and `economia` exist in the live `Category` table before the next 12:00 UTC sync.
 - `scripts/db/ensure-categories.ts` is committed, has the `--confirm-production-write` guard, and converges on a re-run (upsert by slug) — per `neon-drops-mid-batch`.
 - `REQUIRED_CATEGORIES` in the script and `CATEGORY_RULES` in `normalize.ts` list the same slugs; a diff between them is visible, not silent.
 - `pnpm ingest:dry-run` writes nothing and reports the new queries' accept/reject counts.
@@ -385,7 +396,7 @@ still reach me, so that review latency does not silently delete the digest.
 - `News.publishedAt` still holds the source's date and is still never rewritten by `transitionArticle`.
 
 **Depends on** — B8. **Blocks** — B14 (**prerequisite, not a follow-up** — settled by the Phase 0 numbers).
-**Risks (P0)** — measured: an article is a median **14.5h** old on arrival; ingestion runs 20:00 and `generate-digest` 02:00, so review has a **six-hour overnight window**, and 7% of articles are already outside it on arrival. Review in working hours misses every digest, every day. Interim lever if B13 slips: widen `WINDOW_HOURS` in `lib/digest.ts` from 24 to 48 — one constant, reversible, safe because `selectArticles` already takes `excludeIds`.
+**Risks (P0)** — measured: an article is a median **14.5h** old on arrival; ingestion runs 12:00 UTC and `generate-digest` 02:00 UTC, so review has a **fourteen-hour window** (14:00 Maputo arrival → 04:00 Maputo digest), and 7% of articles are already outside it on arrival. Roughly three working hours of that window fall on the same working day; the rest is overnight. Interim lever if B13 slips: widen `WINDOW_HOURS` in `lib/digest.ts` from 24 to 48 — one constant, reversible, safe because `selectArticles` already takes `excludeIds`.
 **Tests** — specs over the window selection with a fixture approved outside the 24h source window; one live digest run observed.
 
 ### B14 — Flip the gate
@@ -686,7 +697,7 @@ database, so that onboarding cannot overwrite the live site.
 ## Part 3 — Suggested order
 
 **Now, independent of everything else:** A1 → A2 → A3 (the uncommitted pivot sits
-in the working tree and the next 20:00 sync runs against it), plus E2, G1, C6 and
+in the working tree and the next 12:00 UTC sync runs against it), plus E2, G1, C6 and
 B17 — each a live defect with no dependency.
 
 **Then the unblockers:** B4 (migration delivery) and G3 unlock B3, C1 and F1.

@@ -1,5 +1,7 @@
 /**
- * Covers the categoriser and the taxonomy parity it depends on.
+ * Covers `normalizeArticles` — the drop rules it enforces and the fields it
+ * derives — plus the categoriser and the taxonomy parity that categoriser
+ * depends on.
  *
  * Two things must never regress here:
  *
@@ -17,12 +19,14 @@ import {
   CATEGORY_SLUGS,
   FALLBACK_CATEGORY_SLUG,
   detectCategorySlug,
+  normalizeArticles,
 } from "@/lib/ingestion/normalize"
 import {
   CATEGORY_CATALOG,
   catalogEntriesWithNoRule,
   slugsMissingFromCatalog,
 } from "@/lib/ingestion/category-catalog"
+import type { RawArticle } from "@/lib/ingestion/types"
 
 describe("taxonomy parity", () => {
   it("has a catalog row for every slug the categoriser can emit", () => {
@@ -143,5 +147,190 @@ describe("detectCategorySlug — first match wins", () => {
       "mocambique",
     )
     expect(detectCategorySlug("Xenophobia flares again", "")).toBe("africa-do-sul")
+  })
+})
+
+// ─── normalizeArticles ────────────────────────────────────────────────────────
+
+const LEAD = "lorem ipsum ".repeat(30)
+
+function raw(overrides: Partial<RawArticle> = {}): RawArticle {
+  return {
+    title:       "Arsenal beat Liverpool in the Premier League",
+    content:     `Match report. ${LEAD}`,
+    description: `Arsenal won at Anfield. ${LEAD}`,
+    imageUrl:    null,
+    sourceUrl:   "https://www.bbc.com/sport/football/12345",
+    sourceName:  "BBC Sport",
+    publishedAt: new Date(Date.now() - 2 * 3_600_000),
+    provider:    "gnews",
+    mustMatch:   ["arsenal"],
+    ...overrides,
+  }
+}
+
+describe("normalizeArticles — what it drops", () => {
+  const dropCases: [string, Partial<RawArticle>][] = [
+    ["an empty title",              { title: "" }],
+    ["a whitespace-only title",     { title: "   " }],
+    ["an empty sourceUrl",          { sourceUrl: "" }],
+    ["a whitespace-only sourceUrl", { sourceUrl: "   " }],
+    ["an unparseable publishedAt",  { publishedAt: new Date("not a date") }],
+    ["the NewsAPI [Removed] title", { title: "[Removed]" }],
+    ["the NewsAPI removed.com URL", { sourceUrl: "https://removed.com" }],
+  ]
+
+  it.each(dropCases)("drops %s", (_label, overrides) => {
+    expect(normalizeArticles([raw(overrides)])).toEqual([])
+  })
+
+  it("drops an article carrying no publishedAt at all", () => {
+    // The guard is `isNaN(a.publishedAt?.getTime())`. A provider that omits the
+    // field must not reach the database with an Invalid Date, which would then
+    // poison every recency window that keys off publishedAt.
+    expect(normalizeArticles([raw({ publishedAt: undefined as unknown as Date })])).toEqual([])
+  })
+
+  it("keeps the survivors of a mixed batch, in order", () => {
+    const out = normalizeArticles([
+      raw({ title: "Benfica contrata avançado" }),
+      raw({ title: "[Removed]" }),
+      raw({ title: "Real Madrid gana el clásico" }),
+    ])
+    expect(out.map((a) => a.title)).toEqual([
+      "Benfica contrata avançado",
+      "Real Madrid gana el clásico",
+    ])
+  })
+})
+
+describe("normalizeArticles — derived fields", () => {
+  it("strips HTML and collapses runs of whitespace", () => {
+    const [out] = normalizeArticles([
+      raw({
+        title:       "<h1>Arsenal   beat</h1> Liverpool",
+        content:     `<p>Match   report.</p> ${LEAD}`,
+        description: `<p>Arsenal   won.</p> ${LEAD}`,
+      }),
+    ])
+    expect(out.title).toBe("Arsenal beat Liverpool")
+    expect(out.content).not.toMatch(/[<>]/)
+    expect(out.summary).not.toMatch(/[<>]/)
+    expect(out.content).not.toMatch(/\s{2,}/)
+  })
+
+  it("falls back to the description when the provider sends no content", () => {
+    const [out] = normalizeArticles([
+      raw({ content: "", description: `Arsenal won at Anfield. ${LEAD}` }),
+    ])
+    expect(out.content).toBe(`Arsenal won at Anfield. ${LEAD}`.trim())
+  })
+
+  it("falls back to the title when there is no body at all", () => {
+    // An article with no body still has to be storable — content is non-null in
+    // the schema, and the title is the only honest thing left to put there.
+    const [out] = normalizeArticles([
+      raw({ title: "Benfica contrata avançado", content: "", description: "" }),
+    ])
+    expect(out.content).toBe("Benfica contrata avançado")
+    expect(out.summary).toBe("Benfica contrata avançado")
+  })
+
+  it("takes the summary from the description when there is one", () => {
+    const [out] = normalizeArticles([
+      raw({ description: "Arsenal won at Anfield.", content: `Long report. ${LEAD}` }),
+    ])
+    expect(out.summary).toBe("Arsenal won at Anfield.")
+  })
+
+  it("truncates the summary to 200 characters of content when there is no description", () => {
+    const [out] = normalizeArticles([raw({ description: "", content: "k".repeat(500) })])
+    expect(out.summary).toBe("k".repeat(200))
+  })
+
+  it("trims the sourceUrl", () => {
+    const [out] = normalizeArticles([raw({ sourceUrl: "  https://www.bbc.com/a  " })])
+    expect(out.sourceUrl).toBe("https://www.bbc.com/a")
+  })
+
+  it("carries imageUrl, sourceName and publishedAt through untouched", () => {
+    const publishedAt = new Date("2026-11-12T20:00:00.000Z")
+    const [out] = normalizeArticles([
+      raw({ imageUrl: "https://img.example/1.jpg", sourceName: "BBC Sport", publishedAt }),
+    ])
+    expect(out.imageUrl).toBe("https://img.example/1.jpg")
+    expect(out.sourceName).toBe("BBC Sport")
+    expect(out.publishedAt).toBe(publishedAt)
+  })
+
+  it("categorises from the normalised title and body together", () => {
+    const [out] = normalizeArticles([
+      raw({ title: "Match report", content: `Chelsea FC won away. ${LEAD}`, description: "" }),
+    ])
+    expect(out.categorySlug).toBe("desporto")
+    expect(out.tags).toContain("desporto")
+  })
+})
+
+describe("normalizeArticles — tags", () => {
+  it("takes at most four title keywords plus the category slug", () => {
+    const [out] = normalizeArticles([
+      raw({ title: "Arsenal beat Liverpool in the Premier League" }),
+    ])
+    expect(out.tags).toEqual(["arsenal", "beat", "liverpool", "premier", "desporto"])
+  })
+
+  it("drops stop words and words of three characters or fewer", () => {
+    const [out] = normalizeArticles([
+      raw({ title: "The quick brown fox", content: "", description: "" }),
+    ])
+    expect(out.tags).toEqual(["quick", "brown", FALLBACK_CATEGORY_SLUG])
+  })
+
+  it("strips punctuation before splitting", () => {
+    const [out] = normalizeArticles([
+      raw({ title: "Arsenal's late winner!", content: "", description: "" }),
+    ])
+    expect(out.tags).toEqual(["arsenals", "late", "winner", FALLBACK_CATEGORY_SLUG])
+  })
+
+  it("de-duplicates a keyword that is already the category slug", () => {
+    const [out] = normalizeArticles([
+      raw({ title: "Benfica domina o desporto nacional", content: "", description: "" }),
+    ])
+    expect(out.tags).toEqual(["benfica", "domina", "desporto", "nacional"])
+    expect(out.tags.filter((t) => t === "desporto")).toHaveLength(1)
+  })
+})
+
+describe("normalizeArticles — importanceScore recency bands", () => {
+  const bands: [number, number][] = [
+    [0.5, 95],
+    [3, 85],
+    [12, 72],
+    [48, 55],
+    [100, 35],
+    [300, 15],
+  ]
+
+  it.each(bands)("scores an article %s hours old at %s", (ageHours, expected) => {
+    const [out] = normalizeArticles([
+      raw({ publishedAt: new Date(Date.now() - ageHours * 3_600_000) }),
+    ])
+    expect(out.importanceScore).toBe(expected)
+  })
+})
+
+describe("normalizeArticles — readTime", () => {
+  it("never reports less than a minute", () => {
+    const [out] = normalizeArticles([raw({ content: "Three words only", description: "" })])
+    expect(out.readTime).toBe(1)
+  })
+
+  it("estimates at about 200 words a minute", () => {
+    const [out] = normalizeArticles([
+      raw({ content: "palavra ".repeat(500), description: "" }),
+    ])
+    expect(out.readTime).toBe(3)
   })
 })

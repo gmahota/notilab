@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import type { AdminUser } from "@/lib/admin-auth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -16,12 +17,21 @@ import {
 } from "@/components/ui/dialog"
 import { Plus, Edit, Trash2, Hash } from "lucide-react"
 
-interface AdminCategoryManagerProps {
-  user: any
+interface CategoryRow {
+  id: string
+  name: string
+  slug: string
+  color: string
+  newsCount: number
+  description?: string
 }
 
-export function AdminCategoryManager({ user }: AdminCategoryManagerProps) {
-  const [categories, setCategories] = useState([
+interface AdminCategoryManagerProps {
+  user: AdminUser
+}
+
+export function AdminCategoryManager(_props: AdminCategoryManagerProps) {
+  const [categories] = useState([
     { id: "1", name: "Política", slug: "politica", color: "#EF4444", newsCount: 234 },
     { id: "2", name: "Tecnologia", slug: "tecnologia", color: "#3B82F6", newsCount: 189 },
     { id: "3", name: "Desporto", slug: "desporto", color: "#10B981", newsCount: 156 },
@@ -30,7 +40,7 @@ export function AdminCategoryManager({ user }: AdminCategoryManagerProps) {
   ])
 
   const [showDialog, setShowDialog] = useState(false)
-  const [editingCategory, setEditingCategory] = useState<any>(null)
+  const [editingCategory, setEditingCategory] = useState<CategoryRow | null>(null)
   const [formData, setFormData] = useState({
     name: "",
     slug: "",
@@ -38,7 +48,7 @@ export function AdminCategoryManager({ user }: AdminCategoryManagerProps) {
     description: "",
   })
 
-  const handleEdit = (category: any) => {
+  const handleEdit = (category: CategoryRow) => {
     setEditingCategory(category)
     setFormData({
       name: category.name,
