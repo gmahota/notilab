@@ -883,7 +883,25 @@ export async function transitionArticle(
   // the SUPERVISOR who approves where no separate review happened. It is never
   // overwritten afterwards, because the question it answers is "who cleared
   // this", not "who touched it last".
-  const stampsReviewer = target === "APPROVED" || target === "REJECTED"
+  //
+  // `current.status === "PENDING_REVIEW"` is load-bearing, and its absence was
+  // a defect: the target alone does not tell you a review happened. Two legal
+  // edges reach these targets from somewhere nobody reviewed anything, and both
+  // were stamping an actor who had reviewed nothing:
+  //
+  //   PUBLISHED -> APPROVED   the unpublish act. A SUPERVISOR taking down a
+  //                           legacy article nobody ever reviewed was recorded
+  //                           as its reviewer.
+  //   DRAFT -> REJECTED       killing a draft before it was ever submitted.
+  //                           The review it is being credited for never began.
+  //
+  // This is not cosmetic. A false stamp silently satisfies invariant 12 — a
+  // mocambique/africa-do-sul story never reaches PUBLISHED without a human
+  // reviewer — which is the one rule reviewerId exists to make checkable.
+  // Rejecting from APPROVED with a null reviewerId now leaves it null, which is
+  // the honest answer: nobody reviewed it.
+  const stampsReviewer =
+    current.status === "PENDING_REVIEW" && (target === "APPROVED" || target === "REJECTED")
   if (stampsReviewer) {
     const existing = (await prisma.news.findUnique({
       where: { id },
