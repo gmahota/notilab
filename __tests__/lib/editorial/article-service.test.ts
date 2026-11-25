@@ -30,6 +30,11 @@ jest.mock("@/lib/prisma", () => ({
       create: jest.fn(),
     },
     category: { findUnique: jest.fn() },
+    // The actor path: one transaction carrying the status update, the workflow
+    // row and the audit row.
+    adminAction: { create: jest.fn() },
+    contentWorkflow: { upsert: jest.fn() },
+    $transaction: jest.fn().mockResolvedValue([]),
   },
 }))
 
@@ -159,6 +164,75 @@ describe("transitionArticle", () => {
     await expect(transitionArticle("nope", "APPROVED")).rejects.toMatchObject({
       code: "ARTICLE_NOT_FOUND",
     })
+  })
+})
+
+/**
+ * Who gets recorded as having reviewed an article.
+ *
+ * `reviewerId` is the column invariant 12 leans on — a mocambique or
+ * africa-do-sul story never reaches PUBLISHED without a human reviewer — so a
+ * stamp applied where no review happened does not just misattribute credit, it
+ * silently satisfies the one rule the field exists to make checkable.
+ *
+ * The guard was `target === "APPROVED" || target === "REJECTED"`, with no
+ * constraint on where the article came from. Both edges below reach those
+ * targets from a status nobody reviewed anything in.
+ */
+describe("transitionArticle — the reviewer stamp", () => {
+  const SUPERVISOR = { id: "u-sup", name: "Ana Supervisora", role: "SUPERVISOR" as const }
+
+  it("stamps the approver when an article is approved out of review", async () => {
+    news.findUnique.mockResolvedValue(mutationRow({ status: "PENDING_REVIEW", reviewerId: null }))
+    news.findFirst.mockResolvedValue(detailRow({ status: "APPROVED" }))
+
+    await transitionArticle("article-1", "APPROVED", { actor: SUPERVISOR })
+
+    expect(news.update.mock.calls[0][0].data.reviewerId).toBe("u-sup")
+  })
+
+  it("stamps the rejecter when an article is rejected out of review", async () => {
+    // A rejection after review IS a review act — the person read it and ruled.
+    news.findUnique.mockResolvedValue(mutationRow({ status: "PENDING_REVIEW", reviewerId: null }))
+    news.findFirst.mockResolvedValue(detailRow({ status: "REJECTED" }))
+
+    await transitionArticle("article-1", "REJECTED", { actor: SUPERVISOR })
+
+    expect(news.update.mock.calls[0][0].data.reviewerId).toBe("u-sup")
+  })
+
+  it("does not stamp a reviewer when a live article is unpublished", async () => {
+    // PUBLISHED -> APPROVED is the second edge into APPROVED. Taking a legacy
+    // article down is not a review of it.
+    news.findUnique.mockResolvedValue(mutationRow({ status: "PUBLISHED", reviewerId: null }))
+    news.findFirst.mockResolvedValue(detailRow({ status: "APPROVED" }))
+
+    await transitionArticle("article-1", "APPROVED", { actor: SUPERVISOR })
+
+    expect(news.update.mock.calls[0][0].data).not.toHaveProperty("reviewerId")
+  })
+
+  it("does not stamp a reviewer when a draft is killed before submission", async () => {
+    // DRAFT -> REJECTED. The review this would credit never began.
+    news.findUnique.mockResolvedValue(mutationRow({ status: "DRAFT", reviewerId: null }))
+    news.findFirst.mockResolvedValue(detailRow({ status: "REJECTED" }))
+
+    await transitionArticle("article-1", "REJECTED", { actor: SUPERVISOR })
+
+    expect(news.update.mock.calls[0][0].data).not.toHaveProperty("reviewerId")
+  })
+
+  it("never overwrites a reviewer already recorded", async () => {
+    // The question the column answers is "who cleared this", not "who touched
+    // it last" — so the REVISOR who cleared keeps it, not the approver.
+    news.findUnique.mockResolvedValue(
+      mutationRow({ status: "PENDING_REVIEW", reviewerId: "u-rev" }),
+    )
+    news.findFirst.mockResolvedValue(detailRow({ status: "APPROVED" }))
+
+    await transitionArticle("article-1", "APPROVED", { actor: SUPERVISOR })
+
+    expect(news.update.mock.calls[0][0].data).not.toHaveProperty("reviewerId")
   })
 })
 
